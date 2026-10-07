@@ -8,9 +8,29 @@ public class ProjectSW : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
+		PublicDependencyModuleNames.AddRange(new string[]
+		{
+			"Core",
+			"CoreUObject", 
+			"Engine",
+			"InputCore", 
+			"EnhancedInput",
+			"GameplayAbilities",
+			"GameplayTags",
+			"GameplayTasks",
+			"UMG"
+		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			
+		});
+		
+		PublicIncludePaths.AddRange(new string[]
+		{
+			"ProjectSW"
+		});
+
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
