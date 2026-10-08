@@ -5,6 +5,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/Character.h"
 #include "Utility/SoulDefineMacro.h"
+#include "Utility/SoulLog.h"
 
 ASoulPlayerController::ASoulPlayerController()
 {
@@ -72,4 +73,7 @@ void ASoulPlayerController::StopJumping()
 void ASoulPlayerController::ActiveAbility()
 {
 	DEBUG_MSG("Left Mouse Clicked");
+	SW_LOG("Left Mouse Clicked");
+	SW_LOG_WARNING("Left Mouse Clicked");
+	SW_LOG_ERROR("Left Mouse Clicked");
 }
