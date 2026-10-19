@@ -1,6 +1,6 @@
 # Proprietary game assets - Do not modify this commit setting
 Content/Assets/Release/
-Content/SoulWorker/
+Content/Worker/SoulWorker/
 
 # Visual Studio 2015 user specific files
 .vs/
