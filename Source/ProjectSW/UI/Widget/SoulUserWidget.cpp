@@ -1,8 +1,9 @@
 ﻿
 #include "SoulUserWidget.h"
 
-USoulUserWidget::USoulUserWidget(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+
+void USoulUserWidget::SetWidgetController(UObject* InWidgetController)
 {
-	
+	WidgetController = InWidgetController;
+	OnWidgetControllerSet();
 }

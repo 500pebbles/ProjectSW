@@ -9,7 +9,12 @@
 
 ASoulPlayerController::ASoulPlayerController()
 {
-	
+	bReplicates = true;
+}
+
+void ASoulPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
 }
 
 void ASoulPlayerController::SetupInputComponent()

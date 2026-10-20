@@ -13,29 +13,33 @@ UCLASS()
 class PROJECTSW_API ASoulPlayerController : public APlayerController
 {
 	GENERATED_BODY()
-	
+
 public:
 	ASoulPlayerController();
 	
 protected:
+	virtual void BeginPlay() override;
+	
 	virtual void SetupInputComponent() override;
-    
+
+/* Input Section */	
 protected:    
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UPROPERTY(EditDefaultsOnly, Category = "Setup|Input")
 	TArray<TObjectPtr<UInputMappingContext>> InputMappingContexts;
     
-	UPROPERTY(EditDefaultsOnly, Category = "Input|Movement")
+	UPROPERTY(EditDefaultsOnly, Category = "Setup|Input")
 	TObjectPtr<UInputAction> JumpAction;
     
-	UPROPERTY(EditDefaultsOnly, Category = "Input|Movement")
+	UPROPERTY(EditDefaultsOnly, Category = "Setup|Input")
 	TObjectPtr<UInputAction> MoveAction;
     
-	UPROPERTY(EditDefaultsOnly, Category = "Input|Movement")
+	UPROPERTY(EditDefaultsOnly, Category = "Setup|Input")
 	TObjectPtr<UInputAction> LookAction;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Input|Abilities")
+	UPROPERTY(EditDefaultsOnly, Category = "Setup|Input")
 	TObjectPtr<UInputAction> AbilityAction;
-	
+
+/* Actions Section */	
 protected:
 	void Move(const FInputActionValue& Value);
 	
