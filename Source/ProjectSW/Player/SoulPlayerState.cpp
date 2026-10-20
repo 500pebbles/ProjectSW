@@ -1,8 +1,9 @@
 ﻿
 #include "SoulPlayerState.h"
 
-#include "GAS/SoulAbilitySystemComponent.h"
-#include "GAS/SoulAttributeSet.h"
+#include "GAS/Core/SoulAbilitySystemComponent.h"
+#include "GAS/Core/SoulAttributeSet.h"
+#include "Net/UnrealNetwork.h"
 
 ASoulPlayerState::ASoulPlayerState()
 {
@@ -14,6 +15,13 @@ ASoulPlayerState::ASoulPlayerState()
 	NetUpdateFrequency = 60.f;
 }
 
+void ASoulPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(ASoulPlayerState, Level);
+}
+
 UAbilitySystemComponent* ASoulPlayerState::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
@@ -22,4 +30,9 @@ UAbilitySystemComponent* ASoulPlayerState::GetAbilitySystemComponent() const
 UAttributeSet* ASoulPlayerState::GetAttributeSet() const
 {
 	return AttributeSet;
+}
+
+void ASoulPlayerState::OnRep_Level(int32 OldLevel)
+{
+	
 }

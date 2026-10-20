@@ -16,7 +16,7 @@ void ASoulEffectGimmick::BeginPlay()
 	Super::BeginPlay();
 }
 
-void ASoulEffectGimmick::ApplyEffectToTarget(AActor* TargetActor, TSubclassOf<UGameplayEffect> GameplayEffectClass)
+void ASoulEffectGimmick::ApplyEffectToTarget(AActor* TargetActor, TSubclassOf<UGameplayEffect> EffectToApply)
 {
 	// Interface를 통한 통상적인 ASC 접근.
 	IAbilitySystemInterface* ASCInterface = Cast<IAbilitySystemInterface>(TargetActor);
@@ -28,6 +28,6 @@ void ASoulEffectGimmick::ApplyEffectToTarget(AActor* TargetActor, TSubclassOf<UG
 	
 	FGameplayEffectContextHandle EffectContextHandle = TargetASC->MakeEffectContext();
 	EffectContextHandle.AddSourceObject(this);
-	FGameplayEffectSpecHandle EffectSpecHandle = TargetASC->MakeOutgoingSpec(GameplayEffectClass, 1.f, EffectContextHandle);
+	FGameplayEffectSpecHandle EffectSpecHandle = TargetASC->MakeOutgoingSpec(EffectToApply, 1.f, EffectContextHandle);
 	TargetASC->ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
 }

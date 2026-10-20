@@ -15,4 +15,15 @@ public:
 	
 protected:
 	virtual void BeginPlay() override;
+	
+	virtual void InitAbilityActorInfo() override;
+
+
+/* Combat Interface */
+public:
+	virtual int32 GetPlayerLevel() override;	
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
+	int32 Level = 1;
 };

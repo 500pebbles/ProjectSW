@@ -21,6 +21,15 @@ public:
 	
 	virtual void OnRep_PlayerState() override;
 	
+/* GAS Section */
+protected:
+	virtual void InitAbilityActorInfo() override;
+	
+
+/* Combat Interface */
+public:
+	virtual int32 GetPlayerLevel() override;	
+	
 /* Component Section */
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
@@ -29,7 +38,4 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
 	TObjectPtr<UCameraComponent> Camera;
 	
-/* GAS Section */
-protected:
-	void InitAbilityActorInfo();
 };
