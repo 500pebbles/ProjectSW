@@ -16,6 +16,11 @@ class PROJECTSW_API ASoulCharacterPlayer : public ASoulCharacterBase
 public:
 	ASoulCharacterPlayer();
 	
+public:
+	virtual void PossessedBy(AController* NewController) override;
+	
+	virtual void OnRep_PlayerState() override;
+	
 /* Component Section */
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
@@ -23,4 +28,8 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
 	TObjectPtr<UCameraComponent> Camera;
+	
+/* GAS Section */
+protected:
+	void InitAbilityActorInfo();
 };
