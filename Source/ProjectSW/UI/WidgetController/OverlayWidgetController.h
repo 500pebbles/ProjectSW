@@ -7,10 +7,7 @@
 #include "OverlayWidgetController.generated.h"
 
 struct FOnAttributeChangeData;
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthChangedSignature, float, NewHealth);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMaxHealthChangedSignature, float, NewMaxHealth);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnStaminaChangedSignature, float, NewStamina);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMaxStaminaChangedSignature, float, NewMaxStamina);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAttributeChangedSignature, float, NewValue);
 
 /* OverlayWidget의 셋업 플로우.
  * HUD에서 관리하는 메인 위젯 OverlayWidget은 HUD의 InitOverlay 함수로 생성 + WidgetController 부착.
@@ -26,23 +23,16 @@ public:
 	
 	virtual void BindCallbacksToDependencies() override;
 	
-/* Delegate Instances */	
+/* Delegate Instances (Callbacks are Lambda) */	
 	UPROPERTY(BlueprintAssignable)
-	FOnHealthChangedSignature OnHealthChanged;
+	FOnAttributeChangedSignature OnHealthChanged;
 	
 	UPROPERTY(BlueprintAssignable)
-	FOnMaxHealthChangedSignature OnMaxHealthChanged;
+	FOnAttributeChangedSignature OnMaxHealthChanged;
 	
 	UPROPERTY(BlueprintAssignable)
-	FOnStaminaChangedSignature OnStaminaChanged;
+	FOnAttributeChangedSignature OnStaminaChanged;
 	
 	UPROPERTY(BlueprintAssignable)
-	FOnMaxStaminaChangedSignature OnMaxStaminaChanged;	
-	
-/*  Callbacks */
-protected:
-	void HealthChanged(const FOnAttributeChangeData& Data) const;
-	void MaxHealthChanged(const FOnAttributeChangeData& Data) const;
-	void StaminaChanged(const FOnAttributeChangeData& Data) const;
-	void MaxStaminaChanged(const FOnAttributeChangeData& Data) const;
+	FOnAttributeChangedSignature OnMaxStaminaChanged;	
 };

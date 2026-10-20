@@ -1,8 +1,9 @@
 ﻿
 #include "SoulCharacterEnemy.h"
 
-#include "GAS/SoulAbilitySystemComponent.h"
-#include "GAS/SoulAttributeSet.h"
+#include "Abilities/Tasks/AbilityTask.h"
+#include "GAS/Core/SoulAbilitySystemComponent.h"
+#include "GAS/Core/SoulAttributeSet.h"
 
 
 ASoulCharacterEnemy::ASoulCharacterEnemy()
@@ -17,5 +18,16 @@ void ASoulCharacterEnemy::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	InitAbilityActorInfo();
+}
+
+void ASoulCharacterEnemy::InitAbilityActorInfo()
+{
 	AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	Cast<USoulAbilitySystemComponent>(AbilitySystemComponent)->OnAbilityActorInfoSet();
+}
+
+int32 ASoulCharacterEnemy::GetPlayerLevel()
+{
+	return Level;
 }
