@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "InventoryPlayerController.generated.h"
 
+class UInventoryHUDWidget;
 class UInputAction;
 class UInputMappingContext;
 
@@ -27,6 +28,8 @@ public:
 public:
 	void InventoryInteract();
 	
+	void CreateInventoryHUDWidget();
+	
 private:
 	// EditDefaultsOnly parameter requires to initialize this variable in BluePrintClass manually
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
@@ -34,4 +37,10 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	TObjectPtr<UInputAction> InventoryInteractAction;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
+	TSubclassOf<UInventoryHUDWidget> InventoryHUDWidgetClass;
+	
+	UPROPERTY()
+	TObjectPtr<UInventoryHUDWidget> InventoryHUDWidget;
 };
