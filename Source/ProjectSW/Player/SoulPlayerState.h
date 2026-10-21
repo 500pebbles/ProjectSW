@@ -17,7 +17,9 @@ class PROJECTSW_API ASoulPlayerState : public APlayerState, public IAbilitySyste
 public:
 	ASoulPlayerState();
 	
-/* GAS Section */	
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
+/* GAS Core Section */	
 public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	
@@ -29,4 +31,15 @@ protected:
 	
 	UPROPERTY()
 	TObjectPtr<UAttributeSet> AttributeSet;
+
+/* Player Stat Section */	
+public:
+	FORCEINLINE int32 GetPlayerLevel() const { return Level; }
+
+protected:
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_Level)
+	int32 Level = 1;
+	
+	UFUNCTION()
+	void OnRep_Level(int32 OldLevel);
 };
