@@ -1,11 +1,11 @@
 ﻿// 
 
 
-#include "InventoryPlayerController.h"
+#include "Player/InventoryPlayerController.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "InventoryHUDWidget.h"
+#include "UI/InventoryHUDWidget.h"
 #include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY(LogInventorySystem)
