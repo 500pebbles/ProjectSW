@@ -5,26 +5,27 @@
 
 UHighlightStaticMeshComponent::UHighlightStaticMeshComponent()
 {
+	static ConstructorHelpers::FObjectFinder<UMaterialInstance> OverlayMaterialRef(
+		TEXT("/InventorySystem/Materials/MI_HighlightMaterialInstance.MI_HighlightMaterialInstance"));
+	
+	if (OverlayMaterialRef.Succeeded())
+	{
+		OverlayMaterial = OverlayMaterialRef.Object;
+		UE_LOG(LogTemp, Log, TEXT("Overlay Material Loaded"));
+	}
 }
 
 void UHighlightStaticMeshComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	OverlayMaterial = Cast<UMaterial>(GetOverlayMaterial());
-	
-	if (nullptr == OverlayMaterial)
-	{
-		UE_LOG(LogTemp, Log, TEXT("OverlayMaterial is nullptr"));
-	}
 }
 
 void UHighlightStaticMeshComponent::OnItemTraced()
 {
-	OverlayMaterial->TwoSided = true;
+	SetOverlayMaterial(OverlayMaterial);
 }
 
 void UHighlightStaticMeshComponent::OffItemTraced()
 {
-	OverlayMaterial->TwoSided = false;
+	SetOverlayMaterial(nullptr);
 }

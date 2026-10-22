@@ -18,13 +18,11 @@ class INVENTORYSYSTEM_API UHighlightStaticMeshComponent : public UStaticMeshComp
 public:
 	UHighlightStaticMeshComponent();
 	
-	virtual void BeginPlay() override;
-	
 public:
 	virtual void OnItemTraced() override;
 	
 	virtual void OffItemTraced() override;
 	
 private:
-	TObjectPtr<class UMaterial> OverlayMaterial;
+	TObjectPtr<UMaterialInstance> OverlayMaterial;
 };
