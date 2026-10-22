@@ -2,10 +2,11 @@
 
 
 #include "Player/InventoryPlayerController.h"
+#include "UI/InventoryHUDWidget.h"
+#include "Interface/HighlightMaterialInterface.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "UI/InventoryHUDWidget.h"
 #include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY(LogInventorySystem)
@@ -14,7 +15,10 @@ AInventoryPlayerController::AInventoryPlayerController()
 {
 	// 아이템 트레이스는 매 프레임(틱)마다 진행될 것이기 때문에 bCanEverTick = true로 전환
 	PrimaryActorTick.bCanEverTick = true;
-	TraceLength = 500.0f;
+	TraceLength = 600.0f;
+	
+	LastTracedItem = nullptr;
+	CurrentTraceItem = nullptr;
 }
 
 void AInventoryPlayerController::BeginPlay()
@@ -112,6 +116,12 @@ void AInventoryPlayerController::TraceItem()
 	LastTracedItem = CurrentTraceItem;
 	CurrentTraceItem = HitResult.GetActor();
 	
+	// 액터가 유효하지 않으면 픽업 메시지 숨김 처리
+	if (!CurrentTraceItem.IsValid())
+	{
+		if (IsValid(InventoryHUDWidget)) InventoryHUDWidget->HideInteractionMessage();
+	}
+	
 	if (CurrentTraceItem == LastTracedItem) return;
 	
 	// 새 아이템을 트레이싱 시작하면 이를 알린다 -> 이후 HUD에 UI로 안내를 띄우기 위해 사용할 예정
@@ -119,6 +129,22 @@ void AInventoryPlayerController::TraceItem()
 	{
 		// 임시 로그 처리
 		UE_LOG(LogInventorySystem, Log, TEXT("Tracing New Item"));
+		
+		if (IsValid(InventoryHUDWidget)) InventoryHUDWidget->ShowInteractionMessage();
+		
+		// 어떤 아이템을 습득 가능한지 표시하기 위해 하이라이트 윤곽선 표시하기
+		UActorComponent* HighlightMeshComponent = CurrentTraceItem->FindComponentByInterface(UHighlightMaterialInterface::StaticClass());
+		if (IsValid(HighlightMeshComponent))
+		{
+			IHighlightMaterialInterface* HighlightMeshInterface = Cast<IHighlightMaterialInterface>(HighlightMeshComponent);
+			if (nullptr != HighlightMeshInterface)
+				HighlightMeshInterface->OnItemTraced();
+		}
+		
+		// 이후 아이템에 접근해서 월드 상의 아이템 안보이게하거나 제거 후 인벤토리 데이터에 넣고
+		// 인벤토리 UI에도 반영하도록 할 수 있도록 처리하기
+		// 강의에서는 Item에 ItemComponent라는 것을 만들고 아이템 컴포넌트에 PickupMessage를 설정한
+		// 후 그 값을 가져와서 PickupMessage에 Text를 할당하도록 처리함
 	}
 	
 	// 트레이스를 중단해도 이를 알린다. -> HUD에 띄웠던 UI안내를 다시 내리기 위함
@@ -126,5 +152,13 @@ void AInventoryPlayerController::TraceItem()
 	{
 		// 임시 로그 처리
 		UE_LOG(LogInventorySystem, Log, TEXT("Stopped Tracing Item"));
+		
+		UActorComponent* HighlightMeshComponent = LastTracedItem->FindComponentByInterface(UHighlightMaterialInterface::StaticClass());
+		if (IsValid(HighlightMeshComponent))
+		{
+			IHighlightMaterialInterface* HighlightMeshInterface = Cast<IHighlightMaterialInterface>(HighlightMeshComponent);
+			if (nullptr != HighlightMeshInterface)
+				HighlightMeshInterface->OffItemTraced();
+		}
 	}
 }
