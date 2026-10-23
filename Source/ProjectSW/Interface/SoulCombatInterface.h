@@ -4,18 +4,20 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
-#include "CombatInterface.generated.h"
+#include "SoulCombatInterface.generated.h"
 
 UINTERFACE()
-class UCombatInterface : public UInterface
+class USoulCombatInterface : public UInterface
 {
 	GENERATED_BODY()
 };
 
-class PROJECTSW_API ICombatInterface
+class PROJECTSW_API ISoulCombatInterface
 {
 	GENERATED_BODY()
 
 public:
 	virtual int32 GetPlayerLevel();
+	
+	virtual FVector GetCombatSocketLocation();
 };
