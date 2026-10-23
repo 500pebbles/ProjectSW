@@ -7,10 +7,10 @@
 #include "GameplayEffectExtension.h"
 #include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
+#include "Utility/SoulGameplayTags.h"
 
 USoulAttributeSet::USoulAttributeSet()
 {
-
 }
 
 void USoulAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

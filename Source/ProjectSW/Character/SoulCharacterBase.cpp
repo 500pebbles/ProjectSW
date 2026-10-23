@@ -2,10 +2,17 @@
 #include "Character/SoulCharacterBase.h"
 
 #include "AbilitySystemComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "GAS/Core/SoulAbilitySystemComponent.h"
 
 ASoulCharacterBase::ASoulCharacterBase()
 {
-	Weapon = CreateDefaultSubobject<UStaticMeshComponent>("Weapon");
+	PrimaryActorTick.bCanEverTick = false;
+	
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	
+	Weapon = CreateDefaultSubobject<USkeletalMeshComponent>("Weapon");
 	Weapon->SetupAttachment(GetMesh(), FName("WeaponSocket"));
 	Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
@@ -44,4 +51,17 @@ void ASoulCharacterBase::InitializeDefaultAttributes() const
 {	
 	ApplyEffectToSelf(DefaultAttributes, 1);
 	ApplyEffectToSelf(InitializeAttributes, 1);
+}
+
+void ASoulCharacterBase::GiveStartupAbilities()
+{
+	if (!HasAuthority()) return;
+	
+	USoulAbilitySystemComponent* SoulASC = Cast<USoulAbilitySystemComponent>(AbilitySystemComponent);
+	SoulASC->GiveStartupAbilities(StartupAbilities);
+}
+
+FVector ASoulCharacterBase::GetCombatSocketLocation()
+{
+	return Weapon->GetSocketLocation(CombatSocketName);
 }
