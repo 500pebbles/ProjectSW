@@ -5,8 +5,10 @@
 #include "EnhancedInputSubsystems.h"
 #include "Blueprint/UserWidget.h"
 #include "Interface/HighlightMaterialInterface.h"
-#include "Kismet/GameplayStatics.h"
 #include "Player/InventoryPlayerController.h"
+#include "UI/InventoryHUDWidget.h"
+
+#include "Kismet/GameplayStatics.h"
 
 
 // Sets default values for this component's properties
@@ -86,8 +88,8 @@ void UInventoryInputComponent::TraceItem()
 	FVector TraceStart;
 	FVector Forward;
 	if(!UGameplayStatics::DeprojectScreenToWorld(
-		this, 
-		ViewportCenter, 
+		GamePlayerController, 
+		ViewportCenter,
 		TraceStart, 
 		Forward)) return;
 	
