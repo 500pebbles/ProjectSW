@@ -4,15 +4,16 @@
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
 #include "GameFramework/Character.h"
-#include "Interface/CombatInterface.h"
+#include "Interface/SoulCombatInterface.h"
 #include "SoulCharacterBase.generated.h"
 
+class UGameplayAbility;
 class UGameplayEffect;
 class UAbilitySystemComponent;
 class UAttributeSet;
 
 UCLASS()
-class PROJECTSW_API ASoulCharacterBase : public ACharacter, public IAbilitySystemInterface, public ICombatInterface
+class PROJECTSW_API ASoulCharacterBase : public ACharacter, public IAbilitySystemInterface, public ISoulCombatInterface
 {
 	GENERATED_BODY()
 	
@@ -38,23 +39,39 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UAttributeSet> AttributeSet;
 	
-/* GAS Section */
+/* Gameplay Effect Section */
 protected:
 	void ApplyEffectToSelf(TSubclassOf<UGameplayEffect> GameplayEffectClass, float Level) const;
 	
-/* Initializer Section */
+/* Attribute Section */
 protected:
 	void InitializeDefaultAttributes() const;
 	
 protected:
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Setup")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
 	TSubclassOf<UGameplayEffect> DefaultAttributes;
 	
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Setup")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
 	TSubclassOf<UGameplayEffect> InitializeAttributes;
-		
+	
+/* Ability Section */
+protected:
+	void GiveStartupAbilities();
+	
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Setup")
+	TArray<TSubclassOf<UGameplayAbility>> StartupAbilities;
+	
+/* Combat Interface Section */
+public:
+	virtual FVector GetCombatSocketLocation() override;
+	
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	FName CombatSocketName;
+	
 /* Component Section */	
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
-	TObjectPtr<UStaticMeshComponent> Weapon;
+	TObjectPtr<USkeletalMeshComponent> Weapon;
 };

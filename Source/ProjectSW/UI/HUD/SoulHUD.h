@@ -7,6 +7,7 @@
 #include "SoulHUD.generated.h"
 
 
+class UAttributeMenuWidgetController;
 class UAttributeSet;
 class UAbilitySystemComponent;
 struct FWidgetControllerParams;
@@ -20,10 +21,10 @@ class PROJECTSW_API ASoulHUD : public AHUD
 	
 /* Overlay Widget Section */	
 public:
-	UOverlayWidgetController* GetOverlayWidgetController(const FWidgetControllerParams& WCParams);
-	
 	void InitOverlay(APlayerController* PC, APlayerState* PS, UAbilitySystemComponent* ASC, UAttributeSet* AS);
-	
+
+	UOverlayWidgetController* GetOverlayWidgetController(const FWidgetControllerParams& WCParams);
+		
 protected:
 	UPROPERTY()
 	TObjectPtr<USoulUserWidget> OverlayWidget;
@@ -36,4 +37,15 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TSubclassOf<UOverlayWidgetController> OverlayWidgetControllerClass;	
+	
+/* Attribute Menu Section */	
+public:
+	UAttributeMenuWidgetController* GetAttributeMenuWidgetController(const FWidgetControllerParams& WCParams);
+	
+protected:
+	UPROPERTY()
+	TObjectPtr<UAttributeMenuWidgetController> AttributeMenuWidgetController;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TSubclassOf<UAttributeMenuWidgetController> AttributeMenuWidgetControllerClass;
 };

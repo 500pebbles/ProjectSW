@@ -44,6 +44,7 @@ class PROJECTSW_API USoulWidgetController : public UObject
 	
 /* Broadcast Changes Section */
 public:
+	UFUNCTION(BlueprintCallable)
 	virtual void BroadcastInitialValues();
 	
 	virtual void BindCallbacksToDependencies();

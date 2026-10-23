@@ -1,0 +1,45 @@
+﻿// 
+
+
+#include "SoulAbilitySystemLibrary.h"
+
+#include "Kismet/GameplayStatics.h"
+#include "Player/SoulPlayerState.h"
+#include "UI/HUD/SoulHUD.h"
+#include "UI/WidgetController/SoulWidgetController.h"
+
+UOverlayWidgetController* USoulAbilitySystemLibrary::GetOverlayWidgetController(const UObject* WorldContextObject)
+{
+	/* 목적은 현재 HUD의 OverlayWidgetController 주소를 받아오기 위함.
+	 * 주소의 사용처 : OverlayWidgetController가 보유하는 GAS데이터를 다른 UI에 띄우기 위해 Controller를 빌려옴. 
+	 * 최소 PlayerController가 존재하는 UI단위 블루프린트에서 사용, 
+	 * 현재 PlayerController를 타고 올라가 이곳에서 HUD, PS, ASC, ASC를 순차적으로 획득.
+	 * 이미 존재하는 OverlayWidgetController의 주소를 받아오거나 획득한 포인터를 기반으로 새로 생성하고 주소 획득. */
+		
+	APlayerController* PC = UGameplayStatics::GetPlayerController(WorldContextObject, 0);
+	if (!IsValid(PC)) return nullptr;
+	ASoulHUD* SoulHUD = Cast<ASoulHUD>(PC->GetHUD());
+	if (!IsValid(SoulHUD)) return nullptr;
+	
+	ASoulPlayerState* PS = PC->GetPlayerState<ASoulPlayerState>();
+	UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent();
+	UAttributeSet* AS = PS->GetAttributeSet();
+	const FWidgetControllerParams WidgetControllerParams(PC, PS, ASC, AS);
+	
+	return SoulHUD->GetOverlayWidgetController(WidgetControllerParams);
+}
+
+UAttributeMenuWidgetController* USoulAbilitySystemLibrary::GetAttributeMenuWidgetController(const UObject* WorldContextObject)
+{
+	APlayerController* PC = UGameplayStatics::GetPlayerController(WorldContextObject, 0);
+	if (!IsValid(PC)) return nullptr;
+	ASoulHUD* SoulHUD = Cast<ASoulHUD>(PC->GetHUD());
+	if (!IsValid(SoulHUD)) return nullptr;
+	
+	ASoulPlayerState* PS = PC->GetPlayerState<ASoulPlayerState>();
+	UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent();
+	UAttributeSet* AS = PS->GetAttributeSet();
+	const FWidgetControllerParams WidgetControllerParams(PC, PS, ASC, AS);
+	
+	return SoulHUD->GetAttributeMenuWidgetController(WidgetControllerParams);
+}

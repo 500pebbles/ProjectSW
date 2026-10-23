@@ -5,6 +5,9 @@
 #include "GameFramework/PlayerController.h"
 #include "SoulPlayerController.generated.h"
 
+class USoulAbilitySystemComponent;
+struct FGameplayTag;
+class USoulInputConfig;
 struct FInputActionValue;
 class UInputAction;
 class UInputMappingContext;
@@ -24,20 +27,20 @@ protected:
 
 /* Input Section */	
 protected:    
-	UPROPERTY(EditDefaultsOnly, Category = "Setup|Input")
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TArray<TObjectPtr<UInputMappingContext>> InputMappingContexts;
     
-	UPROPERTY(EditDefaultsOnly, Category = "Setup|Input")
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TObjectPtr<UInputAction> JumpAction;
     
-	UPROPERTY(EditDefaultsOnly, Category = "Setup|Input")
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TObjectPtr<UInputAction> MoveAction;
     
-	UPROPERTY(EditDefaultsOnly, Category = "Setup|Input")
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TObjectPtr<UInputAction> LookAction;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Setup|Input")
-	TObjectPtr<UInputAction> AbilityAction;
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TObjectPtr<UInputAction> HoverMouseAction;
 
 /* Actions Section */	
 protected:
@@ -49,5 +52,27 @@ protected:
 	
 	void StopJumping();
 	
-	void ActiveAbility();
+	void HoverMouse();
+	
+	void StopHoverMouse();
+	
+/* Tag Based Input Section */
+private:
+	void AbilityInputTagPressed(FGameplayTag InputTag);
+	
+	void AbilityInputTagReleased(FGameplayTag InputTag);
+	
+	void AbilityInputTagHeld(FGameplayTag InputTag);
+	
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TObjectPtr<USoulInputConfig> InputConfig;
+	
+/* GAS Core Section */
+private:
+	USoulAbilitySystemComponent* GetASC();
+	
+private:
+	UPROPERTY()
+	TObjectPtr<USoulAbilitySystemComponent> SoulAbilitySystemComponent;
 };
