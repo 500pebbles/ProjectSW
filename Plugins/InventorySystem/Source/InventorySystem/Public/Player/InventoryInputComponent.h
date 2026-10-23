@@ -6,6 +6,7 @@
 #include "Runtime/Engine/Classes/Components/ActorComponent.h"
 #include "InventoryInputComponent.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogInventoryInputComponent, Log, All);
 
 class UInputMappingContext;
 class UInputAction;
@@ -31,7 +32,7 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	
-public:
+private:
 	void InventoryInteract();
 	
 	void CreateInventoryHUDWidget();
@@ -39,12 +40,11 @@ public:
 	// 아이템을 바라보고 있을 때 범위 내에 있다면 상호작용이 가능함을 표시하기 위한 함수
 	// 해당 함수는 아이템 획득을 진행할 때 획득을 위한 상호작용 가능 범위를 영역이 아닌 바라보고 있는
 	// 방향에서 일정 거리 내에 있는지로 판단하는 것을 전재로 한다.
-	// 이 함수는 플레이어 컨트롤러의 Tick()에서 호출할 것
 	void TraceItem();
 	
 private:
 	UPROPERTY()
-	TObjectPtr<APlayerController> GamePlayerController;
+	TObjectPtr<APlayerController> LocalGameController;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	TArray<TObjectPtr<UInputMappingContext>> IMC_Inventory;

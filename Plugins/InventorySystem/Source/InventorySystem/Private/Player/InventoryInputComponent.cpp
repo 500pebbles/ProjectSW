@@ -5,11 +5,11 @@
 #include "EnhancedInputSubsystems.h"
 #include "Blueprint/UserWidget.h"
 #include "Interface/HighlightMaterialInterface.h"
-#include "Player/InventoryPlayerController.h"
 #include "UI/InventoryHUDWidget.h"
 
 #include "Kismet/GameplayStatics.h"
 
+DEFINE_LOG_CATEGORY(LogInventoryInputComponent);
 
 // Sets default values for this component's properties
 UInventoryInputComponent::UInventoryInputComponent()
@@ -21,18 +21,24 @@ UInventoryInputComponent::UInventoryInputComponent()
 	LastTracedItem = nullptr;
 	CurrentTraceItem = nullptr;
 	
-	// 월드 세팅의 플레이어 컨트롤러 갖고 오기
-	GamePlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	UE_LOG(LogTemp, Log, TEXT("InventoryInputComponent Ready"));
 }
 
 void UInventoryInputComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	if (nullptr != GamePlayerController)
+	// 월드 세팅의 플레이어 컨트롤러 갖고 오기
+	AController* Controller = Cast<APawn>(GetOwner())->GetController();
+	if (IsValid(Controller))
+	{
+		LocalGameController = Cast<APlayerController>(Controller);
+	}
+	
+	if (nullptr != LocalGameController)
 	{
 		// 플레이어 컨트롤러의 InputMappintContext에 생성한 인벤토리 맵핑 컨텍스트 추가하기
-		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GamePlayerController->GetLocalPlayer());
+		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalGameController->GetLocalPlayer());
 		
 		if (nullptr != Subsystem)
 		{
@@ -41,26 +47,41 @@ void UInventoryInputComponent::BeginPlay()
 				Subsystem->AddMappingContext(Context, 0);
 			}
 		}
+		
+		SetupInventoryInputComponent();
 	}
 	
 	CreateInventoryHUDWidget();
 }
 
+// Called every frame
+void UInventoryInputComponent::TickComponent(float DeltaTime, ELevelTick TickType,
+											 FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	// ...
+	
+	TraceItem();
+}
+
+
 void UInventoryInputComponent::SetupInventoryInputComponent()
 {
-	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(GamePlayerController->InputComponent);
+	
+	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(LocalGameController->InputComponent);
 	
 	EnhancedInputComponent->BindAction(InventoryInteractAction, ETriggerEvent::Started, this, &UInventoryInputComponent::InventoryInteract);
 }
 
 void UInventoryInputComponent::InventoryInteract()
 {
-	UE_LOG(LogInventorySystem, Log, TEXT("Inventory Interact"));
+	UE_LOG(LogInventoryInputComponent, Log, TEXT("Inventory Interact"));
 }
 
 void UInventoryInputComponent::CreateInventoryHUDWidget()
 {
-	InventoryHUDWidget = CreateWidget<UInventoryHUDWidget>(GamePlayerController, InventoryHUDWidgetClass);
+	InventoryHUDWidget = CreateWidget<UInventoryHUDWidget>(LocalGameController, InventoryHUDWidgetClass);
 	
 	if (IsValid(InventoryHUDWidget))
 	{
@@ -88,7 +109,7 @@ void UInventoryInputComponent::TraceItem()
 	FVector TraceStart;
 	FVector Forward;
 	if(!UGameplayStatics::DeprojectScreenToWorld(
-		GamePlayerController, 
+		LocalGameController, 
 		ViewportCenter,
 		TraceStart, 
 		Forward)) return;
@@ -121,7 +142,7 @@ void UInventoryInputComponent::TraceItem()
 	if (CurrentTraceItem.IsValid())
 	{
 		// 임시 로그 처리
-		UE_LOG(LogInventorySystem, Log, TEXT("Tracing New Item"));
+		UE_LOG(LogInventoryInputComponent, Log, TEXT("Tracing New Item"));
 		
 		if (IsValid(InventoryHUDWidget)) InventoryHUDWidget->ShowInteractionMessage();
 		
@@ -144,7 +165,7 @@ void UInventoryInputComponent::TraceItem()
 	if (LastTracedItem.IsValid())
 	{
 		// 임시 로그 처리
-		UE_LOG(LogInventorySystem, Log, TEXT("Stopped Tracing Item"));
+		UE_LOG(LogInventoryInputComponent, Log, TEXT("Stopped Tracing Item"));
 		
 		UActorComponent* HighlightMeshComponent = LastTracedItem->FindComponentByInterface(UHighlightMaterialInterface::StaticClass());
 		if (IsValid(HighlightMeshComponent))
@@ -155,13 +176,3 @@ void UInventoryInputComponent::TraceItem()
 		}
 	}
 }
-
-// Called every frame
-void UInventoryInputComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-                                             FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
-}
-
