@@ -10,19 +10,14 @@ UHighlightStaticMeshComponent::UHighlightStaticMeshComponent()
 	
 	if (OverlayMaterialRef.Succeeded())
 	{
-		OverlayMaterial = OverlayMaterialRef.Object;
+		HighlightOverlayMaterial = OverlayMaterialRef.Object;
 		UE_LOG(LogTemp, Log, TEXT("Overlay Material Loaded"));
 	}
 }
 
-void UHighlightStaticMeshComponent::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
 void UHighlightStaticMeshComponent::OnItemTraced()
 {
-	SetOverlayMaterial(OverlayMaterial);
+	SetOverlayMaterial(HighlightOverlayMaterial);
 }
 
 void UHighlightStaticMeshComponent::OffItemTraced()

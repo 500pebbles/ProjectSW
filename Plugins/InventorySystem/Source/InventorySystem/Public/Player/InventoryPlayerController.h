@@ -30,7 +30,7 @@ protected:
 	
 	virtual void Tick(float DeltaSeconds) override;
 	
-private:
+public:
 	void InventoryInteract();
 	
 	void CreateInventoryHUDWidget();
