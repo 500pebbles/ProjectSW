@@ -28,11 +28,18 @@ void UInventoryInputComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	// 월드 세팅의 플레이어 컨트롤러 갖고 오기
-	AController* Controller = Cast<APawn>(GetOwner())->GetController();
-	if (IsValid(Controller))
+	// 컴포넌트가 플레이어 캐릭터 자체에 붙어있는 경우 소유하고 있는 폰의 컨트롤러를 가져와 할당
+	APawn* PlayerPawn = Cast<APawn>(GetOwner());
+	if (IsValid(PlayerPawn))
 	{
-		LocalGameController = Cast<APlayerController>(Controller);
+		AController* PlayerController = PlayerPawn->GetController();
+		LocalGameController = Cast<APlayerController>(PlayerController);
+	}
+	// 컴포넌트가 플레이어 컨트롤러에 붙어있는 경우 소유하고 있는 컨트롤러를 할당
+	else
+	{
+		AController* PlayerController = Cast<APlayerController>(GetOwner());
+		LocalGameController = Cast<APlayerController>(PlayerController);
 	}
 	
 	if (nullptr != LocalGameController)
