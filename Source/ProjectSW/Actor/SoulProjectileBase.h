@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayEffectTypes.h"
 #include "GameFramework/Actor.h"
 #include "SoulProjectileBase.generated.h"
 
@@ -26,6 +27,11 @@ protected:
 	UFUNCTION()
 	void OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	
+/* GAS Section */
+public:
+	UPROPERTY(BlueprintReadWrite)
+	FGameplayEffectSpecHandle DamageEffectSpecHandle;	
+	
 /* Component Section */	
 public:	
 	UPROPERTY()
@@ -40,8 +46,9 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TObjectPtr<USoundBase> HitSound;	
-	
-/* Client Synchronize Flag */
+
 protected:
 	bool bAlreadyHitOnLocalMachine = false;
+	
+	float LifeSpan = 10.f;
 };
