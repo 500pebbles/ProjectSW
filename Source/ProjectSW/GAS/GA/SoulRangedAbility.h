@@ -6,6 +6,7 @@
 #include "SoulGameplayAbility.h"
 #include "SoulRangedAbility.generated.h"
 
+class UGameplayEffect;
 class ASoulProjectileBase;
 
 UCLASS()
@@ -22,4 +23,7 @@ protected:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
 	TSubclassOf<ASoulProjectileBase> ProjectileClass;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<UGameplayEffect> DamageEffectClass;
 };
