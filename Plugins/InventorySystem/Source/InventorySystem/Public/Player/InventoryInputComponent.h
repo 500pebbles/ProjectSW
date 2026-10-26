@@ -12,10 +12,15 @@ class UInputMappingContext;
 class UInputAction;
 class UInventoryHUDWidget;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnToggleInventoryUIDelegate);
+
 UCLASS(Blueprintable, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class INVENTORYSYSTEM_API UInventoryInputComponent : public UActorComponent
 {
 	GENERATED_BODY()
+	
+public:
+	FOnToggleInventoryUIDelegate OnToggleInventoryUI;
 
 public:
 	// Sets default values for this component's properties

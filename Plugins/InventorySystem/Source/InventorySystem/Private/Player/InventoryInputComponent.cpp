@@ -11,6 +11,8 @@
 
 DEFINE_LOG_CATEGORY(LogInventoryInputComponent);
 
+
+
 // Sets default values for this component's properties
 UInventoryInputComponent::UInventoryInputComponent()
 {
