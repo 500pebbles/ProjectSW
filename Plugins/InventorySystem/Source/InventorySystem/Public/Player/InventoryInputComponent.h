@@ -3,32 +3,34 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/PlayerController.h"
-#include "InventoryPlayerController.generated.h"
+#include "Runtime/Engine/Classes/Components/ActorComponent.h"
+#include "InventoryInputComponent.generated.h"
 
-class UInventoryHUDWidget;
-class UInputAction;
+DECLARE_LOG_CATEGORY_EXTERN(LogInventoryInputComponent, Log, All);
+
 class UInputMappingContext;
+class UInputAction;
+class UInventoryHUDWidget;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogInventorySystem, Log, All);
-
-/**
- * This player controller is just for input test only
- */
-UCLASS()
-class INVENTORYSYSTEM_API AInventoryPlayerController : public APlayerController
+UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+class INVENTORYSYSTEM_API UInventoryInputComponent : public UActorComponent
 {
 	GENERATED_BODY()
+
+public:
+	// Sets default values for this component's properties
+	UInventoryInputComponent();
 	
 public:
-	AInventoryPlayerController();
-	
-protected:
 	virtual void BeginPlay() override;
 	
-	virtual void SetupInputComponent() override;
-	
-	virtual void Tick(float DeltaSeconds) override;
+	// 이 함수를 플레이어 컨트롤러의 SetupInputComponent()에서 호출할 것
+	void SetupInventoryInputComponent();
+
+public:
+	// Called every frame
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
+	                           FActorComponentTickFunction* ThisTickFunction) override;
 	
 private:
 	void InventoryInteract();
@@ -41,7 +43,9 @@ private:
 	void TraceItem();
 	
 private:
-	// EditDefaultsOnly parameter requires to initialize this variable in BluePrintClass manually
+	UPROPERTY()
+	TObjectPtr<APlayerController> LocalGameController;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	TArray<TObjectPtr<UInputMappingContext>> IMC_Inventory;
 	
@@ -56,6 +60,8 @@ private:
 	UPROPERTY()
 	TObjectPtr<UInventoryHUDWidget> InventoryHUDWidget;
 	
+	// 아이템 상호작용 검사 섹션
+private:
 	// 에디터에서 설정할 아이템 감지를 위한 유효 범위(거리)
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	float TraceLength;
@@ -77,5 +83,4 @@ private:
 	
 	UPROPERTY()
 	TWeakObjectPtr<AActor> LastTracedItem;
-
 };

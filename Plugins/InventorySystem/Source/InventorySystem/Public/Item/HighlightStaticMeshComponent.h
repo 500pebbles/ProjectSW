@@ -24,5 +24,6 @@ public:
 	virtual void OffItemTraced() override;
 	
 private:
-	TObjectPtr<UMaterialInstance> OverlayMaterial;
+	UPROPERTY(EditAnywhere, Category = Inventory)
+	TObjectPtr<UMaterialInstance> HighlightOverlayMaterial;
 };
