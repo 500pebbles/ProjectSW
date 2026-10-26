@@ -32,33 +32,26 @@ void UInventoryInputComponent::BeginPlay()
 	APawn* PlayerPawn = Cast<APawn>(GetOwner());
 	if (IsValid(PlayerPawn))
 	{
-		AController* PlayerController = PlayerPawn->GetController();
-		LocalGameController = Cast<APlayerController>(PlayerController);
-	}
-	// 컴포넌트가 플레이어 컨트롤러에 붙어있는 경우 소유하고 있는 컨트롤러를 할당
-	else
-	{
-		AController* PlayerController = Cast<APlayerController>(GetOwner());
-		LocalGameController = Cast<APlayerController>(PlayerController);
-	}
-	
-	if (nullptr != LocalGameController)
-	{
-		// 플레이어 컨트롤러의 InputMappintContext에 생성한 인벤토리 맵핑 컨텍스트 추가하기
-		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalGameController->GetLocalPlayer());
+		LocalGameController = Cast<APlayerController>(PlayerPawn->GetController());
 		
-		if (nullptr != Subsystem)
+		if (nullptr != LocalGameController)
 		{
-			for (auto Context : IMC_Inventory)
-			{
-				Subsystem->AddMappingContext(Context, 0);
-			}
-		}
+			// 플레이어 컨트롤러의 InputMappintContext에 생성한 인벤토리 맵핑 컨텍스트 추가하기
+			UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalGameController->GetLocalPlayer());
 		
-		SetupInventoryInputComponent();
-	}
+			if (nullptr != Subsystem)
+			{
+				for (auto Context : IMC_Inventory)
+				{
+					Subsystem->AddMappingContext(Context, 0);
+				}
+			}
+		
+			SetupInventoryInputComponent();
+		}
 	
-	CreateInventoryHUDWidget();
+		CreateInventoryHUDWidget();
+	}
 }
 
 // Called every frame
@@ -79,11 +72,19 @@ void UInventoryInputComponent::SetupInventoryInputComponent()
 	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(LocalGameController->InputComponent);
 	
 	EnhancedInputComponent->BindAction(InventoryInteractAction, ETriggerEvent::Started, this, &UInventoryInputComponent::InventoryInteract);
+	EnhancedInputComponent->BindAction(InventoryUIToggleAction, ETriggerEvent::Started, this, &UInventoryInputComponent::ToggleInventoryUI);
 }
 
 void UInventoryInputComponent::InventoryInteract()
 {
 	UE_LOG(LogInventoryInputComponent, Log, TEXT("Inventory Interact"));
+}
+
+void UInventoryInputComponent::ToggleInventoryUI()
+{
+	UE_LOG(LogInventoryInputComponent, Log, TEXT("Toggle Inventory UI"));
+	
+	
 }
 
 void UInventoryInputComponent::CreateInventoryHUDWidget()
@@ -159,7 +160,8 @@ void UInventoryInputComponent::TraceItem()
 		{
 			IHighlightMaterialInterface* HighlightMeshInterface = Cast<IHighlightMaterialInterface>(HighlightMeshComponent);
 			if (nullptr != HighlightMeshInterface)
-				HighlightMeshInterface->OnItemTraced();
+				HighlightMeshInterface->
+			OnItemTraced();
 		}
 		
 		// 이후 아이템에 접근해서 월드 상의 아이템 안보이게하거나 제거 후 인벤토리 데이터에 넣고
