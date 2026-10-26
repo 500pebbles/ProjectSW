@@ -3,7 +3,10 @@
 
 #include "CoreMinimal.h"
 #include "SoulCharacterBase.h"
+#include "UI/WidgetController/OverlayWidgetController.h"
 #include "SoulCharacterEnemy.generated.h"
+
+class UWidgetComponent;
 
 UCLASS()
 class PROJECTSW_API ASoulCharacterEnemy : public ASoulCharacterBase
@@ -26,4 +29,16 @@ public:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	int32 Level = 1;
+	
+/* UI HealthBar Section */
+public:
+	UPROPERTY(BlueprintAssignable)
+	FOnAttributeChangedSignature OnHealthChanged;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnAttributeChangedSignature OnMaxHealthChanged;
+	
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UWidgetComponent> HealthBar;
 };
