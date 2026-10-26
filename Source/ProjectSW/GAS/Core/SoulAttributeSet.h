@@ -14,6 +14,7 @@
 	GAMEPLAYATTRIBUTE_VALUE_SETTER(PropertyName) \
 	GAMEPLAYATTRIBUTE_VALUE_INITTER(PropertyName) 
 
+
 USTRUCT()
 struct FEffectProperties
 {
@@ -126,10 +127,10 @@ public:
 	ATTRIBUTE_ACCESSORS(USoulAttributeSet, CriticalRate);
 	ATTRIBUTE_ACCESSORS(USoulAttributeSet, CriticalDamage);
 	ATTRIBUTE_ACCESSORS(USoulAttributeSet, CooldownReduction);
-	ATTRIBUTE_ACCESSORS(USoulAttributeSet, DamageAmplification);
-	
+	ATTRIBUTE_ACCESSORS(USoulAttributeSet, DamageAmplification);	
 	
 /* Cached Effect Properties */		
 private:
 	void SetEffectProperties(const FGameplayEffectModCallbackData& Data, FEffectProperties& Props) const;
+	
 };

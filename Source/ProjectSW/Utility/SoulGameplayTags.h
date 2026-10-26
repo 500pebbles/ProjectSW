@@ -8,8 +8,7 @@ namespace SoulTags
 	namespace Attributes
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Health)
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Stamina)
-		
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Stamina)		
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(MaxHealth)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(MaxStamina)		
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HealthRegeneration)		
@@ -19,7 +18,7 @@ namespace SoulTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(CriticalRate)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(CriticalDamage)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(CooldownReduction)
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageAmplification)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageAmplification)
 	}
 	
 	namespace Abilities
@@ -36,5 +35,23 @@ namespace SoulTags
 	{
 		
 		
+	}
+	
+	namespace InputTags
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(LMB)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(RMB)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(KEY_1)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(KEY_2)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(KEY_3)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(KEY_4)
+	}
+	
+	namespace Events
+	{
+		namespace Montages
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Fireball)
+		}
 	}
 }

@@ -29,6 +29,14 @@
 		{
 			"Name": "InventorySystem",
 			"Enabled": true
+		},
+		{
+			"Name": "MarkdownAsset",
+			"Enabled": true
+		},
+		{
+			"Name": "MotionWarping",
+			"Enabled": true
 		}
 	]
 }
