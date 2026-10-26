@@ -18,12 +18,15 @@ public:
 	// Sets default values for this component's properties
 	UInventoryComponent();
 
-protected:
+public:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 	
 public:
 	void CreateInventoryUIWidget();
+	
+	UFUNCTION()
+	void ToggleInventoryUI() const;
 
 private:
 	UPROPERTY()

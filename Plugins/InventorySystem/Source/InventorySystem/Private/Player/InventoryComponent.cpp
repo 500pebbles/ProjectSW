@@ -4,8 +4,10 @@
 #include "Player/InventoryComponent.h"
 
 #include "Blueprint/UserWidget.h"
+#include "Player/InventoryInputComponent.h"
 #include "UI/Inventory/GridInventoryWidget.h"
 #include "UI/Inventory/InventoryBase.h"
+#include "GameFramework/Character.h"
 
 
 // Sets default values for this component's properties
@@ -30,6 +32,11 @@ void UInventoryComponent::BeginPlay()
 		CreateInventoryUIWidget();
 	}
 	
+	UInventoryInputComponent* InventoryInputComponent = GetOwner()->FindComponentByClass<UInventoryInputComponent>();
+	if (IsValid(InventoryInputComponent))
+	{
+		InventoryInputComponent->OnToggleInventoryUI.AddDynamic(this, &UInventoryComponent::ToggleInventoryUI);
+	}
 }
 
 void UInventoryComponent::CreateInventoryUIWidget()
@@ -40,4 +47,9 @@ void UInventoryComponent::CreateInventoryUIWidget()
 	{
 		InventoryUI->AddToViewport();
 	}
+}
+
+void UInventoryComponent::ToggleInventoryUI() const
+{
+	InventoryUI->ToggleInventoryUI();
 }

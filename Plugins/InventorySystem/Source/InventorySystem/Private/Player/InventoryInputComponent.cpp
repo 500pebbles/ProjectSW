@@ -54,6 +54,7 @@ void UInventoryInputComponent::BeginPlay()
 	
 		CreateInventoryHUDWidget();
 	}
+	
 }
 
 // Called every frame
@@ -86,7 +87,7 @@ void UInventoryInputComponent::ToggleInventoryUI()
 {
 	UE_LOG(LogInventoryInputComponent, Log, TEXT("Toggle Inventory UI"));
 	
-	
+	OnToggleInventoryUI.Broadcast();
 }
 
 void UInventoryInputComponent::CreateInventoryHUDWidget()

@@ -5,5 +5,4 @@
 
 UGridInventoryWidget::UGridInventoryWidget()
 {
-	SetVisibility(ESlateVisibility::Collapsed); 
 }
