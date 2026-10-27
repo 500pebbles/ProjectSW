@@ -31,7 +31,7 @@ void UInventoryGrid::ConstructGrid()
 			InventorySlot->SetTileIndex(ix + iy * Cols);
 			
 			// 캔버스 패널에 AddChild를 하면 캔버스 패널 슬롯이 생성됨
-			// 해당 캔버스 패널 슬롯을 이용해서 사이즈와 위치 설정
+			// 해당 캔버스 패널 슬롯을 이용해서 사이즈와 위치 설정 (사이즈 위치 설정을 위함)
 			UCanvasPanelSlot* CanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(InventorySlot);
 			CanvasSlot->SetSize(FVector2D(TileSize, TileSize));
 			
