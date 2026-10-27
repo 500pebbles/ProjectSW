@@ -45,7 +45,7 @@ protected:
 	
 /* Attribute Section */
 protected:
-	void InitializeDefaultAttributes() const;
+	virtual void InitializeDefaultAttributes() const;
 	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")

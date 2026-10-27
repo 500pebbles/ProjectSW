@@ -9,7 +9,7 @@
 
 void UAttributeMenuWidgetController::BindCallbacksToDependencies()
 {
-	/* AttributeWidgetController의 Construct 단계에서 이 위젯컨트롤러를 Set으로 등록함. 
+	/* AttributeWidgetController의 Construct 단계에서 이 위젯컨트롤러를 Set으로 등록. 
 	 * AttributeWidgetController가 보유한 모든 TextValueRow 서브위젯들은 같은 주소를 공유함.
 	 * HUD에 정의한 GetAttributeMenuWidgetController의 소유권을 HUD쪽에서 들고있고
 	 * 라이브러리에 정의한 GetAttributeMeneWidgetController 자체가 HUD에서 받아오기 때문.
