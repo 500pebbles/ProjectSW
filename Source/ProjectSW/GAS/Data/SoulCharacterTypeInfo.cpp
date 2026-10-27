@@ -1,0 +1,4 @@
+﻿// 
+
+
+#include "SoulCharacterTypeInfo.h"

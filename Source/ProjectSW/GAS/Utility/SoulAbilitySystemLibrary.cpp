@@ -3,6 +3,8 @@
 
 #include "SoulAbilitySystemLibrary.h"
 
+#include "AbilitySystemComponent.h"
+#include "Game/SoulGameModeBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/SoulPlayerState.h"
 #include "UI/HUD/SoulHUD.h"
@@ -42,4 +44,26 @@ UAttributeMenuWidgetController* USoulAbilitySystemLibrary::GetAttributeMenuWidge
 	const FWidgetControllerParams WidgetControllerParams(PC, PS, ASC, AS);
 	
 	return SoulHUD->GetAttributeMenuWidgetController(WidgetControllerParams);
+}
+
+void USoulAbilitySystemLibrary::InitializeDefaultAttributes(const UObject* WorldContextObject, ECharacterType CharacterType, float Level,  UAbilitySystemComponent* ASC)
+{
+	/* 중앙 데이터 방식의 캐릭터 초기화. */
+	
+	// WorldContext에서 GameMode 접근.
+	ASoulGameModeBase* SoulGameMode = Cast<ASoulGameModeBase>(UGameplayStatics::GetGameMode(WorldContextObject));
+	if (!IsValid(SoulGameMode)) return ;
+	
+	// GameMode에 존재하는 캐릭터 타입을 받아 Setup. 
+	USoulCharacterTypeInfo* CharacterTypeInfo = SoulGameMode->CharacterTypeInfo;
+	FCharacterDefaultInfo CharacterDefaultInfo = CharacterTypeInfo->GetCharacterDefaultInfo(CharacterType);
+	
+	// 캐릭터 타입에 설정된 기본스탯을 Default/Initialize GE로 적용.
+	AActor* AvatarActor = ASC->GetAvatarActor();
+	FGameplayEffectContextHandle AttributesContextHandle = ASC->MakeEffectContext();
+	AttributesContextHandle.AddSourceObject(AvatarActor);	
+	const FGameplayEffectSpecHandle DefaultAttributeSpecHandle = ASC->MakeOutgoingSpec(CharacterDefaultInfo.DefaultAttributes, Level, AttributesContextHandle);
+	ASC->ApplyGameplayEffectSpecToSelf(*DefaultAttributeSpecHandle.Data.Get());
+	const FGameplayEffectSpecHandle InitializeAttributeSpecHandle = ASC->MakeOutgoingSpec(CharacterTypeInfo->InitializeAttributes, Level, AttributesContextHandle);
+	ASC->ApplyGameplayEffectSpecToSelf(*InitializeAttributeSpecHandle.Data.Get());
 }

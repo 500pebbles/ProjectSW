@@ -3,6 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "SoulCharacterBase.h"
+#include "GAS/Data/SoulCharacterTypeInfo.h"
 #include "UI/WidgetController/OverlayWidgetController.h"
 #include "SoulCharacterEnemy.generated.h"
 
@@ -20,6 +21,8 @@ protected:
 	virtual void BeginPlay() override;
 	
 	virtual void InitAbilityActorInfo() override;
+	
+	virtual void InitializeDefaultAttributes() const override;
 
 
 /* Combat Interface */
@@ -29,6 +32,9 @@ public:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	int32 Level = 1;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
+	ECharacterType CharacterType = ECharacterType::CharacterType_01;
 	
 /* UI HealthBar Section */
 public:

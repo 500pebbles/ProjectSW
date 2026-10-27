@@ -3,10 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GAS/Data/SoulCharacterTypeInfo.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "SoulAbilitySystemLibrary.generated.h"
 
 
+class UAbilitySystemComponent;
 class UAttributeMenuWidgetController;
 class UOverlayWidgetController;
 
@@ -23,7 +25,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "SoulAbilitySystemLibrary")
 	static UOverlayWidgetController* GetOverlayWidgetController(const UObject* WorldContextObject);
 	
-	UFUNCTION(BlueprintPure, Category="SoulAbilitySystemLibrary")
+	UFUNCTION(BlueprintPure, Category = "SoulAbilitySystemLibrary")
 	static UAttributeMenuWidgetController* GetAttributeMenuWidgetController(const UObject* WorldContextObject);
+
+	UFUNCTION(BlueprintCallable, Category = "SoulAbilitySystemLibrary")
+	static void InitializeDefaultAttributes(const UObject* WorldContextObject, ECharacterType CharacterType, float Level, UAbilitySystemComponent* ASC);
+	
 private:
 };
