@@ -3,7 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "SoulCharacterBase.h"
-#include "GAS/Data/SoulCharacterTypeInfo.h"
+#include "GAS/Data/SoulEnemyTypeInfo.h"
 #include "UI/WidgetController/OverlayWidgetController.h"
 #include "SoulCharacterEnemy.generated.h"
 
@@ -34,7 +34,7 @@ protected:
 	int32 Level = 1;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
-	ECharacterType CharacterType = ECharacterType::CharacterType_01;
+	EEnemyType CharacterType = EEnemyType::EnemyType_01;
 	
 /* UI HealthBar Section */
 public:

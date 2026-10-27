@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GAS/Data/SoulCharacterTypeInfo.h"
+#include "GAS/Data/SoulEnemyTypeInfo.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "SoulAbilitySystemLibrary.generated.h"
 
@@ -29,7 +29,7 @@ public:
 	static UAttributeMenuWidgetController* GetAttributeMenuWidgetController(const UObject* WorldContextObject);
 
 	UFUNCTION(BlueprintCallable, Category = "SoulAbilitySystemLibrary")
-	static void InitializeDefaultAttributes(const UObject* WorldContextObject, ECharacterType CharacterType, float Level, UAbilitySystemComponent* ASC);
+	static void EnemyInitializeDefaultAttributes(const UObject* WorldContextObject, EEnemyType EnemyType, float Level, UAbilitySystemComponent* ASC);
 	
 private:
 };

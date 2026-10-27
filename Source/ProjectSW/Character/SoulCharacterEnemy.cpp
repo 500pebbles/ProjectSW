@@ -57,7 +57,7 @@ void ASoulCharacterEnemy::InitAbilityActorInfo()
 
 void ASoulCharacterEnemy::InitializeDefaultAttributes() const
 {
-	USoulAbilitySystemLibrary::InitializeDefaultAttributes(this, CharacterType, Level, AbilitySystemComponent);
+	USoulAbilitySystemLibrary::EnemyInitializeDefaultAttributes(this, CharacterType, Level, AbilitySystemComponent);
 }
 
 int32 ASoulCharacterEnemy::GetPlayerLevel()

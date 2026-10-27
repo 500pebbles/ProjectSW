@@ -5,7 +5,7 @@
 #include "GameFramework/GameModeBase.h"
 #include "SoulGameModeBase.generated.h"
 
-class USoulCharacterTypeInfo;
+class USoulEnemyTypeInfo;
 
 UCLASS()
 class PROJECTSW_API ASoulGameModeBase : public AGameModeBase
@@ -14,5 +14,5 @@ class PROJECTSW_API ASoulGameModeBase : public AGameModeBase
 	
 public:
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
-	TObjectPtr<USoulCharacterTypeInfo> CharacterTypeInfo;
+	TObjectPtr<USoulEnemyTypeInfo> EnemyTypeInfo;
 };
