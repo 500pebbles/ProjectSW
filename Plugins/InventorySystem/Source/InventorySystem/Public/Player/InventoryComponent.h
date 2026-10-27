@@ -25,8 +25,8 @@ public:
 public:
 	void CreateInventoryUIWidget();
 	
-	UFUNCTION()
-	void ToggleInventoryUI() const;
+	UFUNCTION(BlueprintCallable, Category = "Inventory" )
+	void ToggleInventoryUI();
 
 private:
 	UPROPERTY()
@@ -38,4 +38,6 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UInventoryBase> InventoryUI;
+	
+	bool bIsInventoryUIOpen = false;
 };

@@ -45,11 +45,29 @@ void UInventoryComponent::CreateInventoryUIWidget()
 	
 	if (IsValid(InventoryUI))
 	{
-		InventoryUI->AddToViewport();
+		InventoryUI->AddToViewport(5);
 	}
 }
 
-void UInventoryComponent::ToggleInventoryUI() const
+void UInventoryComponent::ToggleInventoryUI()
 {
 	InventoryUI->ToggleInventoryUI();
+	
+	FInputModeGameAndUI InventoryInputMode;
+	FInputModeGameOnly GameInputMode;
+	
+	// 인벤토리 UI 닫기
+	if (bIsInventoryUIOpen)
+	{
+		LocalGameController->SetInputMode(GameInputMode);
+		LocalGameController->SetShowMouseCursor(false);
+		bIsInventoryUIOpen = false;
+	}
+	// 인벤토리 UI 오픈
+	else
+	{
+		LocalGameController->SetInputMode(InventoryInputMode);
+		LocalGameController->SetShowMouseCursor(true);
+		bIsInventoryUIOpen = true;
+	}
 }
