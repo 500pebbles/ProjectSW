@@ -6,6 +6,7 @@
 #include "Components/WidgetComponent.h"
 #include "GAS/Core/SoulAbilitySystemComponent.h"
 #include "GAS/Core/SoulAttributeSet.h"
+#include "GAS/Utility/SoulAbilitySystemLibrary.h"
 #include "UI/Widget/SoulUserWidget.h"
 #include "Utility/SoulDefineMacro.h"
 #include "Utility/SoulLog.h"
@@ -52,6 +53,11 @@ void ASoulCharacterEnemy::InitAbilityActorInfo()
 	Cast<USoulAbilitySystemComponent>(AbilitySystemComponent)->OnAbilityActorInfoSet();	
 	
 	InitializeDefaultAttributes();
+}
+
+void ASoulCharacterEnemy::InitializeDefaultAttributes() const
+{
+	USoulAbilitySystemLibrary::EnemyInitializeDefaultAttributes(this, CharacterType, Level, AbilitySystemComponent);
 }
 
 int32 ASoulCharacterEnemy::GetPlayerLevel()
