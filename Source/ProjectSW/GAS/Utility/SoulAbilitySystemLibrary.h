@@ -34,4 +34,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "SoulAbilitySystemLibrary")
 	static void EnemyGiveStartupAbilities(const UObject* WorldContextObject, UAbilitySystemComponent* ASC);
 
+	UFUNCTION(BlueprintCallable, Category = "SoulAbilitySystemLibrary")
+	static USoulEnemyTypeInfo* GetEnemyTypeInfo(const UObject* WorldContextObject);
 };

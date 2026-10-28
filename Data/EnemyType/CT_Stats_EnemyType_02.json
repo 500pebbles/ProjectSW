@@ -1,7 +1,7 @@
 [
 	{
 		"Name": "SoulTags.Attributes.MaxHealth",
-		"1": 100,
+		"1": 200,
 		"15": 500
 	},
 	{
@@ -11,7 +11,7 @@
 	},
 	{
 		"Name": "SoulTags.Attributes.Defense",
-		"1": 0,
-		"15": 0
+		"1": 5,
+		"15": 10
 	}
 ]

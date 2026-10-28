@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h"
 #include "GAS/Core/SoulAbilitySystemComponent.h"
 #include "Input/SoulEnhancedInputComponent.h"
+#include "UI/WidgetComponent/SoulDamageTextComponent.h"
 #include "Utility/SoulDefineMacro.h"
 #include "Utility/SoulLog.h"
 
@@ -121,4 +122,15 @@ USoulAbilitySystemComponent* ASoulPlayerController::GetASC()
 		SoulAbilitySystemComponent = Cast<USoulAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPawn<APawn>()));
 
 	return SoulAbilitySystemComponent;
+}
+
+void ASoulPlayerController::ShowDamageText_Implementation(float DamageAmount, ACharacter* TargetCharacter)
+{
+	if (!IsValid(TargetCharacter)) return;
+	
+	USoulDamageTextComponent* DamageText = NewObject<USoulDamageTextComponent>(TargetCharacter, DamageTextComponentClass);
+	DamageText->RegisterComponent();
+	DamageText->AttachToComponent(TargetCharacter->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	DamageText->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+	DamageText->SetDamageText(DamageAmount);
 }

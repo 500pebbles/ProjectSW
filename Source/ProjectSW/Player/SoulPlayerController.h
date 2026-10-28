@@ -5,6 +5,7 @@
 #include "GameFramework/PlayerController.h"
 #include "SoulPlayerController.generated.h"
 
+class USoulDamageTextComponent;
 class USoulAbilitySystemComponent;
 struct FGameplayTag;
 class USoulInputConfig;
@@ -75,4 +76,13 @@ private:
 private:
 	UPROPERTY()
 	TObjectPtr<USoulAbilitySystemComponent> SoulAbilitySystemComponent;
+	
+/* UI : DamageText */	
+public:
+	UFUNCTION(Client, Reliable)
+	void ShowDamageText(float DamageAmount, ACharacter* TargetCharacter);
+	
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TSubclassOf<USoulDamageTextComponent> DamageTextComponentClass;
 };

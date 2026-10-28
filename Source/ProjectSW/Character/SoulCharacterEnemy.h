@@ -29,6 +29,8 @@ protected:
 /* Combat Interface */
 public:
 	virtual int32 GetPlayerLevel() override;	
+	
+	virtual void Die() override;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))

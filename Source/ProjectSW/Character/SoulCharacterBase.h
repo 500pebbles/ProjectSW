@@ -64,6 +64,11 @@ protected:
 	
 /* Combat Interface Section */
 public:
+	virtual void Die() override;
+	
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_HandleDeath();
+	
 	virtual FVector GetCombatSocketLocation() override;
 	
 	virtual UAnimMontage* GetHitReactMontage_Implementation() override;
