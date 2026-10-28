@@ -6,14 +6,14 @@
 #include "Components/ActorComponent.h"
 #include "InventoryComponent.generated.h"
 
-
+class UItemData;
 class UInventoryBase;
 
 UCLASS(Blueprintable, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class INVENTORYSYSTEM_API UInventoryComponent : public UActorComponent
 {
 	GENERATED_BODY()
-
+	
 public:
 	// Sets default values for this component's properties
 	UInventoryComponent();
