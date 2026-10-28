@@ -65,3 +65,8 @@ FVector ASoulCharacterBase::GetCombatSocketLocation()
 {
 	return Weapon->GetSocketLocation(CombatSocketName);
 }
+
+UAnimMontage* ASoulCharacterBase::GetHitReactMontage_Implementation()
+{
+	return HitReactMontage;
+}

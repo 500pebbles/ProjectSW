@@ -21,19 +21,19 @@ namespace SoulTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageAmplification)
 	}
 	
+	namespace Combats
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Damage)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HitReact)
+	}
+	
 	namespace Abilities
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Primary)
 	}
 	
-	namespace Effects
-	{
-		
-	}
-	
 	namespace States
-	{
-		
+	{		
 		
 	}
 	

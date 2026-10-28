@@ -7,6 +7,7 @@
 #include "UI/WidgetController/OverlayWidgetController.h"
 #include "SoulCharacterEnemy.generated.h"
 
+struct FGameplayTag;
 class UWidgetComponent;
 
 UCLASS()
@@ -34,7 +35,20 @@ protected:
 	int32 Level = 1;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
-	EEnemyType CharacterType = EEnemyType::EnemyType_01;
+	EEnemyType EnemyType = EEnemyType::EnemyType_01;
+	
+/* Hit React Section */
+public:
+	void OnHitReactTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
+	
+public:
+	UPROPERTY(BlueprintReadOnly)
+	bool bHitReacting = false;
+	
+/* Character Movement Section */
+public:
+	UPROPERTY(BlueprintReadOnly)
+	float BaseWalkSpeed = 250.f;
 	
 /* UI HealthBar Section */
 public:

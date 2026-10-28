@@ -14,4 +14,7 @@ class PROJECTSW_API USoulGameplayAbility : public UGameplayAbility
 public:
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	FGameplayTag StartupInputTag;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Setup")
+	FScalableFloat AbilityDamage;
 };

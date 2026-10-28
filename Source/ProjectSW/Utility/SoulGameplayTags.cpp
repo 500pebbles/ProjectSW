@@ -18,15 +18,16 @@ namespace SoulTags
 		UE_DEFINE_GAMEPLAY_TAG(DamageAmplification, "SoulTags.Attributes.DamageAmplification")
 	}
 	
+	namespace Combats
+	{
+		UE_DEFINE_GAMEPLAY_TAG(Damage, "SoulTags.Combats.Damage")
+		UE_DEFINE_GAMEPLAY_TAG(HitReact, "SoulTags.Combats.HitReact")
+	}
+	
 	namespace Abilities
 	{
 		UE_DEFINE_GAMEPLAY_TAG(Primary, "SoulTags.Abilities.Primary")
 	} 
-	
-	namespace Effects
-	{
-			
-	}
 	
 	namespace States
 	{
