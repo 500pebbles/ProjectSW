@@ -31,5 +31,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "SoulAbilitySystemLibrary")
 	static void EnemyInitializeDefaultAttributes(const UObject* WorldContextObject, EEnemyType EnemyType, float Level, UAbilitySystemComponent* ASC);
 	
-private:
+	UFUNCTION(BlueprintCallable, Category = "SoulAbilitySystemLibrary")
+	static void EnemyGiveStartupAbilities(const UObject* WorldContextObject, UAbilitySystemComponent* ASC);
+
 };

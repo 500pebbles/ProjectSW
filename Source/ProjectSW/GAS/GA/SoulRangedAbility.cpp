@@ -7,6 +7,7 @@
 #include "AbilitySystemComponent.h"
 #include "Actor/SoulProjectileBase.h"
 #include "Interface/SoulCombatInterface.h"
+#include "Utility/SoulGameplayTags.h"
 
 
 void USoulRangedAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -32,11 +33,15 @@ void USoulRangedAbility::SpawnProjectile()
 
 	ASoulProjectileBase* Projectile = GetWorld()->SpawnActorDeferred<ASoulProjectileBase>(ProjectileClass, SpawnTransform, GetOwningActorFromActorInfo(), Cast<APawn>(GetOwningActorFromActorInfo()), ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 
-	// Step 2 : Setup Gameplay Effect. 
+	// Step 2 : Setup GameplayEffect Instance. 
 	UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetAvatarActorFromActorInfo());
 	FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(DamageEffectClass, GetAbilityLevel(), SourceASC->MakeEffectContext());
+	
+	const float Damage = AbilityDamage.GetValueAtLevel(GetAbilityLevel());
+	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, SoulTags::Combats::Damage, Damage);
+	
 	Projectile->DamageEffectSpecHandle = SpecHandle;  // Actor가 보유할 GE -> GA에서 참조해 생성시 전달. 
 	
 	// Step 3 : Finish Spawn. 
-	Projectile->FinishSpawning(SpawnTransform);
+	Projectile->FinishSpawning(SpawnTransform);	
 }

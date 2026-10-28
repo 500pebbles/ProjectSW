@@ -1,0 +1,23 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1",
+	"FriendlyName": "ProcMapGen",
+	"Description": "Procedural map generation (grid rooms, two routes, big rooms, room types, asset assignment) and level build.",
+	"Category": "Procedural",
+	"CreatedBy": "",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"EngineVersion": "5.8.0",
+	"CanContainContent": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "ProcMapGen",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
