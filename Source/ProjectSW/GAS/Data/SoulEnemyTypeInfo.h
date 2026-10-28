@@ -6,6 +6,7 @@
 #include "Engine/DataAsset.h"
 #include "SoulEnemyTypeInfo.generated.h"
 
+class UGameplayAbility;
 class UGameplayEffect;
 
 /* Enemy의 Initial Attributes, Startup Abilities의 초기화를 진행하기 위한 데이터 클래스.
@@ -19,7 +20,7 @@ class UGameplayEffect;
  * 초기화
  * 1. 데이터 에셋을 쓰기 위해 어딘가에서 에셋의 인스턴스를 준비한다. 전역 접근이 가장 쉬운 GameMode 선택.
  * 2. 실제로 데이터를 기반으로 초기화의 정의는 블루프린트 라이브러리 EnemyInitializeDefaultAttributes로 정의한다.
- * 3. 게임모드에서 데이터를 채워넣은 에셋의 인스턴스를 기반, 함수의 파라미터로 들어온 타입을 기반으로 매핑된 GE 주입.  */
+ * 3. 게임모드에서 데이터를 채워넣은 에셋의 인스턴스를 기반, 함수의 파라미터로 들어온 타입을 기반으로 매핑된 GE 주입. */
 
 UENUM(BlueprintType)
 enum class EEnemyType : uint8
@@ -36,7 +37,11 @@ struct FEnemyDefaultInfo
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
-	TSubclassOf<UGameplayEffect> DefaultAttributes;
+	TSubclassOf<UGameplayEffect> DefaultAttributes;	
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TArray<TSubclassOf<UGameplayAbility>> StartupAbilities;
+
 };
 
 UCLASS()
@@ -53,4 +58,7 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
 	TSubclassOf<UGameplayEffect> InitializeAttributes;		
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TArray<TSubclassOf<UGameplayAbility>> BasicAbilities;
 };

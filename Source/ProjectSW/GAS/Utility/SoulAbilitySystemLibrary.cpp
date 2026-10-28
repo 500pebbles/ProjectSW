@@ -50,11 +50,11 @@ void USoulAbilitySystemLibrary::EnemyInitializeDefaultAttributes(const UObject* 
 {
 	// WorldContext에서 GameMode 접근.
 	ASoulGameModeBase* SoulGameMode = Cast<ASoulGameModeBase>(UGameplayStatics::GetGameMode(WorldContextObject));
-	if (!IsValid(SoulGameMode)) return ;
+	if (!IsValid(SoulGameMode)) return;
 	
 	// GameMode에 존재하는 캐릭터 타입을 받아 Setup. 
 	USoulEnemyTypeInfo* EnemyTypeInfo = SoulGameMode->EnemyTypeInfo;
-	FEnemyDefaultInfo EnemyDefaultInfo = EnemyTypeInfo->GetEnemyDefaultInfo(EnemyType);
+	const FEnemyDefaultInfo EnemyDefaultInfo = EnemyTypeInfo->GetEnemyDefaultInfo(EnemyType);
 	
 	// 캐릭터 타입에 설정된 기본스탯을 Default/Initialize GE로 적용.
 	AActor* AvatarActor = ASC->GetAvatarActor();
@@ -68,4 +68,20 @@ void USoulAbilitySystemLibrary::EnemyInitializeDefaultAttributes(const UObject* 
 	InitializeAttributesContextHandle.AddSourceObject(AvatarActor);	
 	const FGameplayEffectSpecHandle InitializeAttributeSpecHandle = ASC->MakeOutgoingSpec(EnemyTypeInfo->InitializeAttributes, Level, InitializeAttributesContextHandle);
 	ASC->ApplyGameplayEffectSpecToSelf(*InitializeAttributeSpecHandle.Data.Get());
+}
+
+void USoulAbilitySystemLibrary::EnemyGiveStartupAbilities(const UObject* WorldContextObject, UAbilitySystemComponent* ASC)
+{
+	// WorldContext에서 GameMode 접근.
+	ASoulGameModeBase* SoulGameMode = Cast<ASoulGameModeBase>(UGameplayStatics::GetGameMode(WorldContextObject));
+	if (!IsValid(SoulGameMode)) return;
+	
+	// GameMode에 존재하는 캐릭터 타입을 받아 Setup. 
+	USoulEnemyTypeInfo* EnemyTypeInfo = SoulGameMode->EnemyTypeInfo;	
+	
+	for (auto AbilityClass : EnemyTypeInfo->BasicAbilities)
+	{
+		FGameplayAbilitySpec AbilitySpec = FGameplayAbilitySpec(AbilityClass, 1);
+		ASC->GiveAbility(AbilitySpec);
+	}
 }

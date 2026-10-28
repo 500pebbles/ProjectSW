@@ -66,9 +66,14 @@ protected:
 public:
 	virtual FVector GetCombatSocketLocation() override;
 	
+	virtual UAnimMontage* GetHitReactMontage_Implementation() override;
+	
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	FName CombatSocketName;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TObjectPtr<UAnimMontage> HitReactMontage;
 	
 /* Component Section */	
 protected:

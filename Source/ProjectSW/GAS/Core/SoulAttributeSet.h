@@ -85,6 +85,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_DamageAmplification)
 	FGameplayAttributeData DamageAmplification;
 	
+	UPROPERTY(BlueprintReadOnly)
+	FGameplayAttributeData IncomingDamage;
+	
+	
 /* Replication Callbacks */	
 public:
 	UFUNCTION()
@@ -129,6 +133,7 @@ public:
 	ATTRIBUTE_ACCESSORS(USoulAttributeSet, CooldownReduction);
 	ATTRIBUTE_ACCESSORS(USoulAttributeSet, DamageAmplification);	
 	
+	ATTRIBUTE_ACCESSORS(USoulAttributeSet, IncomingDamage);	
 /* Cached Effect Properties */		
 private:
 	void SetEffectProperties(const FGameplayEffectModCallbackData& Data, FEffectProperties& Props) const;
