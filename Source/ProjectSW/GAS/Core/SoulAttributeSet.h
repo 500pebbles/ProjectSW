@@ -134,8 +134,13 @@ public:
 	ATTRIBUTE_ACCESSORS(USoulAttributeSet, DamageAmplification);	
 	
 	ATTRIBUTE_ACCESSORS(USoulAttributeSet, IncomingDamage);	
+	
 /* Cached Effect Properties */		
 private:
 	void SetEffectProperties(const FGameplayEffectModCallbackData& Data, FEffectProperties& Props) const;
 	
+	
+/* Damage Text UI Section */	
+private:
+	void ShowDamageText(const FEffectProperties& Props, float DamageAmount) const;
 };

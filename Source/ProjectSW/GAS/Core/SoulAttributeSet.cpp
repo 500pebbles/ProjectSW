@@ -6,7 +6,10 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayEffectExtension.h"
 #include "GameFramework/Character.h"
+#include "Interface/SoulCombatInterface.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/SoulPlayerController.h"
 #include "Utility/SoulGameplayTags.h"
 
 USoulAttributeSet::USoulAttributeSet()
@@ -94,16 +97,19 @@ void USoulAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectMo
 			SetHealth(FMath::Clamp(NewHealth, 0.f, GetMaxHealth()));
 			
 			const bool bFatal = NewHealth <= 0.f;
-			if (!bFatal)
-			{
-				FGameplayTagContainer TagContainer;
-				TagContainer.AddTag(SoulTags::Combats::HitReact);
-				Props.TargetASC->TryActivateAbilitiesByTag(TagContainer);
+			if (bFatal)
+			{				
+				ISoulCombatInterface* CombatInterface = Cast<ISoulCombatInterface>(Props.TargetAvatarActor);
+				if (CombatInterface) CombatInterface->Die();
 			}
 			else
 			{
-				// Die.
+				FGameplayTagContainer TagContainer; // Temp Tag.
+				TagContainer.AddTag(SoulTags::Combats::HitReact);
+				Props.TargetASC->TryActivateAbilitiesByTag(TagContainer); 
 			}
+			
+			ShowDamageText(Props, LocalIncomingDamage);
 			
 		}
 	}
@@ -190,7 +196,7 @@ void USoulAttributeSet::SetEffectProperties(const FGameplayEffectModCallbackData
 		}
 		if (Props.SourceController)
 		{
-			ACharacter* SourceCharacter = Cast<ACharacter>(Props.SourceController->GetPawn());
+			Props.SourceCharacter = Cast<ACharacter>(Props.SourceController->GetPawn());
 		}
 	}
 
@@ -201,4 +207,12 @@ void USoulAttributeSet::SetEffectProperties(const FGameplayEffectModCallbackData
 		Props.TargetCharacter = Cast<ACharacter>(Props.TargetAvatarActor);
 		Props.TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Props.TargetAvatarActor);
 	}
+}
+
+void USoulAttributeSet::ShowDamageText(const FEffectProperties& Props, float DamageAmount) const
+{
+	if (Props.SourceCharacter == Props.TargetCharacter) return;
+	
+	ASoulPlayerController* PC = Cast<ASoulPlayerController>(UGameplayStatics::GetPlayerController(Props.SourceCharacter, 0));
+	if (PC) PC->ShowDamageText(DamageAmount, Props.TargetCharacter);
 }
