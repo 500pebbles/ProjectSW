@@ -15,6 +15,7 @@ struct FInventoryDataEntry
 	FInventoryDataEntry();
 	
 public:
+	FORCEINLINE FGuid GetID() const {return ID;}
 	FORCEINLINE UItemData* GetItem() const { return Item; }
 	FORCEINLINE FIntPoint GetGridPosition() const { return GridPosition; }
 	FORCEINLINE bool IsRotated() const { return bIsRotated; }
@@ -33,6 +34,9 @@ private:
 	friend class UInventoryComponent;
 	
 	UPROPERTY()
+	FGuid ID;
+	
+	UPROPERTY()
 	TObjectPtr<UItemData> Item = nullptr;
 	
 	// 아이템 공간을 차지할 위치의 기준값(왼쪽 위)
@@ -44,6 +48,8 @@ private:
 	bool bIsRotated = false;
 };
 
+//--------------------------------------------------------------------------//
+
 // 인벤토리의 아이템 리스트
 USTRUCT(BlueprintType)
 struct FInventoryDataArray
@@ -54,23 +60,27 @@ struct FInventoryDataArray
 	FInventoryDataArray(UActorComponent* InOwnerComponent);
 	
 public:
-	// 아이템 목록 가져오기
-	TArray<UItemData*> GetAllItems() const;
+	void InitializeArray();
 	
 	// 목록에 아이템 추가
 	// 추가될 아이템의 포인터를 반환
 	void AddItemData(const UItemComponent* InItemComponent);
 	void AddItemData(UItemData* InItemData);
 	
-	// 목록에서 아이템 포인터를 이용해 아이템 제거
-	void RemoveItemData(UItemData* InItemData);
+	// 목록에서 아이템 고유 ID를 이용해 아이템 제거
+	void RemoveItemData(FGuid InID);
 	
 	FIntPoint FindAvailablePosition(const UItemData* InItemData) const;
 
+	// 아이템 목록 가져오기
+	TArray<UItemData*> GetAllItems() const;
+	
 public:
+	// 인벤토리 공간 크기
 	UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = "1"))
 	FIntPoint GridSize;
 	
+	// 인벤토리 데이터 섹션
 private:
 	friend class UInventoryComponent;
 	

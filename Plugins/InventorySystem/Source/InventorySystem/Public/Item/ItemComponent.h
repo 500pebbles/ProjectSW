@@ -18,7 +18,7 @@ public:
 	// Sets default values for this component's properties
 	UItemComponent();
 
-protected:
+public:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
@@ -27,16 +27,20 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	
-	FString GetItemName();
-	
-	FString GetItemDescription();
-	
-	void GetItemEffect();
-	
 	FORCEINLINE UItemData* GetItemData() const { return ItemData; }
+
+	// 데이터 테이블 관련 색션
+public:
+	UFUNCTION(BlueprintCallable, Category="Item")
+	void InitItemData();
 	
 	
 private:
-	UPROPERTY(EditDefaultsOnly, Category="Item")
+	UPROPERTY(Transient)
 	TObjectPtr<UItemData> ItemData;
+	
+	// 아이템 데이터 색션
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Item", meta = (RowType = "/Script/InventorySystem.ItemDataTable"))
+	FDataTableRowHandle ItemRow;
 };

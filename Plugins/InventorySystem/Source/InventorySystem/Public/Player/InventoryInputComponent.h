@@ -13,6 +13,7 @@ class UInputAction;
 class UInventoryHUDWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnToggleInventoryUIDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCollectItemDelegate, AActor*, TargetItem);
 
 UCLASS(Blueprintable, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class INVENTORYSYSTEM_API UInventoryInputComponent : public UActorComponent
@@ -21,6 +22,7 @@ class INVENTORYSYSTEM_API UInventoryInputComponent : public UActorComponent
 	
 public:
 	FOnToggleInventoryUIDelegate OnToggleInventoryUI;
+	FOnCollectItemDelegate OnCollectItem;
 
 public:
 	// Sets default values for this component's properties

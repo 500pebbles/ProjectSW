@@ -80,7 +80,12 @@ void UInventoryInputComponent::SetupInventoryInputComponent()
 
 void UInventoryInputComponent::InventoryInteract()
 {
+	if (!CurrentTraceItem.IsValid())
+	{
+		return;
+	}
 	UE_LOG(LogInventoryInputComponent, Log, TEXT("Inventory Interact"));
+	OnCollectItem.Broadcast(CurrentTraceItem.Get());
 }
 
 void UInventoryInputComponent::ToggleInventoryUI()

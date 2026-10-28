@@ -42,11 +42,12 @@ public:
 	void Initialize(const FDataTableRowHandle& InRowHandle);
 	
 	// 데이터 테이블 행 조회
-	const FItemDataTable* GetItemData() const;
+	const FItemDataTable* GetRow() const;
 	
 	FIntPoint GetItemSize() const;
 	FName GetRowName() const {return ItemRowHandle.RowName;}
 	
 private:
+	UPROPERTY()
 	FDataTableRowHandle ItemRowHandle;
 };

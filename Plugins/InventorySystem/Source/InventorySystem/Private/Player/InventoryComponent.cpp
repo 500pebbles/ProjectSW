@@ -7,8 +7,7 @@
 #include "Player/InventoryInputComponent.h"
 #include "UI/Inventory/GridInventoryWidget.h"
 #include "UI/Inventory/InventoryBase.h"
-#include "GameFramework/Character.h"
-
+#include "Item/ItemComponent.h"
 
 // Sets default values for this component's properties
 UInventoryComponent::UInventoryComponent()
@@ -36,7 +35,11 @@ void UInventoryComponent::BeginPlay()
 	if (IsValid(InventoryInputComponent))
 	{
 		InventoryInputComponent->OnToggleInventoryUI.AddDynamic(this, &UInventoryComponent::ToggleInventoryUI);
+		InventoryInputComponent->OnCollectItem.AddDynamic(this, &UInventoryComponent::CollectItem);
 	}
+	
+	// 인벤토리 데이터 초기화
+	//InventoryData.InitializeArray();
 }
 
 void UInventoryComponent::CreateInventoryUIWidget()
@@ -70,4 +73,10 @@ void UInventoryComponent::ToggleInventoryUI()
 		LocalGameController->SetShowMouseCursor(true);
 		bIsInventoryUIOpen = true;
 	}
+}
+
+void UInventoryComponent::CollectItem(AActor* TargetItem)
+{
+	UItemComponent* TargetItemComponent = TargetItem->GetComponentByClass<UItemComponent>();
+	InventoryData.AddItemData(TargetItemComponent);
 }

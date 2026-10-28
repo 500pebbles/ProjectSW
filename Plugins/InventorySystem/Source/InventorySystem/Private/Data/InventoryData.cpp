@@ -5,6 +5,7 @@
 
 FInventoryDataEntry::FInventoryDataEntry()
 {
+	ID = FGuid::NewGuid();
 }
 
 FIntPoint FInventoryDataEntry::GetOccupiedSize() const
@@ -72,6 +73,12 @@ FInventoryDataArray::FInventoryDataArray(UActorComponent* InOwnerComponent)
 	OwnerComponent = InOwnerComponent;
 }
 
+void FInventoryDataArray::InitializeArray()
+{
+	ItemDataArray.Reset();
+	ItemDataArray.Reserve(GridSize.X * GridSize.Y);
+}
+
 TArray<UItemData*> FInventoryDataArray::GetAllItems() const
 {
 	TArray<UItemData*> Items;
@@ -114,7 +121,7 @@ void FInventoryDataArray::AddItemData(UItemData* InItemData)
 	}
 }
 
-void FInventoryDataArray::RemoveItemData(UItemData* InItemData)
+void FInventoryDataArray::RemoveItemData(FGuid InID)
 {
 	
 }
