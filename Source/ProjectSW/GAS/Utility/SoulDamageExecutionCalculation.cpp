@@ -48,31 +48,27 @@ void USoulDamageExecutionCalculation::Execute_Implementation(const FGameplayEffe
 	
 	FAggregatorEvaluateParameters EvaluationParameters;
 	EvaluationParameters.SourceTags = SourceTags;
-	EvaluationParameters.TargetTags = TargetTags;
+	EvaluationParameters.TargetTags = TargetTags;	
 	
-	// GE의 SetByCaller를 Tag로 읽고 Raw 데미지값 획득. 
+	// Setup.
 	float Damage = Spec.GetSetByCallerMagnitude(SoulTags::Combats::Damage);
 	
-	// 데미지 처리 Setup.
 	float TargetDefense = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(DamageStatics().DefenseDef, EvaluationParameters, TargetDefense);
-		
 	float SourceCriticalRate = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(DamageStatics().CriticalRateDef, EvaluationParameters, SourceCriticalRate);
-	
 	float SourceCriticalDamage = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(DamageStatics().CriticalDamageDef, EvaluationParameters, SourceCriticalDamage);
 
-	// 최종데미지 계산.
+	// 계산.
 	Damage = Damage * (100 / (100 + TargetDefense));
 	Damage = FMath::Max<float>(Damage, 0.f);
 	
 	const float EffectiveCriticalRate = SourceCriticalRate;
 	const bool bIsDamageCritical = FMath::RandRange(1, 100) < EffectiveCriticalRate;	
-	if (bIsDamageCritical) Damage = Damage + (Damage * SourceCriticalDamage / 100);
+	if (bIsDamageCritical) Damage = Damage + (Damage * SourceCriticalDamage / 100);	
 	
-	
-	// 데미지 처리.
+	// 처리.
 	const FGameplayModifierEvaluatedData EvaluatedData(USoulAttributeSet::GetIncomingDamageAttribute(), EGameplayModOp::Additive, Damage);
 	OutExecutionOutput.AddOutputModifier(EvaluatedData);	
 }
