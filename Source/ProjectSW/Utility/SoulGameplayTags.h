@@ -19,6 +19,13 @@ namespace SoulTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(CriticalDamage)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(CooldownReduction)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageAmplification)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(PhysicalResistance)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SinResistance)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(VirtueResistance)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GraceResistance)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HateResistance)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(TormentResistance)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SolaceResistance)
 	}
 	
 	namespace Combats
@@ -37,7 +44,7 @@ namespace SoulTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Torment)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Solace)
 		
-		const TArray<FGameplayTag>& GetDamageTypes();
+		const TMap<FGameplayTag, FGameplayTag>& GetDamageTypes();
 	}
 	
 	namespace Abilities

@@ -57,7 +57,10 @@ public:
 	TMap<EEnemyType, FEnemyDefaultInfo> EnemyDescription;	
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
-	TSubclassOf<UGameplayEffect> InitializeAttributes;		
+	TSubclassOf<UGameplayEffect> InitializeAttributes;	
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
+	TSubclassOf<UGameplayEffect> ResistanceAttributes;	
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TArray<TSubclassOf<UGameplayAbility>> BasicAbilities;

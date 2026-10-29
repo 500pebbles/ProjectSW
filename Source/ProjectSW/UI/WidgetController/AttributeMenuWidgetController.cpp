@@ -85,8 +85,6 @@ void UAttributeMenuWidgetController::BindCallbacksToDependencies()
 		Info.AttributeValue = Data.NewValue;
 		AttributeInfoDelegate.Broadcast(Info);
 	});
-	
-	
 }
 
 void UAttributeMenuWidgetController::BroadcastInitialValues()

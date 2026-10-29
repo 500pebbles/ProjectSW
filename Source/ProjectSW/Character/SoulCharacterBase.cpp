@@ -53,6 +53,7 @@ void ASoulCharacterBase::InitializeDefaultAttributes() const
 {	
 	ApplyEffectToSelf(DefaultAttributes, 1);
 	ApplyEffectToSelf(InitializeAttributes, 1);
+	ApplyEffectToSelf(ResistanceAttributes, 1);
 }
 
 void ASoulCharacterBase::GiveStartupAbilities()

@@ -64,6 +64,12 @@ void USoulAbilitySystemLibrary::EnemyInitializeDefaultAttributes(const UObject* 
 	InitializeAttributesContextHandle.AddSourceObject(AvatarActor);	
 	const FGameplayEffectSpecHandle InitializeAttributeSpecHandle = ASC->MakeOutgoingSpec(EnemyTypeInfo->InitializeAttributes, Level, InitializeAttributesContextHandle);
 	ASC->ApplyGameplayEffectSpecToSelf(*InitializeAttributeSpecHandle.Data.Get());
+	
+	FGameplayEffectContextHandle ResistanceAttributesContextHandle = ASC->MakeEffectContext();
+	InitializeAttributesContextHandle.AddSourceObject(AvatarActor);	
+	const FGameplayEffectSpecHandle ResistanceAttributesSpecHandle = ASC->MakeOutgoingSpec(EnemyTypeInfo->ResistanceAttributes, Level, ResistanceAttributesContextHandle);
+	ASC->ApplyGameplayEffectSpecToSelf(*ResistanceAttributesSpecHandle.Data.Get());
+
 }
 
 void USoulAbilitySystemLibrary::EnemyGiveStartupAbilities(const UObject* WorldContextObject, UAbilitySystemComponent* ASC)
