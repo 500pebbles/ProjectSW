@@ -53,14 +53,20 @@ void UInventoryGrid::ConstructGrid()
 
 void UInventoryGrid::BindDelegates()
 {
-	TArray<UActorComponent*> InventoryInputComponent =
-		GetOwningPlayer()->GetOwner()->GetComponentsByInterface(UInventoryInputInterface::StaticClass());
-	
-	for (UActorComponent* InventoryInput : InventoryInputComponent)
+	if(APlayerController* LocalPlayerController = GetOwningPlayer())
 	{
-		if (IInventoryInputInterface* InputInterface = Cast<IInventoryInputInterface>(InventoryInput))
+		APawn* LocalPlayer = LocalPlayerController->GetPawn();
+		if (LocalPlayer)
 		{
-			InputInterface->GetOnCollectItem().AddDynamic(this, &UInventoryGrid::AddItemToGrid);
+			TArray<UActorComponent*> InventoryInputComponent = LocalPlayer->GetComponentsByInterface(UInventoryInputInterface::StaticClass());
+	
+			for (UActorComponent* InventoryInput : InventoryInputComponent)
+			{
+				if (IInventoryInputInterface* InputInterface = Cast<IInventoryInputInterface>(InventoryInput))
+				{
+					InputInterface->GetOnCollectItem().AddDynamic(this, &UInventoryGrid::AddItemToGrid);
+				}
+			}
 		}
 	}
 }
