@@ -4,6 +4,8 @@
 #include "AbilitySystemComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GAS/Core/SoulAbilitySystemComponent.h"
+#include "Utility/SoulGameplayTags.h"
+#include "Utility/SoulLog.h"
 
 ASoulCharacterBase::ASoulCharacterBase()
 {
@@ -63,6 +65,10 @@ void ASoulCharacterBase::GiveStartupAbilities()
 
 void ASoulCharacterBase::Die()
 {
+	// 사망 상태 태그. 근접 데미지 GE(Must Not Have Tags)가 이 태그를 보고 죽은 대상에게 다시 적용되지 않는다.
+	if (AbilitySystemComponent) AbilitySystemComponent->AddLooseGameplayTag(SoulTags::States::Dead);
+	SW_LOG("[%s] Died.", *GetName());
+	
 	Multicast_HandleDeath();
 }
 

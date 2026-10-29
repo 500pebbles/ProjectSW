@@ -27,11 +27,16 @@ namespace SoulTags
 	namespace Abilities
 	{
 		UE_DEFINE_GAMEPLAY_TAG(Primary, "SoulTags.Abilities.Primary")
+		UE_DEFINE_GAMEPLAY_TAG(Attack, "SoulTags.Abilities.Attack")
+		UE_DEFINE_GAMEPLAY_TAG(Dash, "SoulTags.Abilities.Dash")
 	} 
 	
 	namespace States
 	{
-		
+		UE_DEFINE_GAMEPLAY_TAG(Dead, "SoulTags.States.Dead")
+		UE_DEFINE_GAMEPLAY_TAG(Attacking, "SoulTags.States.Attacking")
+		UE_DEFINE_GAMEPLAY_TAG(Dashing, "SoulTags.States.Dashing")
+		UE_DEFINE_GAMEPLAY_TAG(Invincible, "SoulTags.States.Invincible")
 	}
 	
 	namespace InputTags
@@ -42,6 +47,7 @@ namespace SoulTags
 		UE_DEFINE_GAMEPLAY_TAG(KEY_2, "SoulTags.InputTags.KEY_2")
 		UE_DEFINE_GAMEPLAY_TAG(KEY_3, "SoulTags.InputTags.KEY_3")
 		UE_DEFINE_GAMEPLAY_TAG(KEY_4, "SoulTags.InputTags.KEY_4")
+		UE_DEFINE_GAMEPLAY_TAG(Dash, "SoulTags.InputTags.Dash")
 	}
 	
 	namespace Events
@@ -49,6 +55,19 @@ namespace SoulTags
 		namespace Montages
 		{
 			UE_DEFINE_GAMEPLAY_TAG(Fireball, "SoulTags.Events.Montages.Fireball")
+		}
+		
+		namespace Combo
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Open, "SoulTags.Events.Combo.Open")
+			UE_DEFINE_GAMEPLAY_TAG(Close, "SoulTags.Events.Combo.Close")
+			UE_DEFINE_GAMEPLAY_TAG(Branch, "SoulTags.Events.Combo.Branch")
+		}
+		
+		namespace Melee
+		{
+			UE_DEFINE_GAMEPLAY_TAG(TraceBegin, "SoulTags.Events.Melee.TraceBegin")
+			UE_DEFINE_GAMEPLAY_TAG(Hit, "SoulTags.Events.Melee.Hit")
 		}
 	}
 }

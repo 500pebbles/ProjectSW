@@ -30,11 +30,16 @@ namespace SoulTags
 	namespace Abilities
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Primary)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attack)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dash)
 	}
 	
 	namespace States
-	{		
-		
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dead)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attacking)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dashing)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Invincible)
 	}
 	
 	namespace InputTags
@@ -45,6 +50,7 @@ namespace SoulTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(KEY_2)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(KEY_3)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(KEY_4)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dash)
 	}
 	
 	namespace Events
@@ -52,6 +58,19 @@ namespace SoulTags
 		namespace Montages
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Fireball)
+		}
+		
+		namespace Combo
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Open)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Close)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Branch)
+		}
+		
+		namespace Melee
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(TraceBegin)
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Hit)
 		}
 	}
 }

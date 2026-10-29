@@ -30,18 +30,27 @@ void USoulAbilitySystemComponent::GiveStartupAbilities(const TArray<TSubclassOf<
 	}
 }
 
-void USoulAbilitySystemComponent::AbilityInputTagHeld(const FGameplayTag& InputTag)
+void USoulAbilitySystemComponent::AbilityInputTagPressed(const FGameplayTag& InputTag)
 {
+	/* 입력 정책 : 누른 순간 1회.
+	 * 비활성 어빌리티는 발동, 실행 중인 어빌리티에는 InputPressed 이벤트만 전달 (WaitInputPress로 콤보 입력 수신). */
 	if (!InputTag.IsValid()) return;
 	
+	ABILITYLIST_SCOPE_LOCK();
 	for (FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
 	{
 		if (AbilitySpec.DynamicAbilityTags.HasTagExact(InputTag))
 		{
-			AbilitySpecInputPressed(AbilitySpec);  // Just set flag. 
+			AbilitySpecInputPressed(AbilitySpec);  // Set flag + 실행 중이면 InputPressed 이벤트.
 			if (!AbilitySpec.IsActive()) TryActivateAbility(AbilitySpec.Handle); // Activate Ability.
 		}
 	}
+}
+
+void USoulAbilitySystemComponent::AbilityInputTagHeld(const FGameplayTag& InputTag)
+{
+	/* 입력 정책 변경으로 Held에서는 발동·입력 전달을 하지 않음. (매 프레임 호출되어 콤보 입력으로 오인되는 문제)
+	* 차지형처럼 누르고 있는 동안 동작하는 어빌리티가 생기면 여기서 처리. */
 }
 
 void USoulAbilitySystemComponent::AbilityInputTagReleased(const FGameplayTag& InputTag)
@@ -54,6 +63,20 @@ void USoulAbilitySystemComponent::AbilityInputTagReleased(const FGameplayTag& In
 		{
 			AbilitySpecInputReleased(AbilitySpec);  // Just set flag.
 		}
+	}
+}
+
+void USoulAbilitySystemComponent::AbilitySpecInputPressed(FGameplayAbilitySpec& Spec)
+{
+	Super::AbilitySpecInputPressed(Spec);
+	
+	/* 엔진 기본 구현은 InputPressed 플래그만 세우고 이벤트를 보내지 않아 WaitInputPress가 동작하지 않음.
+	 * 실행 중인 어빌리티에 InputPressed 이벤트를 보내 WaitInputPress로 받을 수 있게 함. (Lyra와 같은 방식) */
+	if (Spec.IsActive())
+	{
+		const UGameplayAbility* Instance = Spec.GetPrimaryInstance();
+		const FPredictionKey PredictionKey = Instance ? Instance->GetCurrentActivationInfo().GetActivationPredictionKey() : FPredictionKey();
+		InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputPressed, Spec.Handle, PredictionKey);
 	}
 }
 

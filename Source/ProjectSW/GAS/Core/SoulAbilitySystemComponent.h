@@ -15,9 +15,13 @@ public:
 	
 	void GiveStartupAbilities(const TArray<TSubclassOf<UGameplayAbility>>& StartupAbilities);
 	
+	void AbilityInputTagPressed(const FGameplayTag& InputTag);
+	
 	void AbilityInputTagHeld(const FGameplayTag& InputTag);
 	
 	void AbilityInputTagReleased(const FGameplayTag& InputTag);
+	
+	virtual void AbilitySpecInputPressed(FGameplayAbilitySpec& Spec) override;
 	
 protected:
 	UFUNCTION(Client, Reliable)
