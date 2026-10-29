@@ -1,6 +1,11 @@
 # Proprietary game assets - Do not modify this commit setting
 Content/Assets/Release/
-Content/ThirdParty/
+Content/ThirdParty/*
+
+# ai
+.mcp.json
+CLAUDE.md
+AGENTS.md
 
 # Visual Studio 2015 user specific files
 .vs/
