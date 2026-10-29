@@ -6,6 +6,7 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayEffectExtension.h"
 #include "GameFramework/Character.h"
+#include "GAS/Utility/SoulAbilitySystemLibrary.h"
 #include "Interface/SoulCombatInterface.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
@@ -109,8 +110,8 @@ void USoulAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectMo
 				Props.TargetASC->TryActivateAbilitiesByTag(TagContainer); 
 			}
 			
-			ShowDamageText(Props, LocalIncomingDamage);
-			
+			const bool bIsCriticalHit = USoulAbilitySystemLibrary::IsCriticalHit(Props.EffectContextHandle); 
+			ShowDamageText(Props, LocalIncomingDamage, bIsCriticalHit);
 		}
 	}
 }
@@ -209,10 +210,17 @@ void USoulAttributeSet::SetEffectProperties(const FGameplayEffectModCallbackData
 	}
 }
 
-void USoulAttributeSet::ShowDamageText(const FEffectProperties& Props, float DamageAmount) const
+void USoulAttributeSet::ShowDamageText(const FEffectProperties& Props, float DamageAmount, bool bIsCriticalHit) const
 {
+	/* Damage Types 플로우
+	 * Damage Types는 Instigator측의 정보에 해당, GameplayEffectContext 구조체에 정보값을 추가해 Types에서 재정의.
+	 * Types에서 Damage Types에 해당하는 플래그를 추가하고, Getter/Setter로 접근.
+	 * Custom GameplayEffectContext를 등록하기 위해 AbilitySystemGlobals에서 Alloc을 커스텀 GEC로 교체.
+	 * SetTypes/IsTypes 계열은 블루프린트에서 쓸일이 없을거같기는 하지만, 우선 간편한 접근 + 캐스팅을 위해 라이브러리에 정의
+	 * IsTypes는 이곳에서, SetTypes는 ExecCal쪽에서 라이브러리 함수에 접근해서 GE Context의 필드 Setup. */
+	
 	if (Props.SourceCharacter == Props.TargetCharacter) return;
 	
 	ASoulPlayerController* PC = Cast<ASoulPlayerController>(UGameplayStatics::GetPlayerController(Props.SourceCharacter, 0));
-	if (PC) PC->ShowDamageText(DamageAmount, Props.TargetCharacter);
+	if (PC) PC->ShowDamageText(DamageAmount, Props.TargetCharacter, bIsCriticalHit);
 }

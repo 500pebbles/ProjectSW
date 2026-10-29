@@ -142,5 +142,5 @@ private:
 	
 /* Damage Text UI Section */	
 private:
-	void ShowDamageText(const FEffectProperties& Props, float DamageAmount) const;
+	void ShowDamageText(const FEffectProperties& Props, float DamageAmount, bool bIsCriticalHit) const;
 };
