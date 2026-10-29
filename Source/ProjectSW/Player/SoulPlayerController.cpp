@@ -8,6 +8,7 @@
 #include "GAS/Core/SoulAbilitySystemComponent.h"
 #include "Input/SoulEnhancedInputComponent.h"
 #include "UI/WidgetComponent/SoulDamageTextComponent.h"
+#include "Utility/SoulGameplayTags.h"
 #include "Utility/SoulDefineMacro.h"
 #include "Utility/SoulLog.h"
 
@@ -37,6 +38,7 @@ void ASoulPlayerController::SetupInputComponent()
 	if (!IsValid(EnhancedInputComponent)) return;
 	
 	EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ThisClass::Move);
+	EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Completed, this, &ThisClass::StopMove);
 	EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ThisClass::Look);
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ThisClass::Jump);
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ThisClass::StopJumping);
@@ -54,9 +56,25 @@ void ASoulPlayerController::Move(const FInputActionValue& Value)
 	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
 	const FVector2D MovementVector = Value.Get<FVector2D>();
+	
+	// 지금 누르고 있는 이동 방향. 공격 중에도 기록 (회피 방향용).
+	MoveInputDirection = (ForwardDirection * MovementVector.Y + RightDirection * MovementVector.X).GetSafeNormal();
+	
+	// 공격 중에는 이동하지 않고 입력 방향만 기록. 공격 GA가 다음 타 시작 시 이 방향으로 회전.
+	if (IsValid(GetASC()) && GetASC()->HasMatchingGameplayTag(SoulTags::States::Attacking))
+	{
+		AttackInputDirection = MoveInputDirection;
+		return;
+	}
+	
 	GetPawn()->AddMovementInput(ForwardDirection, MovementVector.Y);
 	GetPawn()->AddMovementInput(RightDirection, MovementVector.X);
 
+}
+
+void ASoulPlayerController::StopMove()
+{
+	MoveInputDirection = FVector::ZeroVector;
 }
 
 void ASoulPlayerController::Look(const FInputActionValue& Value)
@@ -101,7 +119,9 @@ void ASoulPlayerController::StopHoverMouse()
 
 void ASoulPlayerController::AbilityInputTagPressed(const FGameplayTag InputTag)
 {
-	// 키를 누를때 말고 뗄떼 어빌리티 실행? 전투 파트담당이 결정.
+	// 입력 정책 : 누른 순간 1회 발동, 실행 중이면 입력만 전달 (콤보 입력). Held 연사 없음.
+	if (!IsValid(GetASC())) return;
+	GetASC()->AbilityInputTagPressed(InputTag);
 }
 
 void ASoulPlayerController::AbilityInputTagReleased(const FGameplayTag InputTag)
@@ -133,4 +153,16 @@ void ASoulPlayerController::ShowDamageText_Implementation(float DamageAmount, AC
 	DamageText->AttachToComponent(TargetCharacter->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 	DamageText->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 	DamageText->SetDamageText(DamageAmount);
+}
+
+FVector ASoulPlayerController::ConsumeAttackInputDirection()
+{
+	const FVector Direction = AttackInputDirection;
+	AttackInputDirection = FVector::ZeroVector;
+	return Direction;
+}
+
+FVector ASoulPlayerController::GetMoveInputDirection() const
+{
+	return MoveInputDirection;
 }
