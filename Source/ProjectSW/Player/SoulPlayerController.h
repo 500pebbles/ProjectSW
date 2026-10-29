@@ -5,6 +5,10 @@
 #include "GameFramework/PlayerController.h"
 #include "SoulPlayerController.generated.h"
 
+class USoulDamageTextComponent;
+class USoulAbilitySystemComponent;
+struct FGameplayTag;
+class USoulInputConfig;
 struct FInputActionValue;
 class UInputAction;
 class UInputMappingContext;
@@ -13,29 +17,33 @@ UCLASS()
 class PROJECTSW_API ASoulPlayerController : public APlayerController
 {
 	GENERATED_BODY()
-	
+
 public:
 	ASoulPlayerController();
 	
 protected:
+	virtual void BeginPlay() override;
+	
 	virtual void SetupInputComponent() override;
-    
+
+/* Input Section */	
 protected:    
-	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TArray<TObjectPtr<UInputMappingContext>> InputMappingContexts;
     
-	UPROPERTY(EditDefaultsOnly, Category = "Input|Movement")
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TObjectPtr<UInputAction> JumpAction;
     
-	UPROPERTY(EditDefaultsOnly, Category = "Input|Movement")
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TObjectPtr<UInputAction> MoveAction;
     
-	UPROPERTY(EditDefaultsOnly, Category = "Input|Movement")
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TObjectPtr<UInputAction> LookAction;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Input|Abilities")
-	TObjectPtr<UInputAction> AbilityAction;
-	
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TObjectPtr<UInputAction> HoverMouseAction;
+
+/* Actions Section */	
 protected:
 	void Move(const FInputActionValue& Value);
 	
@@ -45,5 +53,36 @@ protected:
 	
 	void StopJumping();
 	
-	void ActiveAbility();
+	void HoverMouse();
+	
+	void StopHoverMouse();
+	
+/* Tag Based Input Section */
+private:
+	void AbilityInputTagPressed(FGameplayTag InputTag);
+	
+	void AbilityInputTagReleased(FGameplayTag InputTag);
+	
+	void AbilityInputTagHeld(FGameplayTag InputTag);
+	
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TObjectPtr<USoulInputConfig> InputConfig;
+	
+/* GAS Core Section */
+private:
+	USoulAbilitySystemComponent* GetASC();
+	
+private:
+	UPROPERTY()
+	TObjectPtr<USoulAbilitySystemComponent> SoulAbilitySystemComponent;
+	
+/* UI : DamageText */	
+public:
+	UFUNCTION(Client, Reliable)
+	void ShowDamageText(float DamageAmount, ACharacter* TargetCharacter);
+	
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TSubclassOf<USoulDamageTextComponent> DamageTextComponentClass;
 };

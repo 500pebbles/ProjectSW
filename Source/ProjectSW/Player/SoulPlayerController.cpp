@@ -1,15 +1,24 @@
 ﻿
 #include "SoulPlayerController.h"
 
+#include "AbilitySystemBlueprintLibrary.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/Character.h"
+#include "GAS/Core/SoulAbilitySystemComponent.h"
+#include "Input/SoulEnhancedInputComponent.h"
+#include "UI/WidgetComponent/SoulDamageTextComponent.h"
 #include "Utility/SoulDefineMacro.h"
 #include "Utility/SoulLog.h"
 
 ASoulPlayerController::ASoulPlayerController()
 {
-	
+	bReplicates = true;
+}
+
+void ASoulPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
 }
 
 void ASoulPlayerController::SetupInputComponent()
@@ -24,14 +33,16 @@ void ASoulPlayerController::SetupInputComponent()
 		InputSubsystem->AddMappingContext(Context, 0);
 	}
 
-	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
+	USoulEnhancedInputComponent* EnhancedInputComponent = Cast<USoulEnhancedInputComponent>(InputComponent);
 	if (!IsValid(EnhancedInputComponent)) return;
-
+	
 	EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ThisClass::Move);
 	EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ThisClass::Look);
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ThisClass::Jump);
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ThisClass::StopJumping);
-	EnhancedInputComponent->BindAction(AbilityAction, ETriggerEvent::Started, this, &ThisClass::ActiveAbility);
+	EnhancedInputComponent->BindAction(HoverMouseAction, ETriggerEvent::Started, this, &ThisClass::HoverMouse);
+	EnhancedInputComponent->BindAction(HoverMouseAction, ETriggerEvent::Completed, this, &ThisClass::StopHoverMouse);	
+	EnhancedInputComponent->BindAbilityActions(InputConfig, this, &ThisClass::AbilityInputTagPressed, &ThisClass::AbilityInputTagReleased, &ThisClass::AbilityInputTagHeld);
 }
 
 void ASoulPlayerController::Move(const FInputActionValue& Value)
@@ -70,10 +81,56 @@ void ASoulPlayerController::StopJumping()
 	GetCharacter()->StopJumping();
 }
 
-void ASoulPlayerController::ActiveAbility()
+void ASoulPlayerController::HoverMouse()
 {
-	DEBUG_MSG("Left Mouse Clicked");
-	SW_LOG("Left Mouse Clicked");
-	SW_LOG_WARNING("Left Mouse Clicked");
-	SW_LOG_ERROR("Left Mouse Clicked");
+	bShowMouseCursor = true;
+
+	FInputModeGameAndUI InputMode;
+	InputMode.SetHideCursorDuringCapture(false);
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+}
+
+void ASoulPlayerController::StopHoverMouse()
+{   
+	bShowMouseCursor = false;
+
+	FInputModeGameOnly InputMode;
+	SetInputMode(InputMode);
+}
+
+void ASoulPlayerController::AbilityInputTagPressed(const FGameplayTag InputTag)
+{
+	// 키를 누를때 말고 뗄떼 어빌리티 실행? 전투 파트담당이 결정.
+}
+
+void ASoulPlayerController::AbilityInputTagReleased(const FGameplayTag InputTag)
+{
+	if (!IsValid(GetASC())) return;
+	GetASC()->AbilityInputTagReleased(InputTag);
+}
+
+void ASoulPlayerController::AbilityInputTagHeld(const FGameplayTag InputTag)
+{
+	if (!IsValid(GetASC())) return;
+	GetASC()->AbilityInputTagHeld(InputTag);
+}
+
+USoulAbilitySystemComponent* ASoulPlayerController::GetASC()
+{
+	if (SoulAbilitySystemComponent == nullptr)
+		SoulAbilitySystemComponent = Cast<USoulAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPawn<APawn>()));
+
+	return SoulAbilitySystemComponent;
+}
+
+void ASoulPlayerController::ShowDamageText_Implementation(float DamageAmount, ACharacter* TargetCharacter)
+{
+	if (!IsValid(TargetCharacter)) return;
+	
+	USoulDamageTextComponent* DamageText = NewObject<USoulDamageTextComponent>(TargetCharacter, DamageTextComponentClass);
+	DamageText->RegisterComponent();
+	DamageText->AttachToComponent(TargetCharacter->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	DamageText->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+	DamageText->SetDamageText(DamageAmount);
 }

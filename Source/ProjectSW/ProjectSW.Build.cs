@@ -18,7 +18,9 @@ public class ProjectSW : ModuleRules
 			"GameplayAbilities",
 			"GameplayTags",
 			"GameplayTasks",
-			"UMG"
+			"UMG",
+			"NavigationSystem",
+			"Niagara"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
