@@ -3,6 +3,8 @@
 
 #include "SoulDamageExecutionCalculation.h"
 #include "AbilitySystemComponent.h"
+#include "SoulAbilitySystemLibrary.h"
+#include "SoulGameplayEffectTypes.h"
 #include "GAS/Core/SoulAttributeSet.h"
 #include "Utility/SoulDefineMacro.h"
 #include "Utility/SoulGameplayTags.h"
@@ -60,15 +62,19 @@ void USoulDamageExecutionCalculation::Execute_Implementation(const FGameplayEffe
 	float SourceCriticalDamage = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(DamageStatics().CriticalDamageDef, EvaluationParameters, SourceCriticalDamage);
 
-	// 계산.
+	// Calculation.
 	Damage = Damage * (100 / (100 + TargetDefense));
 	Damage = FMath::Max<float>(Damage, 0.f);
 	
 	const float EffectiveCriticalRate = SourceCriticalRate;
 	const bool bIsDamageCritical = FMath::RandRange(1, 100) < EffectiveCriticalRate;	
-	if (bIsDamageCritical) Damage = Damage + (Damage * SourceCriticalDamage / 100);	
+	if (bIsDamageCritical) Damage = Damage + (Damage * SourceCriticalDamage / 100);		
 	
-	// 처리.
+	// Setup GE Context. 
+	FGameplayEffectContextHandle EffectContextHandle = Spec.GetContext();
+	USoulAbilitySystemLibrary::SetIsCriticalHit(EffectContextHandle, bIsDamageCritical);	
+	
+	// Execution.
 	const FGameplayModifierEvaluatedData EvaluatedData(USoulAttributeSet::GetIncomingDamageAttribute(), EGameplayModOp::Additive, Damage);
 	OutExecutionOutput.AddOutputModifier(EvaluatedData);	
 }

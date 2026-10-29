@@ -4,6 +4,7 @@
 #include "SoulAbilitySystemLibrary.h"
 
 #include "AbilitySystemComponent.h"
+#include "SoulGameplayEffectTypes.h"
 #include "Game/SoulGameModeBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/SoulPlayerState.h"
@@ -85,4 +86,20 @@ USoulEnemyTypeInfo* USoulAbilitySystemLibrary::GetEnemyTypeInfo(const UObject* W
 	ASoulGameModeBase* SoulGameMode = Cast<ASoulGameModeBase>(UGameplayStatics::GetGameMode(WorldContextObject));
 	if (!IsValid(SoulGameMode)) return nullptr;
 	return SoulGameMode->EnemyTypeInfo;
+}
+
+bool USoulAbilitySystemLibrary::IsCriticalHit(const FGameplayEffectContextHandle& EffectContextHandle)
+{
+	const FSoulGameplayEffectContext* SoulEffectContext = static_cast<const FSoulGameplayEffectContext*>(EffectContextHandle.Get());
+	if (!SoulEffectContext) return false;
+	
+	return SoulEffectContext->IsCriticalHit();
+}
+
+void USoulAbilitySystemLibrary::SetIsCriticalHit(FGameplayEffectContextHandle& EffectContextHandle, bool bIsCriticalHit)
+{
+	FSoulGameplayEffectContext* SoulEffectContext = static_cast<FSoulGameplayEffectContext*>(EffectContextHandle.Get());
+	if (!SoulEffectContext) return;
+
+	SoulEffectContext->SetIsCriticalHit(bIsCriticalHit);
 }

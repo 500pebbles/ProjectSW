@@ -1,7 +1,10 @@
 # Proprietary game assets - Do not modify this commit setting
-Content/Assets/Release/
+Content/Assets/Release/*
 Content/ThirdParty/*
 Content/Worker/SoulWorker/*
+
+# Docs
+Docs/*
 
 # ai
 .mcp.json
