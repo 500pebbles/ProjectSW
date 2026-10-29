@@ -54,6 +54,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
 	TSubclassOf<UGameplayEffect> InitializeAttributes;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
+	TSubclassOf<UGameplayEffect> ResistanceAttributes;
+	
 /* Ability Section */
 protected:
 	void GiveStartupAbilities();

@@ -85,6 +85,21 @@ public:
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_DamageAmplification)
 	FGameplayAttributeData DamageAmplification;
 	
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_PhysicalResistance)
+	FGameplayAttributeData PhysicalResistance;	
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_SinResistance)
+	FGameplayAttributeData SinResistance;	
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_VirtueResistance)
+	FGameplayAttributeData VirtueResistance;	
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_GraceResistance)
+	FGameplayAttributeData GraceResistance;	
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_HateResistance)
+	FGameplayAttributeData HateResistance;	
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_TormentResistance)
+	FGameplayAttributeData TormentResistance;	
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_SolaceResistance)
+	FGameplayAttributeData SolaceResistance;	
+	
 	UPROPERTY(BlueprintReadOnly)
 	FGameplayAttributeData IncomingDamage;
 	
@@ -117,6 +132,21 @@ public:
 	UFUNCTION()
 	void OnRep_DamageAmplification(const FGameplayAttributeData& OldDamageAmplification) const;		
 	
+	UFUNCTION()
+	void OnRep_PhysicalResistance(const FGameplayAttributeData& OldPhysicalResistance) const;
+	UFUNCTION()
+	void OnRep_SinResistance(const FGameplayAttributeData& OldSinResistance) const;
+	UFUNCTION()
+	void OnRep_VirtueResistance(const FGameplayAttributeData& OldVirtueResistance) const;
+	UFUNCTION()
+	void OnRep_GraceResistance(const FGameplayAttributeData& OldGraceResistance) const;
+	UFUNCTION()
+	void OnRep_HateResistance(const FGameplayAttributeData& OldHateResistance) const;
+	UFUNCTION()
+	void OnRep_TormentResistance(const FGameplayAttributeData& OldTormentResistance) const;
+	UFUNCTION()
+	void OnRep_SolaceResistance(const FGameplayAttributeData& OldSolaceResistance) const;
+	
 /* Macro Accessors */
 public:
 	ATTRIBUTE_ACCESSORS(USoulAttributeSet, Health);
@@ -132,6 +162,14 @@ public:
 	ATTRIBUTE_ACCESSORS(USoulAttributeSet, CriticalDamage);
 	ATTRIBUTE_ACCESSORS(USoulAttributeSet, CooldownReduction);
 	ATTRIBUTE_ACCESSORS(USoulAttributeSet, DamageAmplification);	
+	
+	ATTRIBUTE_ACCESSORS(USoulAttributeSet, PhysicalResistance);
+	ATTRIBUTE_ACCESSORS(USoulAttributeSet, SinResistance);
+	ATTRIBUTE_ACCESSORS(USoulAttributeSet, VirtueResistance);
+	ATTRIBUTE_ACCESSORS(USoulAttributeSet, GraceResistance);
+	ATTRIBUTE_ACCESSORS(USoulAttributeSet, HateResistance);
+	ATTRIBUTE_ACCESSORS(USoulAttributeSet, TormentResistance);
+	ATTRIBUTE_ACCESSORS(USoulAttributeSet, SolaceResistance);
 	
 	ATTRIBUTE_ACCESSORS(USoulAttributeSet, IncomingDamage);	
 	

@@ -16,6 +16,13 @@ namespace SoulTags
 		UE_DEFINE_GAMEPLAY_TAG(CriticalDamage, "SoulTags.Attributes.CriticalDamage")
 		UE_DEFINE_GAMEPLAY_TAG(CooldownReduction, "SoulTags.Attributes.CooldownReduction")
 		UE_DEFINE_GAMEPLAY_TAG(DamageAmplification, "SoulTags.Attributes.DamageAmplification")
+		UE_DEFINE_GAMEPLAY_TAG(PhysicalResistance, "SoulTags.Attributes.PhysicalResistance")
+		UE_DEFINE_GAMEPLAY_TAG(SinResistance, "SoulTags.Attributes.SinResistance")
+		UE_DEFINE_GAMEPLAY_TAG(VirtueResistance, "SoulTags.Attributes.VirtueResistance")
+		UE_DEFINE_GAMEPLAY_TAG(GraceResistance, "SoulTags.Attributes.GraceResistance")
+		UE_DEFINE_GAMEPLAY_TAG(HateResistance, "SoulTags.Attributes.HateResistance")
+		UE_DEFINE_GAMEPLAY_TAG(TormentResistance, "SoulTags.Attributes.TormentResistance")
+		UE_DEFINE_GAMEPLAY_TAG(SolaceResistance, "SoulTags.Attributes.SolaceResistance")
 	}
 	
 	namespace Combats
@@ -34,9 +41,19 @@ namespace SoulTags
 		UE_DEFINE_GAMEPLAY_TAG(Torment, "SoulTags.DamageTypes.Torment")
 		UE_DEFINE_GAMEPLAY_TAG(Solace, "SoulTags.DamageTypes.Solace")
 		
-		const TArray<FGameplayTag>& GetDamageTypes()
+		const TMap<FGameplayTag, FGameplayTag>& GetDamageTypes()
 		{
-			static const TArray<FGameplayTag> AllDamageTypes = { Physical, Sin, Virtue, Grace, Hate, Torment, Solace };
+			static const TMap<FGameplayTag, FGameplayTag> AllDamageTypes = 
+			{
+				{ Physical, Attributes::PhysicalResistance}, 
+				{ Sin, Attributes::SinResistance},
+				{ Virtue, Attributes::VirtueResistance},
+				{ Grace, Attributes::GraceResistance},
+				{ Hate, Attributes::HateResistance},
+				{ Torment, Attributes::TormentResistance},
+				{ Solace, Attributes::SolaceResistance}
+			};			
+			
 			return AllDamageTypes;
 		}
 	}
