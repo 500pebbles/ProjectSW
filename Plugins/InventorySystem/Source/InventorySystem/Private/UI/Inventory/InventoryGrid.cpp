@@ -7,6 +7,7 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
+#include "Components/SizeBox.h"
 #include "Item/ItemComponent.h"
 #include "Item/Data/ItemData.h"
 #include "Item/UI/ItemCollectedUI.h"
@@ -78,6 +79,11 @@ void UInventoryGrid::AddItemToGrid(AActor* InventoryItem)
 		if (UItemData* InventoryItemData = InventoryItemComponent->GetItemData())
 		{
 			UItemCollectedUI* CollectedItemUI = CreateCollectedItemUI(InventoryItemData);
+			
+			if (UCanvasPanelSlot* CanvasSlot = CanvasPanel->AddChildToCanvas(CollectedItemUI))
+			{
+				CanvasSlot->SetAutoSize(true);
+			}
 		}
 	}
 }
@@ -94,11 +100,14 @@ UItemCollectedUI* UInventoryGrid::CreateCollectedItemUI(UItemData* InventoryItem
 	CollectedItem->SetInventoryItem(InventoryItem);
 	
 	FSlateBrush Brush;
+	// Brush에 Texture2D형을 넣으면 UImage로 바뀜
 	Brush.SetResourceObject(InventoryItem->GetItemIcon());
 	Brush.DrawAs = ESlateBrushDrawType::Image;
 	Brush.ImageSize = FVector2D(TileSize * InventoryItem->GetItemSize().X, TileSize * InventoryItem->GetItemSize().Y);
 	
 	CollectedItem->GetImageIcon()->SetBrush(Brush);
+	CollectedItem->GetIconSizeBox()->SetWidthOverride(Brush.ImageSize.X);
+	CollectedItem->GetIconSizeBox()->SetHeightOverride(Brush.ImageSize.Y);
 	
 	return CollectedItem;
 }

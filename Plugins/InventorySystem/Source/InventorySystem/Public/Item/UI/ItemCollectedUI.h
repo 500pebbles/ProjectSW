@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "ItemCollectedUI.generated.h"
 
+class USizeBox;
 class UItemData;
 class UImage;
 /**
@@ -18,6 +19,8 @@ class INVENTORYSYSTEM_API UItemCollectedUI : public UUserWidget
 	
 public:
 	UImage* GetImageIcon() {return ItemIcon;}
+	
+	USizeBox* GetIconSizeBox() {return IconSizeBox;}
 	
 	void SetGridIndex(int32 Index) {GridIndex= Index;}
 	int32 GetGridIndex() const {return GridIndex;}
@@ -32,6 +35,9 @@ private:
 	// 이미지 아이콘
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UImage> ItemIcon;
+	
+	UPROPERTY(Meta=(BindWidget))
+	TObjectPtr<USizeBox> IconSizeBox; 
 	
 	// 배열상에서의 위치
 	int32 GridIndex;

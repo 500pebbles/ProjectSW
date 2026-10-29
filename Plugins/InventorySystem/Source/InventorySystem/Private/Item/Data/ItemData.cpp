@@ -26,10 +26,10 @@ FIntPoint UItemData::GetItemSize() const
 UTexture2D* UItemData::GetItemIcon() const
 {
 	const FItemDataTable* ItemData = GetRow();
-	if (!ItemData || !ItemData->ItemIcon)
+	if (!ItemData || ItemData->ItemIcon.IsNull())
 	{
 		return nullptr;
 	}
 	
-	return ItemData->ItemIcon.Get();
+	return ItemData->ItemIcon.LoadSynchronous();
 }

@@ -31,7 +31,7 @@ private:
 	
 	UItemCollectedUI* CreateCollectedItemUI(UItemData* InventoryItem) const;
 	
-	// 인벤토리 UI 생성
+	// 인벤토리 UI 생성 (아래 UPROPERTY들은 WBP_InventoryGrid에서 선택)
 private:
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	TSubclassOf<UGridInventorySlot> GridSlotClass;
@@ -53,5 +53,6 @@ private:
 	
 	// 습득한 아이템 UI반영
 private:
+	UPROPERTY(EditAnywhere, Category = "Item")
 	TSubclassOf<UItemCollectedUI> CollectedItemClass;
 };
