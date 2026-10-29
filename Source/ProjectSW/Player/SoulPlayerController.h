@@ -47,6 +47,8 @@ protected:
 protected:
 	void Move(const FInputActionValue& Value);
 	
+	void StopMove();
+	
 	void Look(const FInputActionValue& Value);
 	
 	void Jump();
@@ -68,6 +70,21 @@ private:
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TObjectPtr<USoulInputConfig> InputConfig;
+	
+/* Combat Section */
+public:
+	// 공격 중 기록한 이동 입력 방향을 꺼내고 비운다. 입력이 없었으면 ZeroVector. (공격 GA가 다음 타 시작 시 회전에 사용)
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	FVector ConsumeAttackInputDirection();
+	
+	// 지금 누르고 있는 이동 입력 방향(카메라 기준). 공격 중에도 갱신되고, 키를 떼면 ZeroVector. (회피 GA가 대시 방향으로 사용)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Combat")
+	FVector GetMoveInputDirection() const;
+	
+private:
+	FVector AttackInputDirection = FVector::ZeroVector;
+	FVector MoveInputDirection = FVector::ZeroVector;
+	
 	
 /* GAS Core Section */
 private:
