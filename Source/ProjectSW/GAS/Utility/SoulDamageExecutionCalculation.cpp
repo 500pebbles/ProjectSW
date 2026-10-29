@@ -56,7 +56,7 @@ void USoulDamageExecutionCalculation::Execute_Implementation(const FGameplayEffe
 	float Damage = 0.f;
 	for (const FGameplayTag& DamageTypeTag : SoulTags::DamageTypes::GetDamageTypes())
 	{
-		const float DamageTypeValue = Spec.GetSetByCallerMagnitude(DamageTypeTag);
+		const float DamageTypeValue = Spec.GetSetByCallerMagnitude(DamageTypeTag, false, 0.f);
 		Damage += DamageTypeValue;
 	}
 	
