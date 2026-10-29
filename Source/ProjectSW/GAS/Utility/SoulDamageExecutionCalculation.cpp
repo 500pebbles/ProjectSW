@@ -53,7 +53,12 @@ void USoulDamageExecutionCalculation::Execute_Implementation(const FGameplayEffe
 	EvaluationParameters.TargetTags = TargetTags;	
 	
 	// Setup.
-	float Damage = Spec.GetSetByCallerMagnitude(SoulTags::Combats::Damage);
+	float Damage = 0.f;
+	for (const FGameplayTag& DamageTypeTag : SoulTags::DamageTypes::GetDamageTypes())
+	{
+		const float DamageTypeValue = Spec.GetSetByCallerMagnitude(DamageTypeTag);
+		Damage += DamageTypeValue;
+	}
 	
 	float TargetDefense = 0.f;
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(DamageStatics().DefenseDef, EvaluationParameters, TargetDefense);

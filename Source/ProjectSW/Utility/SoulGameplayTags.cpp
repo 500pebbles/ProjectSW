@@ -24,6 +24,23 @@ namespace SoulTags
 		UE_DEFINE_GAMEPLAY_TAG(HitReact, "SoulTags.Combats.HitReact")
 	}
 	
+	namespace DamageTypes
+	{
+		UE_DEFINE_GAMEPLAY_TAG(Physical, "SoulTags.DamageTypes.Physical")
+		UE_DEFINE_GAMEPLAY_TAG(Sin, "SoulTags.DamageTypes.Sin")
+		UE_DEFINE_GAMEPLAY_TAG(Virtue, "SoulTags.DamageTypes.Virtue")
+		UE_DEFINE_GAMEPLAY_TAG(Grace, "SoulTags.DamageTypes.Grace")
+		UE_DEFINE_GAMEPLAY_TAG(Hate, "SoulTags.DamageTypes.Hate")
+		UE_DEFINE_GAMEPLAY_TAG(Torment, "SoulTags.DamageTypes.Torment")
+		UE_DEFINE_GAMEPLAY_TAG(Solace, "SoulTags.DamageTypes.Solace")
+		
+		const TArray<FGameplayTag>& GetDamageTypes()
+		{
+			static const TArray<FGameplayTag> AllDamageTypes = { Physical, Sin, Virtue, Grace, Hate, Torment, Solace };
+			return AllDamageTypes;
+		}
+	}
+	
 	namespace Abilities
 	{
 		UE_DEFINE_GAMEPLAY_TAG(Primary, "SoulTags.Abilities.Primary")

@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SoulGameplayAbility.h"
+#include "SoulDamageAbility.h"
 #include "SoulRangedAbility.generated.h"
 
 class UGameplayEffect;
 class ASoulProjectileBase;
 
 UCLASS()
-class PROJECTSW_API USoulRangedAbility : public USoulGameplayAbility
+class PROJECTSW_API USoulRangedAbility : public USoulDamageAbility
 {
 	GENERATED_BODY()
 	
@@ -23,7 +23,4 @@ protected:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
 	TSubclassOf<ASoulProjectileBase> ProjectileClass;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSubclassOf<UGameplayEffect> DamageEffectClass;
 };
