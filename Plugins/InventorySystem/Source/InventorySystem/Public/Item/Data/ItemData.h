@@ -3,6 +3,8 @@
 #include "Engine/DataTable.h"
 #include "ItemData.generated.h"
 
+class UImage;
+
 UENUM(BlueprintType)
 enum class EItemType : uint8
 {
@@ -30,6 +32,10 @@ public:
 	// 아이템 사이즈
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin="1"))
 	FIntPoint ItemSize = FIntPoint(1, 1);
+	
+	// 아이템 이미지
+	UPROPERTY(EditAnywhere, Category = "Item")
+	TSoftObjectPtr<UTexture2D> ItemIcon;
 };
 
 UCLASS(BlueprintType, Blueprintable)
@@ -46,6 +52,8 @@ public:
 	
 	FIntPoint GetItemSize() const;
 	FName GetRowName() const {return ItemRowHandle.RowName;}
+	
+	UTexture2D* GetItemIcon() const;
 	
 private:
 	UPROPERTY()

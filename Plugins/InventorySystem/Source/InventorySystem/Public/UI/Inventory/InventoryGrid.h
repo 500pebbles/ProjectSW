@@ -6,6 +6,8 @@
 #include "Blueprint/UserWidget.h"
 #include "InventoryGrid.generated.h"
 
+class UItemCollectedUI;
+class UItemData;
 class UCanvasPanel;
 class UGridInventorySlot;
 /**
@@ -22,6 +24,14 @@ protected:
 private:
 	void ConstructGrid();
 	
+	void BindDelegates();
+	
+	UFUNCTION()
+	void AddItemToGrid(AActor* InventoryItem);
+	
+	UItemCollectedUI* CreateCollectedItemUI(UItemData* InventoryItem) const;
+	
+	// 인벤토리 UI 생성
 private:
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	TSubclassOf<UGridInventorySlot> GridSlotClass;
@@ -40,4 +50,8 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	float TileSize;
+	
+	// 습득한 아이템 UI반영
+private:
+	TSubclassOf<UItemCollectedUI> CollectedItemClass;
 };

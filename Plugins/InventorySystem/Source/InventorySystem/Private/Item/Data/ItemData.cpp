@@ -22,3 +22,14 @@ FIntPoint UItemData::GetItemSize() const
 	
 	return ItemData->ItemSize;
 }
+
+UTexture2D* UItemData::GetItemIcon() const
+{
+	const FItemDataTable* ItemData = GetRow();
+	if (!ItemData || !ItemData->ItemIcon)
+	{
+		return nullptr;
+	}
+	
+	return ItemData->ItemIcon.Get();
+}

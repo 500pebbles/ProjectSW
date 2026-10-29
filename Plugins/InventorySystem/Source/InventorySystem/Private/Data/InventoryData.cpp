@@ -118,6 +118,7 @@ void FInventoryDataArray::AddItemData(UItemData* InItemData)
 		NewItemEntry.GridPosition = TargetGridPosition;
 		
 		ItemDataArray.Add(NewItemEntry);
+		UE_LOG(LogTemp, Log, TEXT("Item Collected"));
 	}
 }
 

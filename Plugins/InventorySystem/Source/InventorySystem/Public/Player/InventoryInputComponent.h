@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Interface/InventoryInputInterface.h"
 #include "Runtime/Engine/Classes/Components/ActorComponent.h"
 #include "InventoryInputComponent.generated.h"
 
@@ -12,11 +13,8 @@ class UInputMappingContext;
 class UInputAction;
 class UInventoryHUDWidget;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnToggleInventoryUIDelegate);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCollectItemDelegate, AActor*, TargetItem);
-
 UCLASS(Blueprintable, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class INVENTORYSYSTEM_API UInventoryInputComponent : public UActorComponent
+class INVENTORYSYSTEM_API UInventoryInputComponent : public UActorComponent, public IInventoryInputInterface
 {
 	GENERATED_BODY()
 	
@@ -37,7 +35,11 @@ public:
 public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
+							   FActorComponentTickFunction* ThisTickFunction) override;
+	
+public:
+	virtual FOnToggleInventoryUIDelegate& GetOnToggleInventoryUI() override {return OnToggleInventoryUI;}
+	virtual FOnCollectItemDelegate& GetOnCollectItem() override {return OnCollectItem;};
 	
 private:
 	void InventoryInteract();

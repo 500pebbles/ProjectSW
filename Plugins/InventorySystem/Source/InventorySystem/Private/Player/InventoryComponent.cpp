@@ -31,11 +31,17 @@ void UInventoryComponent::BeginPlay()
 		CreateInventoryUIWidget();
 	}
 	
-	UInventoryInputComponent* InventoryInputComponent = GetOwner()->FindComponentByClass<UInventoryInputComponent>();
-	if (IsValid(InventoryInputComponent))
+	// 인터페이스를 통해 의존성 분리
+	// InputComponent에서 인터페이스를 상속해 델리게이트의 정의를 반환하고, 여기서 반환받은 정의에 이벤트 구독
+	TArray<UActorComponent*> InventoryInputComponent = GetOwner()->GetComponentsByInterface(UInventoryInputInterface::StaticClass());
+	for (UActorComponent* InventoryInput : InventoryInputComponent)
 	{
-		InventoryInputComponent->OnToggleInventoryUI.AddDynamic(this, &UInventoryComponent::ToggleInventoryUI);
-		InventoryInputComponent->OnCollectItem.AddDynamic(this, &UInventoryComponent::CollectItem);
+		IInventoryInputInterface* InputInterface = Cast<IInventoryInputInterface>(InventoryInput);
+		if (InputInterface)
+		{
+			InputInterface->GetOnToggleInventoryUI().AddDynamic(this, &UInventoryComponent::ToggleInventoryUI);
+			InputInterface->GetOnCollectItem().AddDynamic(this, &UInventoryComponent::CollectItem);
+		}
 	}
 	
 	// 인벤토리 데이터 초기화

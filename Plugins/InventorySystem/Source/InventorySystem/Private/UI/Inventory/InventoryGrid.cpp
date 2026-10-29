@@ -6,6 +6,11 @@
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/Image.h"
+#include "Item/ItemComponent.h"
+#include "Item/Data/ItemData.h"
+#include "Item/UI/ItemCollectedUI.h"
+#include "Player/InventoryInputComponent.h"
 #include "UI/Inventory/GridInventorySlot.h"
 
 void UInventoryGrid::NativeOnInitialized()
@@ -13,6 +18,8 @@ void UInventoryGrid::NativeOnInitialized()
 	Super::NativeOnInitialized();
 	
 	ConstructGrid();
+	
+	BindDelegates();
 }
 
 void UInventoryGrid::ConstructGrid()
@@ -42,4 +49,50 @@ void UInventoryGrid::ConstructGrid()
 			InventorySlots.Add(InventorySlot);
 		}
 	}
+}
+
+void UInventoryGrid::BindDelegates()
+{
+	TArray<UActorComponent*> InventoryInputComponent =
+		GetOwningPlayer()->GetOwner()->GetComponentsByInterface(UInventoryInputInterface::StaticClass());
+	
+	for (UActorComponent* InventoryInput : InventoryInputComponent)
+	{
+		if (IInventoryInputInterface* InputInterface = Cast<IInventoryInputInterface>(InventoryInput))
+		{
+			InputInterface->GetOnCollectItem().AddDynamic(this, &UInventoryGrid::AddItemToGrid);
+		}
+	}
+}
+
+void UInventoryGrid::AddItemToGrid(AActor* InventoryItem)
+{
+	if (UItemComponent* InventoryItemComponent = InventoryItem->GetComponentByClass<UItemComponent>())
+	{
+		if (UItemData* InventoryItemData = InventoryItemComponent->GetItemData())
+		{
+			UItemCollectedUI* CollectedItemUI = CreateCollectedItemUI(InventoryItemData);
+		}
+	}
+}
+
+UItemCollectedUI* UInventoryGrid::CreateCollectedItemUI(UItemData* InventoryItem) const
+{
+	UItemCollectedUI* CollectedItem = CreateWidget<UItemCollectedUI>(GetOwningPlayer(), CollectedItemClass);
+	
+	if (!CollectedItem || !CollectedItemClass)
+	{
+		return nullptr;
+	}
+	
+	CollectedItem->SetInventoryItem(InventoryItem);
+	
+	FSlateBrush Brush;
+	Brush.SetResourceObject(InventoryItem->GetItemIcon());
+	Brush.DrawAs = ESlateBrushDrawType::Image;
+	Brush.ImageSize = FVector2D(TileSize * InventoryItem->GetItemSize().X, TileSize * InventoryItem->GetItemSize().Y);
+	
+	CollectedItem->GetImageIcon()->SetBrush(Brush);
+	
+	return CollectedItem;
 }
