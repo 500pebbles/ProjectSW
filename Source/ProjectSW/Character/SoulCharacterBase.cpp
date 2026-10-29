@@ -61,6 +61,20 @@ void ASoulCharacterBase::GiveStartupAbilities()
 	SoulASC->GiveStartupAbilities(StartupAbilities);
 }
 
+void ASoulCharacterBase::Die()
+{
+	Multicast_HandleDeath();
+}
+
+void ASoulCharacterBase::Multicast_HandleDeath_Implementation()
+{
+	GetMesh()->SetSimulatePhysics(true);
+	GetMesh()->SetEnableGravity(true);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+	GetMesh()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
 FVector ASoulCharacterBase::GetCombatSocketLocation()
 {
 	return Weapon->GetSocketLocation(CombatSocketName);

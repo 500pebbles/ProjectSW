@@ -1,7 +1,5 @@
 ﻿
 #include "SoulCharacterEnemy.h"
-
-#include "Abilities/Tasks/AbilityTask.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -11,7 +9,6 @@
 #include "UI/Widget/SoulUserWidget.h"
 #include "Utility/SoulDefineMacro.h"
 #include "Utility/SoulGameplayTags.h"
-#include "Utility/SoulLog.h"
 
 
 ASoulCharacterEnemy::ASoulCharacterEnemy()
@@ -75,8 +72,20 @@ int32 ASoulCharacterEnemy::GetPlayerLevel()
 	return Level;
 }
 
+void ASoulCharacterEnemy::Die()
+{
+	Super::Die();
+	SetLifeSpan(10.f);	
+}
+
 void ASoulCharacterEnemy::OnHitReactTagChanged(const FGameplayTag CallbackTag, int32 NewCount)
 {
+	/* HitReact 전체 플로우 
+	 * AttributeSet에서 데미지 처리의 bFatal 분기에서, CommonAbility 분류의 GA_HitReact를 임시 Tag로 실행.
+	 * GA_HitReact는 GE_HitReact를 Target에 적용시키며 인터페이스로 접근, Target이 참조하는 HitReact 몽탄주를 참조해 재생.
+	 * GE_HitReact는 단순한 태그 적용의 역할, GrantTags로 SoulTags::Combats::HitReact를 적용.
+	 * SoulTags::Combats::HitReact 태그의 변경을 RegisterGameplayTagEvent로 감지. */
+	
 	bHitReacting = NewCount > 0;
 	
 	GetCharacterMovement()->MaxWalkSpeed = bHitReacting ? 0.f : BaseWalkSpeed;

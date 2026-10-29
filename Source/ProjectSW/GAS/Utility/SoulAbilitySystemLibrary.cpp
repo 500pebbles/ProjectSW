@@ -48,12 +48,7 @@ UAttributeMenuWidgetController* USoulAbilitySystemLibrary::GetAttributeMenuWidge
 
 void USoulAbilitySystemLibrary::EnemyInitializeDefaultAttributes(const UObject* WorldContextObject, EEnemyType EnemyType, float Level,  UAbilitySystemComponent* ASC)
 {
-	// WorldContext에서 GameMode 접근.
-	ASoulGameModeBase* SoulGameMode = Cast<ASoulGameModeBase>(UGameplayStatics::GetGameMode(WorldContextObject));
-	if (!IsValid(SoulGameMode)) return;
-	
-	// GameMode에 존재하는 캐릭터 타입을 받아 Setup. 
-	USoulEnemyTypeInfo* EnemyTypeInfo = SoulGameMode->EnemyTypeInfo;
+	USoulEnemyTypeInfo* EnemyTypeInfo = GetEnemyTypeInfo(WorldContextObject);
 	const FEnemyDefaultInfo EnemyDefaultInfo = EnemyTypeInfo->GetEnemyDefaultInfo(EnemyType);
 	
 	// 캐릭터 타입에 설정된 기본스탯을 Default/Initialize GE로 적용.
@@ -72,16 +67,22 @@ void USoulAbilitySystemLibrary::EnemyInitializeDefaultAttributes(const UObject* 
 
 void USoulAbilitySystemLibrary::EnemyGiveStartupAbilities(const UObject* WorldContextObject, UAbilitySystemComponent* ASC)
 {
-	// WorldContext에서 GameMode 접근.
-	ASoulGameModeBase* SoulGameMode = Cast<ASoulGameModeBase>(UGameplayStatics::GetGameMode(WorldContextObject));
-	if (!IsValid(SoulGameMode)) return;
-	
 	// GameMode에 존재하는 캐릭터 타입을 받아 Setup. 
-	USoulEnemyTypeInfo* EnemyTypeInfo = SoulGameMode->EnemyTypeInfo;	
+	USoulEnemyTypeInfo* EnemyTypeInfo = GetEnemyTypeInfo(WorldContextObject);	
 	
+	// BasicAbility 부여.
 	for (auto AbilityClass : EnemyTypeInfo->BasicAbilities)
 	{
 		FGameplayAbilitySpec AbilitySpec = FGameplayAbilitySpec(AbilityClass, 1);
 		ASC->GiveAbility(AbilitySpec);
 	}
+	
+	// StartupAbility 부여.
+}
+
+USoulEnemyTypeInfo* USoulAbilitySystemLibrary::GetEnemyTypeInfo(const UObject* WorldContextObject)
+{
+	ASoulGameModeBase* SoulGameMode = Cast<ASoulGameModeBase>(UGameplayStatics::GetGameMode(WorldContextObject));
+	if (!IsValid(SoulGameMode)) return nullptr;
+	return SoulGameMode->EnemyTypeInfo;
 }

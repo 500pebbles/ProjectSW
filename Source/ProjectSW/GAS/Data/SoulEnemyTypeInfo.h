@@ -50,11 +50,11 @@ class PROJECTSW_API USoulEnemyTypeInfo : public UDataAsset
 	GENERATED_BODY()
 	
 public:
-	FORCEINLINE FEnemyDefaultInfo GetEnemyDefaultInfo(EEnemyType CharacterType) const { return EnemyTypeInformation.FindChecked(CharacterType); }
+	FORCEINLINE FEnemyDefaultInfo GetEnemyDefaultInfo(EEnemyType CharacterType) const { return EnemyDescription.FindChecked(CharacterType); }
 	
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
-	TMap<EEnemyType, FEnemyDefaultInfo> EnemyTypeInformation;	
+	TMap<EEnemyType, FEnemyDefaultInfo> EnemyDescription;	
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Setup")
 	TSubclassOf<UGameplayEffect> InitializeAttributes;		
