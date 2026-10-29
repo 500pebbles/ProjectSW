@@ -27,6 +27,19 @@ namespace SoulTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HitReact)
 	}
 	
+	namespace DamageTypes
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Physical)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Sin)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Virtue)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Grace)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Hate)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Torment)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Solace)
+		
+		const TArray<FGameplayTag>& GetDamageTypes();
+	}
+	
 	namespace Abilities
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Primary)

@@ -38,10 +38,13 @@ void USoulRangedAbility::SpawnProjectile()
 	FGameplayEffectContextHandle EffectContextHandle = SourceASC->MakeEffectContext();
 	const FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(DamageEffectClass, GetAbilityLevel(), EffectContextHandle);
 	
-	const float Damage = AbilityDamage.GetValueAtLevel(GetAbilityLevel());
-	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, SoulTags::Combats::Damage, Damage);
+	for (auto& Pair : DamageTypes)
+	{
+		const float ScaledDamage = Pair.Value.GetValueAtLevel(GetAbilityLevel());
+		UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, Pair.Key, ScaledDamage);
+	}
 	
-	Projectile->DamageEffectSpecHandle = SpecHandle;  // Actor가 보유할 GE -> GA에서 참조해 생성시 전달. 
+	Projectile->DamageEffectSpecHandle = SpecHandle;
 	
 	// Step 3 : Finish Spawn. 
 	Projectile->FinishSpawning(SpawnTransform);	
