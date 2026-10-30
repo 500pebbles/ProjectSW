@@ -107,6 +107,11 @@ bool FInventoryDataArray::MoveItemPosition(const FGuid& InID, FIntPoint InNewPos
 		return false;
 	}
 	
+	if (!CheckSlotAvailable(InNewPosition, CurrentItem->GetOccupiedSize(), InID))
+	{
+		return false;
+	}
+	
 	CurrentItem->GridPosition = InNewPosition;
 	return true;
 }

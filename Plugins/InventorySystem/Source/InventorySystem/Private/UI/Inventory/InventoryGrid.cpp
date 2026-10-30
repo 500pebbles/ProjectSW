@@ -212,7 +212,7 @@ void UInventoryGrid::ShowPlacementPreview(FIntPoint SlotLocation, FIntPoint Size
 	if (UCanvasPanelSlot* PreviewSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(PlacementPreviewImage))
 	{
 		PreviewSlot->SetPosition(GridToCanvasPosition(SlotLocation));
-		PreviewSlot->SetSize(Size);
+		PreviewSlot->SetSize(GridToCanvasSize(Size));
 	}
 	
 	PlacementPreviewImage->SetColorAndOpacity(
