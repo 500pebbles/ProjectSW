@@ -94,6 +94,64 @@ TArray<UItemData*> FInventoryDataArray::GetAllItems() const
 	return Items;
 }
 
+bool FInventoryDataArray::MoveItemPosition(const FGuid& InID, FIntPoint InNewPosition)
+{
+	// 아이템 존재하지 않으면 실패
+	FInventoryDataEntry* CurrentItem = ItemDataArray.FindByPredicate([&InID](const FInventoryDataEntry& Item)
+	{
+		return InID == Item.GetID();
+	});
+	
+	if (!CurrentItem)
+	{
+		return false;
+	}
+	
+	CurrentItem->GridPosition = InNewPosition;
+	return true;
+}
+
+bool FInventoryDataArray::CheckSlotAvailable(FIntPoint InPosition, FIntPoint InSize, const FGuid& InIgnoreID) const
+{
+	if (InSize.X <= 0 || InSize.Y <= 0)
+	{
+		return false;
+	}
+	
+	if (InPosition.X < 0 || InPosition.Y < 0
+		|| InPosition.X + InSize.X > GridSize.X|| InPosition.Y + InSize.Y > GridSize.Y)
+	{
+		return false;
+	}
+	
+	// 인벤토리 데이터(배열) 내의 다른 아이템들의 위치와 사이즈를 고려해서 넣을 수 있는지 판단
+	for (const FInventoryDataEntry& Item : ItemDataArray)
+	{
+		if (Item.GetID() == InIgnoreID)
+		{
+			continue;
+		}
+		// 배열내의 아이템이 새로 넣을 아이템의 위치/사이즈를 고려해서 겹치면 넣을 수 없다고 판단.
+		// 아이템 자체가 갖고 있는 위치/사이즈를 새로 넣을 아이템의 위치/사이즈와 비교
+		if (Item.IsOverlapping(InPosition, InSize))
+		{
+			return false;
+		}
+	}
+		
+	return true;
+}
+
+const FInventoryDataEntry* FInventoryDataArray::FindItemWithID(const FGuid& InID) const
+{
+	// 펑터 람다 함수 -> 스코프로 InID를 받아서 해당 InID가 전달받은 아이템 엔트리 래퍼의 아이디와 같으면
+	// 해당 아이템을 반환 -> Operator오버로딩으로 뺄 수 있지만 번거로움
+	return ItemDataArray.FindByPredicate([&InID](const FInventoryDataEntry& Item)
+	{
+		return InID == Item.GetID();
+	});
+}
+
 void FInventoryDataArray::AddItemData(const UItemComponent* InItemComponent)
 {
 	if (IsValid(InItemComponent))

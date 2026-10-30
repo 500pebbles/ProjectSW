@@ -74,6 +74,18 @@ public:
 	// 아이템 목록 가져오기
 	TArray<UItemData*> GetAllItems() const;
 	
+private:
+	// ID를 받아 ID에 해당하는 아이템 데이터를 받은 위치로 이동시키는 함수
+	bool MoveItemPosition(const FGuid& InID, FIntPoint InNewPosition);
+	
+	// UI에서 이동 시 IsOverlapping 이용하여 해당 위치가 이동할 수 있는 위치인지 판단하는 함수
+	// ID는 본인의 ID를 받아서 본인은 제외하고 검사하도록 함
+	bool CheckSlotAvailable(FIntPoint InPosition, FIntPoint InSize, const FGuid& InIgnoreID) const;
+	
+	// ID를 받아서 인벤토리 내에 ID에 해당하는 아이템 엔트리 래퍼를 반환하는 함수
+	// 읽기 전용 -> 나중에 세이브/로드 혹은 값 조회 시 값 변경 불가
+	const FInventoryDataEntry* FindItemWithID(const FGuid& InID) const;
+	
 public:
 	// 인벤토리 공간 크기
 	UPROPERTY(EditAnywhere, Category = "Inventory", meta = (ClampMin = "1"))

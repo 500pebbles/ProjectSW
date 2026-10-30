@@ -8,7 +8,6 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
 #include "Components/SizeBox.h"
-#include "Item/ItemComponent.h"
 #include "Item/Data/ItemData.h"
 #include "Item/UI/ItemCollectedUI.h"
 #include "Player/InventoryComponent.h"
