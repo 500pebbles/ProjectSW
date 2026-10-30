@@ -264,6 +264,6 @@ void USoulAttributeSet::ShowDamageText(const FEffectProperties& Props, float Dam
 	
 	if (Props.SourceCharacter == Props.TargetCharacter) return;
 	
-	ASoulPlayerController* PC = Cast<ASoulPlayerController>(UGameplayStatics::GetPlayerController(Props.SourceCharacter, 0));
+	ASoulPlayerController* PC = Cast<ASoulPlayerController>(Props.SourceCharacter->Controller);
 	if (PC) PC->ShowDamageText(DamageAmount, Props.TargetCharacter, bIsCriticalHit);
 }

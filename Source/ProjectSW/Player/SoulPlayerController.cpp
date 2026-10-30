@@ -146,7 +146,7 @@ USoulAbilitySystemComponent* ASoulPlayerController::GetASC()
 
 void ASoulPlayerController::ShowDamageText_Implementation(float DamageAmount, ACharacter* TargetCharacter, bool bIsCriticalHit)
 {
-	if (!IsValid(TargetCharacter)) return;
+	if (!IsValid(TargetCharacter) && !IsLocalController()) return;
 	
 	USoulDamageTextComponent* DamageText = NewObject<USoulDamageTextComponent>(TargetCharacter, DamageTextComponentClass);
 	DamageText->RegisterComponent();

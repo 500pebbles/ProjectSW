@@ -7,6 +7,8 @@
 #include "UI/WidgetController/OverlayWidgetController.h"
 #include "SoulCharacterEnemy.generated.h"
 
+class UBehaviorTree;
+class ASoulAIController;
 struct FGameplayTag;
 class UWidgetComponent;
 
@@ -18,6 +20,8 @@ class PROJECTSW_API ASoulCharacterEnemy : public ASoulCharacterBase
 public:
 	ASoulCharacterEnemy();
 	
+	virtual void PossessedBy(AController* NewController) override;
+
 protected:
 	virtual void BeginPlay() override;
 	
@@ -63,4 +67,12 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<UWidgetComponent> HealthBar;
+	
+/* AI Section */	
+protected:
+	UPROPERTY()
+	TObjectPtr<ASoulAIController> AIController;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TObjectPtr<UBehaviorTree> BehaviorTree;
 };

@@ -117,7 +117,7 @@ void USoulDamageExecutionCalculation::Execute_Implementation(const FGameplayEffe
 	
 	// Setup GE Context. 
 	FGameplayEffectContextHandle EffectContextHandle = Spec.GetContext();
-	USoulAbilitySystemLibrary::SetIsCriticalHit(EffectContextHandle, bIsDamageCritical);	
+	USoulAbilitySystemLibrary::SetIsCriticalHit(EffectContextHandle, bIsDamageCritical);
 	
 	// Execution.
 	const FGameplayModifierEvaluatedData EvaluatedData(USoulAttributeSet::GetIncomingDamageAttribute(), EGameplayModOp::Additive, Damage);
