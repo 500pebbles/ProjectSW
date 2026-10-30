@@ -15,6 +15,7 @@ public class ProjectSW : ModuleRules
 			"Engine",
 			"InputCore", 
 			"EnhancedInput",
+			"AIModule",
 			"GameplayAbilities",
 			"GameplayTags",
 			"GameplayTasks",
