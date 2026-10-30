@@ -27,6 +27,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "InventorySystem",
+			"Enabled": true
+		},
+		{
 			"Name": "MarkdownAsset",
 			"Enabled": true
 		},

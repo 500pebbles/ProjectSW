@@ -26,7 +26,7 @@ public class ProjectSW : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			
+			"InventorySystem"
 		});
 		
 		PublicIncludePaths.AddRange(new string[]
