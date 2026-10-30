@@ -6,6 +6,9 @@
 #include "Blueprint/UserWidget.h"
 #include "InventoryGrid.generated.h"
 
+class UInventoryComponent;
+class UImage;
+class UItemDragDrop;
 struct FInventoryDataEntry;
 class UItemCollectedUI;
 class UItemData;
@@ -63,4 +66,29 @@ private:
 	
 	UPROPERTY()
 	TMap<FGuid, TObjectPtr<UItemCollectedUI>> CollectedItemWidgets;
+	
+	
+	// 아이템 드래그를 위한 섹션
+protected:
+	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+	virtual bool NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+	virtual void NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+	
+private:
+	// 캔버스 패널 기준의 좌표로 변환하는 함수
+	FIntPoint ComputeTargetCell(const FDragDropEvent& InEvent, const UItemDragDrop* Operation) const;
+	
+	// 배치될 위치게 맞게 들어가는 모습을 보여주기 위한 함수
+	void ShowPlacementPreview(FIntPoint SlotLocation, FIntPoint Size, bool bCanPlace);
+	void HidePlacementPreview();
+	
+	UFUNCTION()
+	void HandleDragCancelled(UDragDropOperation* Operation);
+
+private:
+	// WBP 캔버스 위에 배치하는 선택 위젯 (앵커 좌상단, 슬롯보다 위·아이템보다 아래 순서)
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UImage> PlacementPreviewImage;
+
+	TWeakObjectPtr<UInventoryComponent> InventoryComponent;
 };

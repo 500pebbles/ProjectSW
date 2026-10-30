@@ -183,5 +183,11 @@ void FInventoryDataArray::AddItemData(UItemData* InItemData)
 
 void FInventoryDataArray::RemoveItemData(FGuid InID)
 {
-	
+	for (const FInventoryDataEntry& Item : ItemDataArray)
+	{
+		if (Item.GetID() == InID)
+		{
+			//ItemDataArray.Remove(Item);
+		}
+	}
 }

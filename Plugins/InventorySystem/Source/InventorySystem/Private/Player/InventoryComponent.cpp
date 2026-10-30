@@ -36,8 +36,7 @@ void UInventoryComponent::BeginPlay()
 	TArray<UActorComponent*> InventoryInputComponent = GetOwner()->GetComponentsByInterface(UInventoryInputInterface::StaticClass());
 	for (UActorComponent* InventoryInput : InventoryInputComponent)
 	{
-		IInventoryInputInterface* InputInterface = Cast<IInventoryInputInterface>(InventoryInput);
-		if (InputInterface)
+		if (IInventoryInputInterface* InputInterface = Cast<IInventoryInputInterface>(InventoryInput))
 		{
 			InputInterface->GetOnToggleInventoryUI().AddDynamic(this, &UInventoryComponent::ToggleInventoryUI);
 			InputInterface->GetOnCollectItem().AddDynamic(this, &UInventoryComponent::CollectItem);
@@ -61,9 +60,9 @@ void UInventoryComponent::CreateInventoryUIWidget()
 void UInventoryComponent::ToggleInventoryUI()
 {
 	InventoryUI->ToggleInventoryUI();
-	
-	FInputModeGameAndUI InventoryInputMode;
-	FInputModeGameOnly GameInputMode;
+
+	const FInputModeUIOnly InventoryInputMode;
+	const FInputModeGameOnly GameInputMode;
 	
 	// 인벤토리 UI 닫기
 	if (bIsInventoryUIOpen)
@@ -100,4 +99,20 @@ void UInventoryComponent::CollectItem(AActor* TargetItem)
 		OnInventoryItemAdded.Broadcast(&InventoryData.ItemDataArray.Last());
 	}
 	
+}
+
+bool UInventoryComponent::MoveItemPosition(const FGuid& TargetID, FIntPoint TargetPosition)
+{
+	return InventoryData.MoveItemPosition(TargetID, TargetPosition);
+}
+
+bool UInventoryComponent::CheckSlotAvailable(const FGuid& SlotID, FIntPoint TargetPosition) const
+{
+	const FInventoryDataEntry* CurrentItem = FindItemWithID(SlotID);
+	return InventoryData.CheckSlotAvailable(TargetPosition, CurrentItem->GetOccupiedSize(), SlotID);
+}
+
+const FInventoryDataEntry* UInventoryComponent::FindItemWithID(const FGuid& ItemID) const
+{
+	return InventoryData.FindItemWithID(ItemID);
 }

@@ -59,4 +59,10 @@ public:
 private:
 	UPROPERTY(EditAnywhere, Category = "Inventory")
 	FInventoryDataArray InventoryData;
+	
+	// UI 조작을 위한 섹션
+public:
+	bool MoveItemPosition(const FGuid& TargetID, FIntPoint TargetPosition);
+	bool CheckSlotAvailable(const FGuid& SlotID, FIntPoint TargetPosition) const;
+	const FInventoryDataEntry* FindItemWithID(const FGuid& ItemID) const;
 };

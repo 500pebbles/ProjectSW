@@ -10,6 +10,7 @@
 #include "Components/SizeBox.h"
 #include "Item/Data/ItemData.h"
 #include "Item/UI/ItemCollectedUI.h"
+#include "Item/UI/ItemDragDrop.h"
 #include "Player/InventoryComponent.h"
 #include "Player/InventoryInputComponent.h"
 #include "UI/Inventory/GridInventorySlot.h"
@@ -64,9 +65,10 @@ void UInventoryGrid::BindDelegates()
 		
 		TArray<UActorComponent*> InventoryInputComponent = LocalPlayer->GetComponentsByInterface(UInventoryInputInterface::StaticClass());
 		
-		if (UInventoryComponent* InventoryComponent = LocalPlayer->FindComponentByClass<UInventoryComponent>())
+		if (UInventoryComponent* InventoryComp = LocalPlayer->FindComponentByClass<UInventoryComponent>())
 		{
-			InventoryComponent->OnInventoryItemAdded.AddUObject(this, &UInventoryGrid::AddItemToGrid);
+			InventoryComponent = InventoryComp;
+			InventoryComp->OnInventoryItemAdded.AddUObject(this, &UInventoryGrid::AddItemToGrid);
 		}
 	}
 }
@@ -92,6 +94,8 @@ void UInventoryGrid::AddItemToGrid(const FInventoryDataEntry* InventoryItem)
 
 	CollectedItemUI->SetGridPosition(InventoryItem->GetGridPosition());
 	CollectedItemWidgets.Add(InventoryItem->GetID(), CollectedItemUI);
+	
+	CollectedItemUI->SetItemID(InventoryItem->GetID());
 }
 
 UItemCollectedUI* UInventoryGrid::CreateCollectedItemUI(const FInventoryDataEntry* InventoryItem) const
@@ -128,4 +132,104 @@ FVector2D UInventoryGrid::GridToCanvasPosition(FIntPoint GridPosition) const
 FVector2D UInventoryGrid::GridToCanvasSize(FIntPoint GridSize) const
 {
 	return FVector2D(GridSize.X, GridSize.Y) * TileSize;
+}
+
+bool UInventoryGrid::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
+	UDragDropOperation* InOperation)
+{
+	HidePlacementPreview();
+	
+	const UItemDragDrop* Operation = Cast<UItemDragDrop>(InOperation);
+	if (!Operation || !InventoryComponent.IsValid())
+	{
+		return false;
+	}
+	
+	const FIntPoint SlotPosition = ComputeTargetCell(InDragDropEvent, Operation);
+	if (!InventoryComponent->MoveItemPosition(Operation->ItemID, SlotPosition))
+	{
+		return false;
+	}
+	
+	// 데이터 이동 성공시 UI 위치 갱신
+	if (UItemCollectedUI* ItemWidget = CollectedItemWidgets.FindRef(Operation->ItemID))
+	{
+		if (UCanvasPanelSlot* CanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(ItemWidget))
+		{
+			CanvasSlot->SetPosition(GridToCanvasPosition(SlotPosition));
+		}
+		ItemWidget->SetGridPosition(SlotPosition);
+	}
+	return true;
+}
+
+bool UInventoryGrid::NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
+	UDragDropOperation* InOperation)
+{
+	UItemDragDrop* Operation = Cast<UItemDragDrop>(InOperation);
+	if (!Operation || !InventoryComponent.IsValid())
+	{
+		return false;
+	}
+
+	const FInventoryDataEntry* Entry = InventoryComponent->FindItemWithID(Operation->ItemID);
+	if (!Entry)
+	{
+		return false;
+	}
+
+	// 그리드 안에서 ESC 등으로 취소돼도 하이라이트가 남지 않게 (중복 바인딩은 Unique로 방지)
+	Operation->OnDragCancelled.AddUniqueDynamic(this, &UInventoryGrid::HandleDragCancelled);
+
+	const FIntPoint Cell = ComputeTargetCell(InDragDropEvent, Operation);
+	ShowPlacementPreview(Cell, Entry->GetOccupiedSize(), InventoryComponent->CheckSlotAvailable(Operation->ItemID, Cell));
+	return true;
+}
+
+void UInventoryGrid::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+	Super::NativeOnDragLeave(InDragDropEvent, InOperation);
+	
+	HidePlacementPreview();
+}
+
+FIntPoint UInventoryGrid::ComputeTargetCell(const FDragDropEvent& InEvent, const UItemDragDrop* Operation) const
+{
+	const FVector2D CanvasLocal = CanvasPanel->GetCachedGeometry().AbsoluteToLocal(InEvent.GetScreenSpacePosition());
+	const FVector2D ItemTopLeft = CanvasLocal - Operation->MousePressedPosition;
+	
+	// 가장 가까운 정수값으로 변환 후 반환
+	return FIntPoint(FMath::RoundToInt(ItemTopLeft.X / TileSize), FMath::RoundToInt(ItemTopLeft.Y / TileSize));
+}
+
+void UInventoryGrid::ShowPlacementPreview(FIntPoint SlotLocation, FIntPoint Size, bool bCanPlace)
+{
+	if (!PlacementPreviewImage)
+	{
+		return;
+	}
+	
+	if (UCanvasPanelSlot* PreviewSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(PlacementPreviewImage))
+	{
+		PreviewSlot->SetPosition(GridToCanvasPosition(SlotLocation));
+		PreviewSlot->SetSize(Size);
+	}
+	
+	PlacementPreviewImage->SetColorAndOpacity(
+		bCanPlace ? FLinearColor(0.f, 1.f, 0.f, 0.35f): FLinearColor(1.f, 0.f, 0.f, 0.35f));
+	
+	PlacementPreviewImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void UInventoryGrid::HidePlacementPreview()
+{
+	if (PlacementPreviewImage)
+	{
+		PlacementPreviewImage->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UInventoryGrid::HandleDragCancelled(UDragDropOperation* Operation)
+{
+	HidePlacementPreview();
 }
