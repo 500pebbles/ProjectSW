@@ -182,6 +182,18 @@ bool UInventoryGrid::NativeOnDragOver(const FGeometry& InGeometry, const FDragDr
 	Operation->OnDragCancelled.AddUniqueDynamic(this, &UInventoryGrid::HandleDragCancelled);
 
 	const FIntPoint Cell = ComputeTargetCell(InDragDropEvent, Operation);
+	
+	// 하이라이트가 그리드 밖으로 나가는 경우 인벤토리 그리드가 전체적으로 이동해서 본래 위치를 벗어나는 오류 방지
+	// 이미지가 인벤토리의 그리드와 동일한 캔버스 패널에 위치해서 발생하는 것으로 추정됨
+	// 그리드 밖으로 나갈 경우 하이라이트를 표시하지 않음
+	const FIntPoint DataGrid = InventoryComponent->GetInventoryDataArray().GridSize;
+	const FIntPoint EntrySize = Entry->GetOccupiedSize();
+	if (Cell.X < 0 || Cell.Y < 0 || Cell.X + EntrySize.X > DataGrid.X || Cell.Y + EntrySize.Y > DataGrid.Y)
+	{
+		HidePlacementPreview();
+		return true;
+	}
+	
 	ShowPlacementPreview(Cell, Entry->GetOccupiedSize(), InventoryComponent->CheckSlotAvailable(Operation->ItemID, Cell));
 	return true;
 }
