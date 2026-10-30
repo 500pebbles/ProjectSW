@@ -100,6 +100,7 @@ void FInventoryDataArray::AddItemData(const UItemComponent* InItemComponent)
 	{
 		AddItemData(InItemComponent->GetItemData());
 	}
+	return;
 }
 
 void FInventoryDataArray::AddItemData(UItemData* InItemData)
@@ -118,7 +119,7 @@ void FInventoryDataArray::AddItemData(UItemData* InItemData)
 		NewItemEntry.GridPosition = TargetGridPosition;
 		
 		ItemDataArray.Add(NewItemEntry);
-		UE_LOG(LogTemp, Log, TEXT("Item Collected"));
+		UE_LOG(LogTemp, Log, TEXT("Item Collected"))
 	}
 }
 

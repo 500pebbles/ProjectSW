@@ -83,6 +83,21 @@ void UInventoryComponent::ToggleInventoryUI()
 
 void UInventoryComponent::CollectItem(AActor* TargetItem)
 {
+	if (!IsValid(TargetItem))
+	{
+		return;
+	}
+	
 	UItemComponent* TargetItemComponent = TargetItem->GetComponentByClass<UItemComponent>();
+	
+	// 아이템이 추가될 떄 UI에 반영하도록 조건 추가
+	const int32 PrevItemCount = InventoryData.ItemDataArray.Num();
 	InventoryData.AddItemData(TargetItemComponent);
+	
+	if(InventoryData.ItemDataArray.Num() > PrevItemCount)
+	{
+		// 가장 마지막에 추가된 아이템을 전달
+		OnInventoryItemAdded.Broadcast(&InventoryData.ItemDataArray.Last());
+	}
+	
 }

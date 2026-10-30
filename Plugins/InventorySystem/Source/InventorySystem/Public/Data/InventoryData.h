@@ -63,7 +63,6 @@ public:
 	void InitializeArray();
 	
 	// 목록에 아이템 추가
-	// 추가될 아이템의 포인터를 반환
 	void AddItemData(const UItemComponent* InItemComponent);
 	void AddItemData(UItemData* InItemData);
 	

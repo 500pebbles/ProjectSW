@@ -11,6 +11,7 @@
 #include "Item/ItemComponent.h"
 #include "Item/Data/ItemData.h"
 #include "Item/UI/ItemCollectedUI.h"
+#include "Player/InventoryComponent.h"
 #include "Player/InventoryInputComponent.h"
 #include "UI/Inventory/GridInventorySlot.h"
 
@@ -41,11 +42,11 @@ void UInventoryGrid::ConstructGrid()
 			// 캔버스 패널에 AddChild를 하면 캔버스 패널 슬롯이 생성됨
 			// 해당 캔버스 패널 슬롯을 이용해서 사이즈와 위치 설정 (사이즈 위치 설정을 위함)
 			UCanvasPanelSlot* CanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(InventorySlot);
-			CanvasSlot->SetSize(FVector2D(TileSize, TileSize));
+			CanvasSlot->SetSize(GridToCanvasSize(FIntPoint(1, 1)));
 			
 			const FIntPoint TilePostion(ix, iy);
 			// 타일에 따라 크기 조정을 위해 TileSize를 곱함
-			CanvasSlot->SetPosition(TilePostion * TileSize);
+			CanvasSlot->SetPosition(GridToCanvasPosition(TilePostion));
 			
 			InventorySlots.Add(InventorySlot);
 		}
@@ -57,38 +58,44 @@ void UInventoryGrid::BindDelegates()
 	if(APlayerController* LocalPlayerController = GetOwningPlayer())
 	{
 		APawn* LocalPlayer = LocalPlayerController->GetPawn();
-		if (LocalPlayer)
+		if (!LocalPlayer)
 		{
-			TArray<UActorComponent*> InventoryInputComponent = LocalPlayer->GetComponentsByInterface(UInventoryInputInterface::StaticClass());
-	
-			for (UActorComponent* InventoryInput : InventoryInputComponent)
-			{
-				if (IInventoryInputInterface* InputInterface = Cast<IInventoryInputInterface>(InventoryInput))
-				{
-					InputInterface->GetOnCollectItem().AddDynamic(this, &UInventoryGrid::AddItemToGrid);
-				}
-			}
+			return;
+		}
+		
+		TArray<UActorComponent*> InventoryInputComponent = LocalPlayer->GetComponentsByInterface(UInventoryInputInterface::StaticClass());
+		
+		if (UInventoryComponent* InventoryComponent = LocalPlayer->FindComponentByClass<UInventoryComponent>())
+		{
+			InventoryComponent->OnInventoryItemAdded.AddUObject(this, &UInventoryGrid::AddItemToGrid);
 		}
 	}
 }
 
-void UInventoryGrid::AddItemToGrid(AActor* InventoryItem)
+void UInventoryGrid::AddItemToGrid(const FInventoryDataEntry* InventoryItem)
 {
-	if (UItemComponent* InventoryItemComponent = InventoryItem->GetComponentByClass<UItemComponent>())
+	UItemCollectedUI* CollectedItemUI = CreateCollectedItemUI(InventoryItem);
+	if (!CollectedItemUI)
 	{
-		if (UItemData* InventoryItemData = InventoryItemComponent->GetItemData())
-		{
-			UItemCollectedUI* CollectedItemUI = CreateCollectedItemUI(InventoryItemData);
-			
-			if (UCanvasPanelSlot* CanvasSlot = CanvasPanel->AddChildToCanvas(CollectedItemUI))
-			{
-				CanvasSlot->SetAutoSize(true);
-			}
-		}
+		return;
 	}
+
+	UCanvasPanelSlot* CanvasSlot = CanvasPanel->AddChildToCanvas(CollectedItemUI);
+	if (!CanvasSlot)
+	{
+		return;
+	}
+
+	// 크기는 위젯 안의 SizeBox 오버라이드가 정하므로 AutoSize를 유지하고, 위치만 그리드 좌표로 지정
+	// 앵커/정렬은 기본값(좌상단, (0,0))이라 위치가 곧 아이템의 좌상단이 된다
+	CanvasSlot->SetAutoSize(true);
+	CanvasSlot->SetPosition(GridToCanvasPosition(InventoryItem->GetGridPosition()));
+
+	CollectedItemUI->SetGridPosition(InventoryItem->GetGridPosition());
+	CollectedItemWidgets.Add(InventoryItem->GetID(), CollectedItemUI);
 }
 
-UItemCollectedUI* UInventoryGrid::CreateCollectedItemUI(UItemData* InventoryItem) const
+UItemCollectedUI* UInventoryGrid::CreateCollectedItemUI(const FInventoryDataEntry* InventoryItem) const
 {
 	UItemCollectedUI* CollectedItem = CreateWidget<UItemCollectedUI>(GetOwningPlayer(), CollectedItemClass);
 	
@@ -97,17 +104,29 @@ UItemCollectedUI* UInventoryGrid::CreateCollectedItemUI(UItemData* InventoryItem
 		return nullptr;
 	}
 	
-	CollectedItem->SetInventoryItem(InventoryItem);
+	UItemData* ItemData = InventoryItem->GetItem();
+	
+	CollectedItem->SetInventoryItem(ItemData);
 	
 	FSlateBrush Brush;
 	// Brush에 Texture2D형을 넣으면 UImage로 바뀜
-	Brush.SetResourceObject(InventoryItem->GetItemIcon());
+	Brush.SetResourceObject(ItemData->GetItemIcon());
 	Brush.DrawAs = ESlateBrushDrawType::Image;
-	Brush.ImageSize = FVector2D(TileSize * InventoryItem->GetItemSize().X, TileSize * InventoryItem->GetItemSize().Y);
+	Brush.ImageSize = FVector2D(TileSize * ItemData->GetItemSize().X, TileSize * ItemData->GetItemSize().Y);
 	
 	CollectedItem->GetImageIcon()->SetBrush(Brush);
 	CollectedItem->GetIconSizeBox()->SetWidthOverride(Brush.ImageSize.X);
 	CollectedItem->GetIconSizeBox()->SetHeightOverride(Brush.ImageSize.Y);
 	
 	return CollectedItem;
+}
+
+FVector2D UInventoryGrid::GridToCanvasPosition(FIntPoint GridPosition) const
+{
+	return FVector2D(GridPosition.X, GridPosition.Y) * TileSize;
+}
+
+FVector2D UInventoryGrid::GridToCanvasSize(FIntPoint GridSize) const
+{
+	return FVector2D(GridSize.X, GridSize.Y) * TileSize;
 }
