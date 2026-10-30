@@ -109,6 +109,10 @@ bool UInventoryComponent::MoveItemPosition(const FGuid& TargetID, FIntPoint Targ
 bool UInventoryComponent::CheckSlotAvailable(const FGuid& SlotID, FIntPoint TargetPosition) const
 {
 	const FInventoryDataEntry* CurrentItem = FindItemWithID(SlotID);
+	if (!CurrentItem)
+	{
+		return false;
+	}
 	return InventoryData.CheckSlotAvailable(TargetPosition, CurrentItem->GetOccupiedSize(), SlotID);
 }
 
