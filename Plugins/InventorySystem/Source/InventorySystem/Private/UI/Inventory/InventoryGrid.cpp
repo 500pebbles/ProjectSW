@@ -68,7 +68,9 @@ void UInventoryGrid::BindDelegates()
 		if (UInventoryComponent* InventoryComp = LocalPlayer->FindComponentByClass<UInventoryComponent>())
 		{
 			InventoryComponent = InventoryComp;
-			InventoryComp->OnInventoryItemAdded.AddUObject(this, &UInventoryGrid::AddItemToGrid);
+			InventoryComponent->OnInventoryItemAdded.AddUObject(this, &UInventoryGrid::AddItemToGrid);
+			InventoryComponent->OnInventoryItemRemoved.AddDynamic(this, &UInventoryGrid::RemoveItemFromGrid);
+			InventoryComponent->OnItemQuantityChanged.AddDynamic(this, &UInventoryGrid::UpdateItemQuantity);
 		}
 	}
 }
@@ -124,6 +126,30 @@ UItemCollectedUI* UInventoryGrid::CreateCollectedItemUI(const FInventoryDataEntr
 	return CollectedItem;
 }
 
+void UInventoryGrid::RemoveItemFromGrid(FGuid ItemID)
+{
+	if (TObjectPtr<UItemCollectedUI>* RemovedItemIconWidget = CollectedItemWidgets.Find(ItemID))
+	{
+		if (*RemovedItemIconWidget)
+		{
+			(*RemovedItemIconWidget)->RemoveFromParent();
+		}
+		
+		CollectedItemWidgets.Remove(ItemID);
+	}
+}
+
+void UInventoryGrid::UpdateItemQuantity(FGuid ItemID, int32 NewQuantity)
+{
+	if (TObjectPtr<UItemCollectedUI>* Found = CollectedItemWidgets.Find(ItemID))
+	{
+		if (*Found)
+		{
+			// TODO: UI에 아이템 수량 조정
+		}
+	}
+}
+
 FVector2D UInventoryGrid::GridToCanvasPosition(FIntPoint GridPosition) const
 {
 	return FVector2D(GridPosition.X, GridPosition.Y) * TileSize;
@@ -134,6 +160,8 @@ FVector2D UInventoryGrid::GridToCanvasSize(FIntPoint GridSize) const
 	return FVector2D(GridSize.X, GridSize.Y) * TileSize;
 }
 
+// 마우스를 때는 시점에 호출되는 함수. 여기서 true값을 반환하는게 있으면 넘어가고 false가 반환되면 OnDragCancelled API가 호출됨
+// NativeOnDrop은 마우스 포인터 아래에 있는 위젯들에게 먼저 전달되고, 거기서 반환되는 boolean값으로 true false 여부 결정
 bool UInventoryGrid::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
 	UDragDropOperation* InOperation)
 {
@@ -163,6 +191,7 @@ bool UInventoryGrid::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 	return true;
 }
 
+// 마우스를 드래그하는 동한 해당 위젯의 영역 내에 있으면 true를 반환 -> 영역 내에 마우스가 있어야 함수 호출됨
 bool UInventoryGrid::NativeOnDragOver(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
 	UDragDropOperation* InOperation)
 {
@@ -198,6 +227,7 @@ bool UInventoryGrid::NativeOnDragOver(const FGeometry& InGeometry, const FDragDr
 	return true;
 }
 
+// 드래그 중인 마우스 포인터가 위젯 영역 밖으로 나갈 때 호출
 void UInventoryGrid::NativeOnDragLeave(const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
 {
 	Super::NativeOnDragLeave(InDragDropEvent, InOperation);
@@ -241,7 +271,24 @@ void UInventoryGrid::HidePlacementPreview()
 	}
 }
 
-void UInventoryGrid::HandleDragCancelled(UDragDropOperation* Operation)
+// 마우스 드래그 중 위젯에서 true를 반환하지 않으면 실행 (인벤토리 위젯 밖에서 마우스 클릭을 때는 시점에 실행되는 것이 확인)
+// 인벤토리 위젯 바깥에서 true를 반환하는 처리가 없다면 호출됨
+void UInventoryGrid::HandleDragCancelled(UDragDropOperation* InOperation)
 {
 	HidePlacementPreview();
+	
+	// 아이템 삭제 처리
+	if (!InventoryComponent.IsValid())
+	{
+		return;
+	}
+	
+	UItemDragDrop* Operation = Cast<UItemDragDrop>(InOperation);
+	if (!Operation)
+	{
+		return;
+	}
+	
+	// 델리게이트를 이용해 아이템 제거 처리
+	InventoryComponent->RemoveItem(Operation->ItemID);
 }

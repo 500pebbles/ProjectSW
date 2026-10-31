@@ -30,14 +30,23 @@ private:
 	
 	void BindDelegates();
 	
+	// 아이템 추가 시 UI에 아이템 아이콘에 해당하는 위젯을 추가하는 함수
 	void AddItemToGrid(const FInventoryDataEntry* InventoryItem);
 	
+	// 아이템 아이콘 위젯을 생성하는 함수
 	UItemCollectedUI* CreateCollectedItemUI(const FInventoryDataEntry* InventoryItem) const;
+	
+	UFUNCTION()
+	void RemoveItemFromGrid(FGuid ItemID);
+	
+	UFUNCTION()
+	void UpdateItemQuantity(FGuid ItemID, int32 NewQuantity);
 	
 	// 그리드 좌표를 캔버스 좌표로 변환
 	FVector2D GridToCanvasPosition(FIntPoint GridPosition) const;
 	// 그리드 사이즈에 맞춰 사이즈 설정을 위한 함수
 	FVector2D GridToCanvasSize(FIntPoint GridSize) const;
+	
 	
 	// 인벤토리 UI 생성 (아래 UPROPERTY들은 WBP_InventoryGrid에서 선택)
 private:
@@ -64,6 +73,7 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Item")
 	TSubclassOf<UItemCollectedUI> CollectedItemClass;
 	
+	// 아이템 ID와 위젯 맵
 	UPROPERTY()
 	TMap<FGuid, TObjectPtr<UItemCollectedUI>> CollectedItemWidgets;
 	
@@ -83,7 +93,7 @@ private:
 	void HidePlacementPreview();
 	
 	UFUNCTION()
-	void HandleDragCancelled(UDragDropOperation* Operation);
+	void HandleDragCancelled(UDragDropOperation* InOperation);
 
 private:
 	// WBP 캔버스 위에 배치하는 선택 위젯 (앵커 좌상단, 슬롯보다 위·아이템보다 아래 순서)

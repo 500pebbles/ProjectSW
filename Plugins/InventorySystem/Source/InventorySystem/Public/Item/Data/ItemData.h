@@ -30,8 +30,11 @@ public:
 	FText ItemDescription;
 	
 	// 아이템 사이즈
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin="1"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin="1"), Category = "Item")
 	FIntPoint ItemSize = FIntPoint(1, 1);
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin="1") ,Category = "Item")
+	int32 MaxStackSize = 1;
 	
 	// 아이템 이미지
 	UPROPERTY(EditAnywhere, Category = "Item")

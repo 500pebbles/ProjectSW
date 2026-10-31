@@ -6,6 +6,17 @@
 class UItemComponent;
 class UItemData;
 
+// 아이템 제거 결과를 담을 내부 구조체 -> 후에 아이템 제거 후 월드 상에 아이템을 스폰한다거나 UI에 반영하는 등 결과를 알아야 할 부분이 많아서 구조체로 묶어서 정의
+// 후에 아이템 제거에 따른 추가적인 결과 반환이 필요한 경우 여기에 정의
+struct FRemoveResult
+{
+	// 제거된 아이템 스택 수
+	int32 RemovedCount = 0;
+	
+	// 제거 후 남은 수량
+	int32 RemainingItemCount = 0;
+};
+
 // 아이템 하나에 대한 데이터 구조체, 인벤토리 어느 칸에 있는지 배치 정보와 회전 여부를 저장
 USTRUCT(BlueprintType)
 struct FInventoryDataEntry
@@ -19,6 +30,9 @@ public:
 	FORCEINLINE UItemData* GetItem() const { return Item; }
 	FORCEINLINE FIntPoint GetGridPosition() const { return GridPosition; }
 	FORCEINLINE bool IsRotated() const { return bIsRotated; }
+	
+	FORCEINLINE void SetQuantity(int32 InQuantity) { Quantity = FMath::Max(0, InQuantity); }
+	FORCEINLINE int32 GetQuantity() const { return Quantity; }
 	
 	// 회전 여부를 반영한 실제 차지하는 그리도 공간 크기 계산
 	FIntPoint GetOccupiedSize() const;
@@ -46,6 +60,9 @@ private:
 	// 회전 여부
 	UPROPERTY()
 	bool bIsRotated = false;
+	
+	UPROPERTY()
+	int32 Quantity = 1;
 };
 
 //--------------------------------------------------------------------------//
@@ -67,7 +84,7 @@ public:
 	void AddItemData(UItemData* InItemData);
 	
 	// 목록에서 아이템 고유 ID를 이용해 아이템 제거
-	void RemoveItemData(FGuid InID);
+	FRemoveResult RemoveItemData(const FGuid& InID, int32 RemoveCount = 1);
 	
 	FIntPoint FindAvailablePosition(const UItemData* InItemData) const;
 

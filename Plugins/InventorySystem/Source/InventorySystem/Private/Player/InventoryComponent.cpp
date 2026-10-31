@@ -101,6 +101,25 @@ void UInventoryComponent::CollectItem(AActor* TargetItem)
 	
 }
 
+int32 UInventoryComponent::RemoveItem(const FGuid& InItemID, int32 RemoveCount)
+{
+	const FRemoveResult Result = InventoryData.RemoveItemData(InItemID, RemoveCount);
+	if (Result.RemovedCount <= 0)
+	{
+		return 0;
+	}
+
+	if (Result.RemainingItemCount <= 0)
+	{
+		OnInventoryItemRemoved.Broadcast(InItemID);
+	}
+	else
+	{
+		OnItemQuantityChanged.Broadcast(InItemID, Result.RemainingItemCount);
+	}
+	return Result.RemovedCount;
+}
+
 bool UInventoryComponent::MoveItemPosition(const FGuid& TargetID, FIntPoint TargetPosition)
 {
 	return InventoryData.MoveItemPosition(TargetID, TargetPosition);

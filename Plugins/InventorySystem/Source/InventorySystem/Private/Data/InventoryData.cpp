@@ -186,13 +186,34 @@ void FInventoryDataArray::AddItemData(UItemData* InItemData)
 	}
 }
 
-void FInventoryDataArray::RemoveItemData(FGuid InID)
+FRemoveResult FInventoryDataArray::RemoveItemData(const FGuid& InID, int32 RemoveCount)
 {
-	for (const FInventoryDataEntry& Item : ItemDataArray)
+	FRemoveResult Result;
+	if (RemoveCount <= 0)
 	{
-		if (Item.GetID() == InID)
-		{
-			//ItemDataArray.Remove(Item);
-		}
+		return Result;
 	}
+	
+	// 아이템 데이터 Entry가 갖고 있는 인벤토리 내에서 위치 정보를 가져오기 -> 후에 UI 상의 위치 정보와 동일하다는 점을 이용해서 제거하기 위함
+	const int32 ItemIndex = ItemDataArray.IndexOfByPredicate([&InID](const FInventoryDataEntry& Item)
+	{
+		return Item.GetID() == InID;
+	});
+	
+	if (ItemIndex == INDEX_NONE)
+	{
+		return Result;
+	}
+	
+	FInventoryDataEntry& Entry = ItemDataArray[ItemIndex];
+	Result.RemovedCount = FMath::Min(RemoveCount, Entry.GetQuantity());
+	Entry.SetQuantity(Entry.GetQuantity() - Result.RemovedCount);
+	Result.RemainingItemCount = Entry.GetQuantity();
+	
+	// 아이템 잔여 수량이 없으면 아이템을 Array에서 제거
+	if (Result.RemainingItemCount <= 0)
+	{
+		ItemDataArray.RemoveAt(ItemIndex);
+	}
+	return Result;
 }

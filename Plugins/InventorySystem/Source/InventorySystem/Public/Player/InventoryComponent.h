@@ -11,6 +11,8 @@ class UItemData;
 class UInventoryBase;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnInventoryItemAddedDelegate, const FInventoryDataEntry* /*AddedItem*/)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventoryItemRemovedDelegate, const FGuid, ItemInstanceID);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventoryItemQuantityChangedDelegate, const FGuid, ItemInstanceID, int32, RemoveCount);
 
 UCLASS(Blueprintable, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class INVENTORYSYSTEM_API UInventoryComponent : public UActorComponent
@@ -20,6 +22,12 @@ class INVENTORYSYSTEM_API UInventoryComponent : public UActorComponent
 public:
 	FOnInventoryItemAddedDelegate OnInventoryItemAdded;
 	
+	UPROPERTY(BlueprintAssignable, Category = "Inventory")
+	FOnInventoryItemRemovedDelegate OnInventoryItemRemoved;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Inventory")
+	FOnInventoryItemQuantityChangedDelegate OnItemQuantityChanged;
+	
 public:
 	// Sets default values for this component's properties
 	UInventoryComponent();
@@ -28,15 +36,20 @@ public:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 	
+	//UI
 public:
 	void CreateInventoryUIWidget();
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory" )
 	void ToggleInventoryUI();
 	
+	// 아이템 습득 및 버리기
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void CollectItem(AActor* TargetItem);
+
+	// 아이템 스택 전체를 제거하는 유틸리티 함수
+	int32 RemoveItem(const FGuid& InItemID, int32 RemoveCount = 1);
 
 private:
 	UPROPERTY()
