@@ -39,6 +39,14 @@ public:
 	// 아이템 이미지
 	UPROPERTY(EditAnywhere, Category = "Item")
 	TSoftObjectPtr<UTexture2D> ItemIcon;
+	
+	// 아이템 매시
+	UPROPERTY(EditAnywhere, Category = "Item")
+	TSoftObjectPtr<UStaticMesh> ItemMesh;
+	
+	// 아이템 마테리얼
+	UPROPERTY(EditAnywhere, Category = "Item")
+	TSoftObjectPtr<UMaterialInstance> ItemMaterialInstance;
 };
 
 UCLASS(BlueprintType, Blueprintable)
@@ -52,6 +60,8 @@ public:
 	
 	// 데이터 테이블 행 조회
 	const FItemDataTable* GetRow() const;
+	
+	FDataTableRowHandle GetRowHandle() const { return ItemRowHandle; }
 	
 	FIntPoint GetItemSize() const;
 	FName GetRowName() const {return ItemRowHandle.RowName;}

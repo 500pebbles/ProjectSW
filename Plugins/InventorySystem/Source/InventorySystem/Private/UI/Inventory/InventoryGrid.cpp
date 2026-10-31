@@ -290,5 +290,5 @@ void UInventoryGrid::HandleDragCancelled(UDragDropOperation* InOperation)
 	}
 	
 	// 델리게이트를 이용해 아이템 제거 처리
-	InventoryComponent->RemoveItem(Operation->ItemID);
+	InventoryComponent->DropItem(Operation->ItemID);
 }

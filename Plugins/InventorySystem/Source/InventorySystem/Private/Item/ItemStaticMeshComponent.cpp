@@ -1,9 +1,9 @@
 // 
 
 
-#include "Item/HighlightStaticMeshComponent.h"
+#include "Item/ItemStaticMeshComponent.h"
 
-UHighlightStaticMeshComponent::UHighlightStaticMeshComponent()
+UItemStaticMeshComponent::UItemStaticMeshComponent()
 {
 	static ConstructorHelpers::FObjectFinder<UMaterialInstance> OverlayMaterialRef(
 		TEXT("/InventorySystem/Materials/MI_HighlightMaterialInstance.MI_HighlightMaterialInstance"));
@@ -17,12 +17,12 @@ UHighlightStaticMeshComponent::UHighlightStaticMeshComponent()
 	SetOverlayMaterial(nullptr);
 }
 
-void UHighlightStaticMeshComponent::OnItemTraced()
+void UItemStaticMeshComponent::OnItemTraced()
 {
 	SetOverlayMaterial(HighlightOverlayMaterial);
 }
 
-void UHighlightStaticMeshComponent::OffItemTraced()
+void UItemStaticMeshComponent::OffItemTraced()
 {
 	SetOverlayMaterial(nullptr);
 }

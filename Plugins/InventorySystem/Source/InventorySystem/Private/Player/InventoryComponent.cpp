@@ -4,10 +4,12 @@
 #include "Player/InventoryComponent.h"
 
 #include "Blueprint/UserWidget.h"
+#include "Item/ItemActorBase.h"
 #include "Player/InventoryInputComponent.h"
 #include "UI/Inventory/GridInventoryWidget.h"
 #include "UI/Inventory/InventoryBase.h"
 #include "Item/ItemComponent.h"
+#include "Item/Data/ItemData.h"
 
 // Sets default values for this component's properties
 UInventoryComponent::UInventoryComponent()
@@ -80,6 +82,8 @@ void UInventoryComponent::ToggleInventoryUI()
 	}
 }
 
+
+
 void UInventoryComponent::CollectItem(AActor* TargetItem)
 {
 	if (!IsValid(TargetItem))
@@ -99,6 +103,8 @@ void UInventoryComponent::CollectItem(AActor* TargetItem)
 		OnInventoryItemAdded.Broadcast(&InventoryData.ItemDataArray.Last());
 	}
 	
+	// 월드 상에서 아이템 제거
+	TargetItem->Destroy();
 }
 
 int32 UInventoryComponent::RemoveItem(const FGuid& InItemID, int32 RemoveCount)
@@ -117,8 +123,68 @@ int32 UInventoryComponent::RemoveItem(const FGuid& InItemID, int32 RemoveCount)
 	{
 		OnItemQuantityChanged.Broadcast(InItemID, Result.RemainingItemCount);
 	}
+	
 	return Result.RemovedCount;
 }
+
+int32 UInventoryComponent::DropItem(const FGuid& InID, int32 Count)
+{
+	if (Count <= 0) { return 0; }
+
+	const FInventoryDataEntry* Entry = InventoryData.FindItemWithID(InID);
+	if (!Entry || !Entry->GetItem()) { return 0; }
+
+	// 제거 전에 필요한 값을 복사해 둔다. 이후 Entry 포인터는 쓰지 않는다.
+	const FDataTableRowHandle ItemRow = Entry->GetItem()->GetRowHandle(); // 가정
+	const int32 DropQuantity = FMath::Min(Count, Entry->GetQuantity());
+
+	if (!SpawnDroppedItem(ItemRow))
+	{
+		return 0; // 스폰 실패 시 인벤토리는 그대로
+	}
+	return RemoveItem(InID, DropQuantity);
+}
+
+bool UInventoryComponent::SpawnDroppedItem(const FDataTableRowHandle& InItemRow)
+{
+	UWorld* World = GetWorld();
+	const AActor* OwnerActor = GetOwner();
+	if (!World || !OwnerActor || InItemRow.IsNull())
+	{
+		return false;
+	}
+
+	const TSubclassOf<AItemActorBase> SpawnClass = ItemActorClass ? ItemActorClass : TSubclassOf<AItemActorBase>(AItemActorBase::StaticClass());
+	const FTransform SpawnTransform = CalculateDropPosition(*OwnerActor);
+
+	AItemActorBase* Spawned = World->SpawnActorDeferred<AItemActorBase>(
+		SpawnClass, SpawnTransform, nullptr, nullptr,
+		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+	if (!Spawned)
+	{
+		return false;
+	}
+
+	Spawned->SetupItem(InItemRow);
+	Spawned->FinishSpawning(SpawnTransform);
+	return true;
+}
+
+FTransform UInventoryComponent::CalculateDropPosition(const AActor& OwnerActor) const
+{
+	const FVector Desired = OwnerActor.GetActorLocation() + OwnerActor.GetActorForwardVector() * DropDistance;
+
+	FHitResult Hit;
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(&OwnerActor);
+
+	const bool bHit = GetWorld()->LineTraceSingleByChannel(
+		Hit, Desired + FVector(0, 0, 100.f), Desired - FVector(0, 0, 500.f), ECC_Visibility, QueryParams);
+
+	return FTransform(FRotator::ZeroRotator, bHit ? FVector(Hit.ImpactPoint) : Desired);
+}
+
+
 
 bool UInventoryComponent::MoveItemPosition(const FGuid& TargetID, FIntPoint TargetPosition)
 {

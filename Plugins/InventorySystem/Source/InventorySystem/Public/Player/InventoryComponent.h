@@ -7,6 +7,7 @@
 #include "Data/InventoryData.h"
 #include "InventoryComponent.generated.h"
 
+class AItemActorBase;
 class UItemData;
 class UInventoryBase;
 
@@ -43,17 +44,34 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory" )
 	void ToggleInventoryUI();
 	
+private:
+	UPROPERTY()
+	TObjectPtr<APlayerController> LocalGameController;
+	
 	// 아이템 습득 및 버리기
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void CollectItem(AActor* TargetItem);
 
-	// 아이템 스택 전체를 제거하는 유틸리티 함수
+	// 아이템 제거 함수, 내부적으로 수량을 통해 전체를 제거할지 수량을 조정할지 결정
 	int32 RemoveItem(const FGuid& InItemID, int32 RemoveCount = 1);
-
+	
+	// 아이템 버리는 함수
+	int32 DropItem(const FGuid& InID, int32 Count = 1);
+	
+	
 private:
-	UPROPERTY()
-	TObjectPtr<APlayerController> LocalGameController;
+	// 아이템 버렸을 때 월드에 생성하는 함수
+	bool SpawnDroppedItem(const FDataTableRowHandle& InItemRow);
+	
+	FTransform CalculateDropPosition(const AActor& OwnerActor) const;
+	
+private:
+	UPROPERTY(EditAnywhere, Category = "Item")
+	TSubclassOf<AItemActorBase> ItemActorClass;
+
+	UPROPERTY(EditAnywhere, Category = "Item")
+	float DropDistance = 100.f;
 	
 	// UI 섹션
 private:

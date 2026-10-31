@@ -5,18 +5,18 @@
 #include "CoreMinimal.h"
 #include "Components/StaticMeshComponent.h"
 #include "Interface/HighlightMaterialInterface.h"
-#include "HighlightStaticMeshComponent.generated.h"
+#include "ItemStaticMeshComponent.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class INVENTORYSYSTEM_API UHighlightStaticMeshComponent : public UStaticMeshComponent, public IHighlightMaterialInterface
+class INVENTORYSYSTEM_API UItemStaticMeshComponent : public UStaticMeshComponent, public IHighlightMaterialInterface
 {
 	GENERATED_BODY()
 	
 public:
-	UHighlightStaticMeshComponent();
+	UItemStaticMeshComponent();
 	
 public:
 	virtual void OnItemTraced() override;
