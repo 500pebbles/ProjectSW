@@ -25,10 +25,10 @@ class UGameplayEffect;
 UENUM(BlueprintType)
 enum class EEnemyType : uint8
 {
-	EnemyType_01,  // 표준
-	EnemyType_02,  // 딜러
-	EnemyType_03,  // 탱커
-	EnemyType_04   // 잡몹 
+	EnemyType_01,  // 근접-표준
+	EnemyType_02,  // 근접-탱커
+	EnemyType_03,  // 원거리-표준
+	EnemyType_04   // 보스
 };
 
 USTRUCT(Blueprintable)

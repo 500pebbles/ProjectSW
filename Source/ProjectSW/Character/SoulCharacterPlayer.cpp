@@ -57,7 +57,7 @@ void ASoulCharacterPlayer::InitAbilityActorInfo()
 	SoulHUD->InitOverlay(SoulPlayerController, SoulPlayerState, AbilitySystemComponent, AttributeSet);	
 }
 
-int32 ASoulCharacterPlayer::GetPlayerLevel()
+int32 ASoulCharacterPlayer::GetCharacterLevel()
 {
 	const ASoulPlayerState* SoulPlayerState = GetPlayerState<ASoulPlayerState>();
 	if (!IsValid(SoulPlayerState)) return 1;

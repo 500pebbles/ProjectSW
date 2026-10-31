@@ -72,7 +72,7 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void Multicast_HandleDeath();
 	
-	virtual FVector GetCombatSocketLocation() override;
+	virtual FVector GetCombatSocketLocation_Implementation() override;
 	
 	virtual UAnimMontage* GetHitReactMontage_Implementation() override;
 	

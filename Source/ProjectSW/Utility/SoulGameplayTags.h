@@ -77,6 +77,11 @@ namespace SoulTags
 	{
 		namespace Montages
 		{
+			namespace Attacks
+			{
+				UE_DECLARE_GAMEPLAY_TAG_EXTERN(Melee)
+			}
+			
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Fireball)
 		}
 		

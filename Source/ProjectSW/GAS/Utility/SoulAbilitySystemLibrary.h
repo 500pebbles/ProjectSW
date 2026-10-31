@@ -29,7 +29,7 @@ public:
 	static void EnemyInitializeDefaultAttributes(const UObject* WorldContextObject, EEnemyType EnemyType, float Level, UAbilitySystemComponent* ASC);
 	
 	UFUNCTION(BlueprintCallable, Category = "SoulAbilitySystemLibrary")
-	static void EnemyGiveStartupAbilities(const UObject* WorldContextObject, UAbilitySystemComponent* ASC);
+	static void EnemyGiveStartupAbilities(const UObject* WorldContextObject, UAbilitySystemComponent* ASC, EEnemyType EnemyType);
 
 	UFUNCTION(BlueprintCallable, Category = "SoulAbilitySystemLibrary")
 	static USoulEnemyTypeInfo* GetEnemyTypeInfo(const UObject* WorldContextObject);

@@ -88,6 +88,11 @@ namespace SoulTags
 	{
 		namespace Montages
 		{
+			namespace Attacks
+			{
+				UE_DEFINE_GAMEPLAY_TAG(Melee, "SoulTags.Events.Montages.Attacks.Melee")
+			}
+			
 			UE_DEFINE_GAMEPLAY_TAG(Fireball, "SoulTags.Events.Montages.Fireball")
 		}
 		
