@@ -82,7 +82,7 @@ void ASoulCharacterBase::Multicast_HandleDeath_Implementation()
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
-FVector ASoulCharacterBase::GetCombatSocketLocation()
+FVector ASoulCharacterBase::GetCombatSocketLocation_Implementation()
 {
 	return Weapon->GetSocketLocation(CombatSocketName);
 }

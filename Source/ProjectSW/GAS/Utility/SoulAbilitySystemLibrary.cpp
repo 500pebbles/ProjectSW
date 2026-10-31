@@ -6,6 +6,7 @@
 #include "AbilitySystemComponent.h"
 #include "SoulGameplayEffectTypes.h"
 #include "Game/SoulGameModeBase.h"
+#include "Interface/SoulCombatInterface.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/SoulPlayerState.h"
 #include "UI/HUD/SoulHUD.h"
@@ -72,19 +73,29 @@ void USoulAbilitySystemLibrary::EnemyInitializeDefaultAttributes(const UObject* 
 
 }
 
-void USoulAbilitySystemLibrary::EnemyGiveStartupAbilities(const UObject* WorldContextObject, UAbilitySystemComponent* ASC)
+void USoulAbilitySystemLibrary::EnemyGiveStartupAbilities(const UObject* WorldContextObject, UAbilitySystemComponent* ASC, EEnemyType EnemyType)
 {
-	// GameMode에 존재하는 캐릭터 타입을 받아 Setup. 
+	// Setup. 
 	USoulEnemyTypeInfo* EnemyTypeInfo = GetEnemyTypeInfo(WorldContextObject);	
+	const FEnemyDefaultInfo& EnemyDefaultInfo = EnemyTypeInfo->GetEnemyDefaultInfo(EnemyType);
 	
-	// BasicAbility 부여.
+	// BasicAbility.
 	for (auto AbilityClass : EnemyTypeInfo->BasicAbilities)
 	{
 		FGameplayAbilitySpec AbilitySpec = FGameplayAbilitySpec(AbilityClass, 1);
 		ASC->GiveAbility(AbilitySpec);
 	}
 	
-	// StartupAbility 부여.
+	// StartupAbility.
+	for (auto AbilityClass : EnemyDefaultInfo.StartupAbilities)
+	{
+		ISoulCombatInterface* CombatInterface = Cast<ISoulCombatInterface>(ASC->GetAvatarActor());
+		if (CombatInterface)
+		{
+			FGameplayAbilitySpec AbilitySpec = FGameplayAbilitySpec(AbilityClass, CombatInterface->GetCharacterLevel());
+			ASC->GiveAbility(AbilitySpec);
+		}		
+	}
 }
 
 USoulEnemyTypeInfo* USoulAbilitySystemLibrary::GetEnemyTypeInfo(const UObject* WorldContextObject)

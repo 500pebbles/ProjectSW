@@ -28,7 +28,7 @@ protected:
 
 /* Combat Interface */
 public:
-	virtual int32 GetPlayerLevel() override;	
+	virtual int32 GetCharacterLevel() override;	
 	
 /* Component Section */
 protected:

@@ -38,7 +38,7 @@ void ASoulCharacterEnemy::BeginPlay()
 	
 	InitAbilityActorInfo();
 	
-	if (HasAuthority()) USoulAbilitySystemLibrary::EnemyGiveStartupAbilities(this, AbilitySystemComponent);
+	if (HasAuthority()) USoulAbilitySystemLibrary::EnemyGiveStartupAbilities(this, AbilitySystemComponent, EnemyType);
 	
 	// Setup WidgetController. 
 	USoulUserWidget* SoulUserWidget = Cast<USoulUserWidget>(HealthBar->GetUserWidgetObject());
@@ -85,7 +85,7 @@ void ASoulCharacterEnemy::InitializeDefaultAttributes() const
 	USoulAbilitySystemLibrary::EnemyInitializeDefaultAttributes(this, EnemyType, Level, AbilitySystemComponent);
 }
 
-int32 ASoulCharacterEnemy::GetPlayerLevel()
+int32 ASoulCharacterEnemy::GetCharacterLevel()
 {
 	return Level;
 }
@@ -94,6 +94,16 @@ void ASoulCharacterEnemy::Die()
 {
 	Super::Die();
 	SetLifeSpan(10.f);	
+}
+
+void ASoulCharacterEnemy::SetCombatTarget_Implementation(AActor* CombatTargetActor)
+{
+	CombatTarget = CombatTargetActor;
+}
+
+AActor* ASoulCharacterEnemy::GetCombatTarget_Implementation() const
+{
+	return CombatTarget;
 }
 
 void ASoulCharacterEnemy::OnHitReactTagChanged(const FGameplayTag CallbackTag, int32 NewCount)

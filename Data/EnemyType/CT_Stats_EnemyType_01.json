@@ -6,12 +6,12 @@
 	},
 	{
 		"Name": "SoulTags.Attributes.AttackPower",
-		"1": 10,
+		"1": 20,
 		"15": 150
 	},
 	{
 		"Name": "SoulTags.Attributes.Defense",
-		"1": 0,
+		"1": 5,
 		"15": 30
 	}
 ]

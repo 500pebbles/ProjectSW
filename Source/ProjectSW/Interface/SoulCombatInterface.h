@@ -17,12 +17,24 @@ class PROJECTSW_API ISoulCombatInterface
 	GENERATED_BODY()
 
 public:
-	virtual int32 GetPlayerLevel();
+	virtual int32 GetCharacterLevel();
 	
-	virtual FVector GetCombatSocketLocation();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	FVector GetCombatSocketLocation();	
+	
 	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	UAnimMontage* GetHitReactMontage();
 	
 	virtual void Die() = 0;
+	
+	
+	UFUNCTION(BlueprintNativeEvent, BLueprintCallable)
+	void FaceToTarget(const FVector& TargetLocation);
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void SetCombatTarget(AActor* CombatTargetActor);
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	AActor* GetCombatTarget() const;
 };

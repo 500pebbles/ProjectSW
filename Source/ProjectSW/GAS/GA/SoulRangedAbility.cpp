@@ -20,10 +20,7 @@ void USoulRangedAbility::SpawnProjectile()
 	if (!GetAvatarActorFromActorInfo()->HasAuthority()) return;
 	
 	// Step 1 : Setup Projectile Actor. 
-	ISoulCombatInterface* CombatInterface = Cast<ISoulCombatInterface>(GetAvatarActorFromActorInfo());
-	if (!CombatInterface) return;
-	
-	const FVector SocketLocation = CombatInterface->GetCombatSocketLocation();
+	const FVector SocketLocation = ISoulCombatInterface::Execute_GetCombatSocketLocation(GetAvatarActorFromActorInfo());
 	const FVector ActorForwardDirection = GetAvatarActorFromActorInfo()->GetActorForwardVector();
 	FTransform SpawnTransform;
 	SpawnTransform.SetLocation(SocketLocation);
