@@ -30,12 +30,20 @@ protected:
 	virtual void InitializeDefaultAttributes() const override;
 
 
-/* Combat Interface */
+/* Combat Section */
 public:
-	virtual int32 GetPlayerLevel() override;	
+	virtual int32 GetCharacterLevel() override;	
 	
 	virtual void Die() override;
-
+	
+	virtual void SetCombatTarget_Implementation(AActor* CombatTargetActor) override;
+	
+	virtual AActor* GetCombatTarget_Implementation() const override;
+	
+public:
+	UPROPERTY(BlueprintReadWrite)
+	TObjectPtr<AActor> CombatTarget;
+	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	int32 Level = 1;

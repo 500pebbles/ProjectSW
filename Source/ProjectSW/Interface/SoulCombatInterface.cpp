@@ -4,12 +4,7 @@
 #include "SoulCombatInterface.h"
 
 
-int32 ISoulCombatInterface::GetPlayerLevel()
+int32 ISoulCombatInterface::GetCharacterLevel()
 {
 	return 0;
-}
-
-FVector ISoulCombatInterface::GetCombatSocketLocation()
-{
-	return FVector();
 }
