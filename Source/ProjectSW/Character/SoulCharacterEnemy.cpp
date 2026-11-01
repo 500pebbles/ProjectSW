@@ -117,5 +117,6 @@ void ASoulCharacterEnemy::OnHitReactTagChanged(const FGameplayTag CallbackTag, i
 	bHitReacting = NewCount > 0;
 	
 	GetCharacterMovement()->MaxWalkSpeed = bHitReacting ? 0.f : BaseWalkSpeed;
+	if (!IsValid(AIController)) return;
 	AIController->GetBlackboardComponent()->SetValueAsBool(FName("HitReacting"), bHitReacting);
 }
