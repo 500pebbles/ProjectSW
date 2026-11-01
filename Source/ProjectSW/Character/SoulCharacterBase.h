@@ -67,7 +67,11 @@ protected:
 	
 /* Combat Interface Section */
 public:
+	virtual AActor* GetAvatarActor_Implementation() override;
+	
 	virtual void Die() override;
+	
+	virtual bool IsDead_Implementation() const override;
 	
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void Multicast_HandleDeath();
@@ -75,6 +79,14 @@ public:
 	virtual FVector GetCombatSocketLocation_Implementation() override;
 	
 	virtual UAnimMontage* GetHitReactMontage_Implementation() override;
+	
+	virtual TArray<FTaggedMontage> GetAttackMontages_Implementation() override;
+	
+protected:
+	bool bDead = false;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TArray<FTaggedMontage> AttackMontages;
 	
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")

@@ -61,7 +61,7 @@ public:
 	
 /* Character Movement Section */
 public:
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	float BaseWalkSpeed = 250.f;
 	
 /* UI HealthBar Section */

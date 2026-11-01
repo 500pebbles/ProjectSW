@@ -12,6 +12,9 @@ class PROJECTSW_API USoulDamageAbility : public USoulGameplayAbility
 {
 	GENERATED_BODY()
 	
+public:
+	UFUNCTION(BlueprintCallable)
+	void ApplyDamage(AActor* TargetActor);
 	
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Setup")

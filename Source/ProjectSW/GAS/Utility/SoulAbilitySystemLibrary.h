@@ -39,4 +39,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "SoulAbilitySystemLibrary")
 	static void SetIsCriticalHit(UPARAM(ref) FGameplayEffectContextHandle& EffectContextHandle, bool bIsCriticalHit);
+
+	UFUNCTION(BlueprintCallable, Category = "SoulAbilitySystemLibrary")
+	static void GetActorsWithinRadius(const UObject* WorldContextObject, TArray<AActor*>& OutOverlappingActors, const TArray<AActor*>& ActorsToIgnore, float Radius, const FVector& SphereOrigin);
+
+	UFUNCTION(BlueprintPure, Category = "SoulAbilitySystemLibrary")
+	static bool AreActorsAllies(AActor* FirstActor, AActor* SecondActor);
 };

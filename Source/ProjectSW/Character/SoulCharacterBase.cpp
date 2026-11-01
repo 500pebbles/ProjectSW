@@ -73,6 +73,16 @@ void ASoulCharacterBase::Die()
 	Multicast_HandleDeath();
 }
 
+AActor* ASoulCharacterBase::GetAvatarActor_Implementation()
+{
+	return this;
+}
+
+bool ASoulCharacterBase::IsDead_Implementation() const
+{
+	return bDead;
+}
+
 void ASoulCharacterBase::Multicast_HandleDeath_Implementation()
 {
 	GetMesh()->SetSimulatePhysics(true);
@@ -80,6 +90,8 @@ void ASoulCharacterBase::Multicast_HandleDeath_Implementation()
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 	GetMesh()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
+	bDead = true;
 }
 
 FVector ASoulCharacterBase::GetCombatSocketLocation_Implementation()
@@ -90,4 +102,9 @@ FVector ASoulCharacterBase::GetCombatSocketLocation_Implementation()
 UAnimMontage* ASoulCharacterBase::GetHitReactMontage_Implementation()
 {
 	return HitReactMontage;
+}
+
+TArray<FTaggedMontage> ASoulCharacterBase::GetAttackMontages_Implementation()
+{
+	return AttackMontages;
 }
