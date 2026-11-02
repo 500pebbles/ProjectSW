@@ -41,7 +41,7 @@ private:
 	TObjectPtr<USceneComponent> SceneRoot;
 
 	UPROPERTY(VisibleAnywhere, Category = "Item")
-	TObjectPtr<UStaticMeshComponent> ItemMeshComponent;
+	TObjectPtr<UItemStaticMeshComponent> ItemMeshComponent;
 
 	UPROPERTY(VisibleAnywhere, Category = "Item")
 	TObjectPtr<UItemComponent> ItemComponent;

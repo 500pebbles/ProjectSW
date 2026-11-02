@@ -15,7 +15,7 @@ AItemActorBase::AItemActorBase()
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
 
-	ItemMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh"));
+	ItemMeshComponent = CreateDefaultSubobject<UItemStaticMeshComponent>(TEXT("ItemMesh"));
 	ItemMeshComponent->SetupAttachment(SceneRoot);
 	
 	// 콜리전 프로파일 설정 (엔진 프로젝트 설정에서 콜리전 프로필 만들어야함)
