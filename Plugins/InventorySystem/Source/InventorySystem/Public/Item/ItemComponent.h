@@ -23,10 +23,6 @@ public:
 	virtual void BeginPlay() override;
 
 public:
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
-	
 	FORCEINLINE UItemData* GetItemData() const { return ItemData; }
 
 	// 데이터 테이블 관련 색션

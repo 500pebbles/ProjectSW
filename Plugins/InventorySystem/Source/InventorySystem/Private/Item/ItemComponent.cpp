@@ -22,13 +22,6 @@ void UItemComponent::BeginPlay()
 	InitItemData();
 }
 
-
-// Called every frame
-void UItemComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-}
-
 void UItemComponent::InitItemData()
 {
 	if (ItemRow.IsNull())
