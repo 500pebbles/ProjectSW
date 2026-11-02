@@ -83,9 +83,17 @@ void USoulLoadingScreenSubsystem::Tick(float DeltaTime)
 	if (!LoadingScreenSlateWidget.IsValid())
 		return;
 
+	int32 RequestedCount = 0;
+	int32 LoadedCount = 0;
+	MapBuilder->GetClassLoadProgress(LoadedCount, RequestedCount);
+
 	int32 CompletedCount = 0;
 	int32 TotalCount = 0;
-	const float Percent = MapBuilder->GetBuildProgress(CompletedCount, TotalCount);
+	MapBuilder->GetBuildProgress(CompletedCount, TotalCount);
+
+	const float Total = RequestedCount * ClassLoadFactor + TotalCount;
+	const float Percent = Total > 0.f ? (LoadedCount * ClassLoadFactor + CompletedCount) / Total : 0.f;
+
 	LoadingScreenWidget->UpdateLoadingStatus(MapBuilder->GetBuildState(), Percent);
 }
 

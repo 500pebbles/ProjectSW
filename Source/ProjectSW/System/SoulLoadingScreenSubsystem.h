@@ -1,4 +1,4 @@
-
+﻿
 
 #pragma once
 
@@ -51,6 +51,9 @@ private:
 	FDelegateHandle WorldInitializedActorsHandle;
 
 	static constexpr int32 LoadingScreenZOrder = 999;
+
+	// 클래스 로드와 스폰 로드 비율 정하기 위한 팩터
+	static constexpr float ClassLoadFactor = 10.f;
 
 	UPROPERTY()
 	TWeakObjectPtr<APMGMapBuilder> MapBuilder;

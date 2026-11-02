@@ -255,6 +255,7 @@ void APMGMapBuilder::Clear()
 		ClassLoadHandle->CancelHandle();
 		ClassLoadHandle.Reset();
 	}
+	RequestedClassLoadCount = 0;
 
 	Result = FPMGResult();
 	SpawnErrors.Reset();
@@ -323,6 +324,20 @@ void APMGMapBuilder::GetRoomBuildProgress(int32& OutCompletedRoomCount, int32& O
 {
 	OutTotalRoomCount = TotalRoomSpawnCount;
 	OutCompletedRoomCount = ProcessedRoomSpawnCount - CountLoadingLevels(true);
+}
+
+float APMGMapBuilder::GetClassLoadProgress(int32& OutLoadedCount, int32& OutRequestedCount) const
+{
+	OutRequestedCount = RequestedClassLoadCount;
+	// 핸들이 있으면(불러오는 중, 또는 다 불러오고 스폰 중) 엔진이 센 완료 수. 실패한 로드도 완료로 센다 (FStreamableHandle::GetLoadedCount).
+	// 생성이 끝나 핸들을 놓았으면 모두 끝난 것이다
+	OutLoadedCount = RequestedClassLoadCount;
+	if (ClassLoadHandle.IsValid())
+	{
+		int32 HandleRequestedCount = 0;
+		ClassLoadHandle->GetLoadedCount(OutLoadedCount, HandleRequestedCount);
+	}
+	return OutRequestedCount > 0 ? static_cast<float>(OutLoadedCount) / OutRequestedCount : 1.f;
 }
 
 EPMGBuildState APMGMapBuilder::GetBuildState() const
@@ -428,7 +443,12 @@ void APMGMapBuilder::StartClassLoading()
 		return;
 	}
 	// 엔진 공용 비동기 로더에 요청한다. 불러오는 동안에도 게임은 계속 프레임을 돌린다. 끝났는지는 Tick이 핸들로 본다
+	const int32 ClassCount = ClassPaths.Num();
 	ClassLoadHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(MoveTemp(ClassPaths));
+	if (ClassLoadHandle.IsValid())
+	{
+		RequestedClassLoadCount = ClassCount;
+	}
 }
 
 bool APMGMapBuilder::HasUnloadingLevels() const
