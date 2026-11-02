@@ -5,6 +5,8 @@
 
 #include "AbilitySystemComponent.h"
 #include "SoulGameplayEffectTypes.h"
+#include "AI/NavigationSystemBase.h"
+#include "Engine/OverlapResult.h"
 #include "Game/SoulGameModeBase.h"
 #include "Interface/SoulCombatInterface.h"
 #include "Kismet/GameplayStatics.h"
@@ -53,7 +55,6 @@ void USoulAbilitySystemLibrary::EnemyInitializeDefaultAttributes(const UObject* 
 	USoulEnemyTypeInfo* EnemyTypeInfo = GetEnemyTypeInfo(WorldContextObject);
 	const FEnemyDefaultInfo EnemyDefaultInfo = EnemyTypeInfo->GetEnemyDefaultInfo(EnemyType);
 	
-	// 캐릭터 타입에 설정된 기본스탯을 Default/Initialize GE로 적용.
 	AActor* AvatarActor = ASC->GetAvatarActor();
 	
 	FGameplayEffectContextHandle DefaultAttributesContextHandle = ASC->MakeEffectContext();
@@ -119,4 +120,32 @@ void USoulAbilitySystemLibrary::SetIsCriticalHit(FGameplayEffectContextHandle& E
 	if (!SoulEffectContext) return;
 
 	SoulEffectContext->SetIsCriticalHit(bIsCriticalHit);
+}
+
+void USoulAbilitySystemLibrary::GetActorsWithinRadius(const UObject* WorldContextObject, TArray<AActor*>& OutOverlappingActors, const TArray<AActor*>& ActorsToIgnore, float Radius, const FVector& SphereOrigin)
+{
+	FCollisionQueryParams SphereParams;
+	SphereParams.AddIgnoredActors(ActorsToIgnore);
+
+	TArray<FOverlapResult> OverlapResults;
+	if (const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
+	{
+		World->OverlapMultiByObjectType(OverlapResults, SphereOrigin, FQuat::Identity, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllDynamicObjects), FCollisionShape::MakeSphere(Radius), SphereParams);
+		for (FOverlapResult& OverlapResult : OverlapResults)
+		{
+			if (OverlapResult.GetActor()->Implements<USoulCombatInterface>() && !ISoulCombatInterface::Execute_IsDead(OverlapResult.GetActor()))
+			{
+				OutOverlappingActors.AddUnique(ISoulCombatInterface::Execute_GetAvatarActor(OverlapResult.GetActor()));
+			}
+		}
+	}
+}
+
+bool USoulAbilitySystemLibrary::AreActorsAllies(AActor* FirstActor, AActor* SecondActor)
+{
+	const bool BothArePlayers = FirstActor->ActorHasTag(FName("Player")) && SecondActor->ActorHasTag(FName("Player"));
+	const bool BothAreEnemies = FirstActor->ActorHasTag(FName("Enemy")) && SecondActor->ActorHasTag(FName("Enemy"));
+	const bool bResult = BothArePlayers || BothAreEnemies;
+	
+	return bResult;	
 }
