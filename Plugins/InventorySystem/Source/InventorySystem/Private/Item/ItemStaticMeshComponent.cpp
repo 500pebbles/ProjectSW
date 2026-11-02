@@ -6,7 +6,7 @@
 UItemStaticMeshComponent::UItemStaticMeshComponent()
 {
 	static ConstructorHelpers::FObjectFinder<UMaterialInstance> OverlayMaterialRef(
-		TEXT("/InventorySystem/Materials/MI_HighlightMaterialInstance.MI_HighlightMaterialInstance"));
+		TEXT("/InventorySystem/Item/Materials/MI_HighlightMaterialInstance.MI_HighlightMaterialInstance"));
 	
 	if (OverlayMaterialRef.Succeeded())
 	{

@@ -107,6 +107,32 @@ void UInventoryComponent::CollectItem(AActor* TargetItem)
 	TargetItem->Destroy();
 }
 
+void UInventoryComponent::UseItem(const FGuid& ItemID)
+{
+	const FInventoryDataEntry* UsedItemEntry = InventoryData.FindItemWithID(ItemID);
+	if (!UsedItemEntry)
+	{
+		return;
+	}
+	
+	UItemData* UsedItem = UsedItemEntry->GetItem();
+	if (!UsedItem)
+	{
+		return;
+	}
+	
+	if (!UsedItem->UseItem(GetOwner()))
+	{
+		return;
+	}
+	
+	if (UsedItem->IsConsumedOnUse())
+	{
+		// 소모성 아이템이면 아이템 제거
+		RemoveItem(ItemID);
+	}
+}
+
 int32 UInventoryComponent::RemoveItem(const FGuid& InItemID, int32 RemoveCount)
 {
 	const FRemoveResult Result = InventoryData.RemoveItemData(InItemID, RemoveCount);

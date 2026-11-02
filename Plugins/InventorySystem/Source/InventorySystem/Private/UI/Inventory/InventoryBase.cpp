@@ -7,12 +7,12 @@ void UInventoryBase::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
-	SetVisibility(ESlateVisibility::Collapsed); 
+	SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UInventoryBase::ToggleInventoryUI()
 {
-	if (Visibility == ESlateVisibility::Collapsed)
+	if (GetVisibility() == ESlateVisibility::Collapsed)
 	{
 		SetVisibility(ESlateVisibility::Visible);
 	}

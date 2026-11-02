@@ -52,6 +52,10 @@ private:
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void CollectItem(AActor* TargetItem);
+	
+	// 아이템 사용 함수
+	UFUNCTION(BlueprintCallable)
+	void UseItem(const FGuid& ItemID);
 
 	// 아이템 제거 함수, 내부적으로 수량을 통해 전체를 제거할지 수량을 조정할지 결정
 	int32 RemoveItem(const FGuid& InItemID, int32 RemoveCount = 1);

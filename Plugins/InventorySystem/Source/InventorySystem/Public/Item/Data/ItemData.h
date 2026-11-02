@@ -3,6 +3,7 @@
 #include "Engine/DataTable.h"
 #include "ItemData.generated.h"
 
+class UItemUseDefinition;
 class UImage;
 
 UENUM(BlueprintType)
@@ -36,6 +37,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin="1") ,Category = "Item")
 	int32 MaxStackSize = 1;
 	
+	// 아이템 효과 데이터 에셋
+	UPROPERTY(EditAnywhere, Category="ItemEffects")
+	TSoftClassPtr<UItemUseDefinition> UseDefinition;
+	
 	// 아이템 이미지
 	UPROPERTY(EditAnywhere, Category = "Item")
 	TSoftObjectPtr<UTexture2D> ItemIcon;
@@ -58,6 +63,17 @@ public:
 	// 이 아이템 인스턴스가 가리키는 행이 어떤 행인지 지정
 	void Initialize(const FDataTableRowHandle& InRowHandle);
 	
+	// 아이템 사용
+	bool UseItem(AActor* User);
+	
+	// 아이템이 사용 가능한 아이템인지 검사 (아이템 효과가 존재하는지 확인)
+	bool IsItemUsable() const;
+	
+	// 아이템이 소모성 아이템인지 검사(아이템 효과가 존재하는 경우 아이템이 소모성인지 검사)
+	bool IsConsumedOnUse() const;
+	
+	
+public:
 	// 데이터 테이블 행 조회
 	const FItemDataTable* GetRow() const;
 	
@@ -71,4 +87,8 @@ public:
 private:
 	UPROPERTY()
 	FDataTableRowHandle ItemRowHandle;
+	
+	// 아이템 효과는 최초 1회만 로딩할 수 있도록 저장하기
+	UPROPERTY(Transient)
+	TSoftObjectPtr<const UItemUseDefinition> CachedUseDefinition;
 };
