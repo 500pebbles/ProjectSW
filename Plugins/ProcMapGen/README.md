@@ -335,11 +335,13 @@ Output Log(**Window → Output Log**, 필터 `LogProcMapGen`)에 `스폰 완료 
 | `On Generation Finished(Result, Spawn Errors)` | 완료 이벤트. 모두 스폰하고 레벨이 모두 로드된 뒤에 온다. 생성에 실패해도 온다 (`Result.Success` false). `Generate`를 부른 다음 프레임 이후에 오므로 BeginPlay에서 바인딩해도 놓치지 않는다 |
 | `Get Build Progress(Completed Count, Total Count)` | 진행도 0~1 (로딩 바용). 전체 = 이번에 스폰할 방 + 문/벽 + 마커, 완료 = 스폰한 것(레벨은 로드되어 보이게 된 것, 실패한 것도 포함). 완료 뒤 1, `Clear` 뒤 0 |
 | `Get Room Build Progress(Completed Room Count, Total Room Count)` | 방(사용된 방 + 채움 방)만 센 진행도. "방 120/225" 같은 글자용 |
+| `Get Class Load Progress(Loaded Count, Requested Count)` | 스폰 전 액터 클래스 비동기 로드(`LoadingClasses`)의 진행도 0~1. 요청 수 = 이번에 불러온 클래스 수 (이미 메모리에 있던 클래스는 빠지므로 같은 세션에서 다시 생성하면 보통 0). 실패한 로드도 완료로 센다. 클래스 단위로 오른다. 불러올 것이 없으면 0/0이고 1. `Clear` 전까지 값이 남는다 |
 | `Get Build State` | 지금 하는 일: `Idle`(생성 중 아님) / `WaitingForUnload`(앞 맵의 레벨이 빠지기를 기다림) / `LoadingClasses`(클래스 불러오는 중) / `Spawning` / `LoadingLevels`(방 레벨 로드 대기) |
 | `Result`, `Spawn Errors`, `Spawned Actors`, `Spawned Levels` | 마지막 생성의 결과와 스폰한 것 (읽기 전용) |
 
 - **진행도의 전체 수는 설정의 `TotalRoomCount`와 다르다**: 문/벽(방 수의 4~5배쯤), 채움 방, 마커가 더해지고, 에셋 리스트가 비어 스폰하지 않는 방은 빠진다. `Generate`를 부른 직후(맵 생성, 수십 ms 안)에 정해진다
 - 문/벽이 방보다 훨씬 많으므로 로딩 바에는 `Get Build Progress`를 쓴다. 방 진행도만 쓰면 방을 다 스폰한 뒤 문/벽을 스폰하는 동안 바가 멈춰 있다
+- `Get Build Progress`는 스폰을 시작해야 오른다. 처음 쓰는 클래스를 불러오는 동안(첫 실행에서 가장 오래 걸리는 구간)에도 바가 움직이게 하려면 `Get Class Load Progress`와 합친다 ([10장](#10-사용-예시))
 - 프레임을 나눠 스폰하는 동안 게임은 계속 돈다. 맵이 다 만들어지기 전에 플레이어가 움직이지 않게 로딩 화면을 띄우고 완료 이벤트에서 닫는다 ([10장](#10-사용-예시))
 
 - 맵의 (0, 0) 셀 모서리 = 빌더 위치. 빌더의 회전과 스케일은 쓰지 않는다
@@ -365,6 +367,11 @@ Output Log(**Window → Output Log**, 필터 `LogProcMapGen`)에 `스폰 완료 
 1. Content Browser 우클릭 → **User Interface → Widget Blueprint**로 로딩 위젯을 만들고, **Progress Bar**와 **Text**를 놓는다.
 2. 위젯에 빌더 레퍼런스 변수(타입 `PMG Map Builder`)를 만든다 (**Expose on Spawn** 켬).
 3. Progress Bar의 **Percent** 옆 **Bind** → 함수에서 빌더 → `Get Build Progress`의 반환값을 돌려준다. Text는 `Get Room Build Progress`로 "방 {완료}/{전체}", 또는 `Get Build State`로 "불러오는 중 / 만드는 중".
+   - 클래스를 불러오는 구간도 바에 넣으려면 두 진행도의 **개수**를 가중치를 두어 더한다. 클래스는 종류 수라 적고(예: 10개) 스폰은 개수라 많으므로(예: 1,000개) 그냥 더하면 불러오는 구간이 바의 1%밖에 안 된다. 클래스 하나를 스폰 몇 개로 칠지(`ClassLoadFactor`)를 정해:
+     ```
+     진행도 = (Loaded Count x ClassLoadFactor + Completed Count) / (Requested Count x ClassLoadFactor + Total Count)
+     ```
+     분모가 0이면(앞 맵의 레벨이 빠지기를 기다리는 동안) 0으로 둔다. 불러올 클래스가 없으면 `Requested Count`가 0이라 스폰 진행도만 남는다. `ClassLoadFactor`는 에디터를 새로 켠 첫 실행에서 바가 두 구간을 고르게 지나가도록 맞춘다 (예: 10에서 시작)
 4. 레벨 블루프린트: 빌더의 `Generate On Begin Play`를 끄고, `Event BeginPlay` → `Create Widget`(빌더 연결) → `Add to Viewport` → 빌더 `Generate(Seed)`. 완료 이벤트(`Assign On Generation Finished`)에서 위젯 `Remove from Parent` 후 플레이어를 입구방으로 옮긴다.
 
 `Spawn Time Budget Ms`를 0으로 두면 한 프레임에 모두 스폰하므로 그동안 위젯도 그려지지 않는다.

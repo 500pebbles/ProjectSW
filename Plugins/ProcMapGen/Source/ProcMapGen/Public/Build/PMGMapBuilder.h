@@ -158,6 +158,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "ProcMapGen")
 	void GetRoomBuildProgress(int32& OutCompletedRoomCount, int32& OutTotalRoomCount) const;
 
+	/**
+	 * 액터 클래스 비동기 로드 진행도 (0 ~ 1). 스폰을 시작하기 전 LoadingClasses 단계의 진행이다 (그동안 GetBuildProgress는 0에 머문다).
+	 * OutRequestedCount = 이번 생성에서 불러온 클래스 수 (이미 메모리에 있던 클래스는 빠지므로 같은 세션에서 다시 생성하면 보통 0),
+	 * OutLoadedCount = 그중 다 불러온 수 (실패한 것도 끝난 것으로 셈). 클래스 하나 안의 진행은 알 수 없어 클래스 단위로 오른다.
+	 * 불러올 클래스가 없으면(SpawnTimeBudgetMs가 0인 경우 포함) 0/0이고 반환값 1. 생성이 끝난 뒤에도 Clear()까지 값이 남는다.
+	 * 로딩 바에 GetBuildProgress와 합칠 때는 클래스 하나를 스폰 몇 개로 칠지 가중치를 두어 개수를 더한다 (사용 설명서 10장)
+	 */
+	UFUNCTION(BlueprintPure, Category = "ProcMapGen")
+	float GetClassLoadProgress(int32& OutLoadedCount, int32& OutRequestedCount) const;
+
 	/** 빌더가 지금 하는 일 (생성 중이 아니면 Idle) */
 	UFUNCTION(BlueprintPure, Category = "ProcMapGen")
 	EPMGBuildState GetBuildState() const;
@@ -239,6 +249,9 @@ private:
 
 	/** 스폰하기 전에 액터 클래스를 비동기로 불러오는 요청. 불러온 클래스가 스폰 전에 가비지 컬렉션되지 않도록 완료(또는 Clear)까지 가지고 있는다 */
 	TSharedPtr<FStreamableHandle> ClassLoadHandle;
+
+	/** 이번 생성에서 비동기로 불러오기를 요청한 클래스 수 (클래스 로드 진행도). 완료 때 핸들을 놓아도 Clear()까지 남긴다 */
+	int32 RequestedClassLoadCount = 0;
 
 	/** Clear()로 내리기를 요청했지만 아직 월드에 남아 있을 수 있는 레벨. 이 레벨들이 월드에서 빠져야 다음 생성을 스폰한다 */
 	UPROPERTY(Transient)
