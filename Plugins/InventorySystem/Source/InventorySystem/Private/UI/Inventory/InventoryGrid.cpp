@@ -176,7 +176,11 @@ bool UInventoryGrid::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 	const FIntPoint SlotPosition = ComputeTargetCell(InDragDropEvent, Operation);
 	if (!InventoryComponent->MoveItemPosition(Operation->ItemID, SlotPosition))
 	{
-		return false;
+		// return false를 하는 경우 아이템이 이미 존재하는 위치로 아이템을 올리면 OnDragCancelled가 호출되어
+		// 아이템이 버려지는 처리가 됨. 그래서 동작 자체는 수행헀다는 의미로 true를 반환하도록 처리함.
+		// 아이템 버리기 구현 전 HidePlacementPreview만 OnDragCancelled에서 진행했으므로 원래 했어야 할 처리 진행
+		HidePlacementPreview();
+		return true;
 	}
 	
 	// 데이터 이동 성공시 UI 위치 갱신

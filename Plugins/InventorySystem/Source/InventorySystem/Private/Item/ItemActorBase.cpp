@@ -17,6 +17,9 @@ AItemActorBase::AItemActorBase()
 
 	ItemMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh"));
 	ItemMeshComponent->SetupAttachment(SceneRoot);
+	
+	// 콜리전 프로파일 설정 (엔진 프로젝트 설정에서 콜리전 프로필 만들어야함)
+	ItemMeshComponent->SetCollisionProfileName(TEXT("Item"));
 
 	ItemComponent = CreateDefaultSubobject<UItemComponent>(TEXT("ItemComponent"));
 }
