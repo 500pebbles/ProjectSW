@@ -1,19 +1,20 @@
 // 
 
 
-#include "UI/Inventory/InventoryGrid.h"
+#include "Inventory/UI/Inventory/InventoryGrid.h"
 
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
 #include "Components/SizeBox.h"
+#include "Inventory/Data/InventoryData.h"
+#include "Inventory/Interface/InventoryInputInterface.h"
 #include "Item/Data/ItemData.h"
 #include "Item/UI/ItemCollectedUI.h"
 #include "Item/UI/ItemDragDrop.h"
-#include "Player/InventoryComponent.h"
-#include "Player/InventoryInputComponent.h"
-#include "UI/Inventory/GridInventorySlot.h"
+#include "Inventory/Player/InventoryComponent.h"
+#include "Inventory/UI/Inventory/GridInventorySlot.h"
 
 void UInventoryGrid::NativeOnInitialized()
 {

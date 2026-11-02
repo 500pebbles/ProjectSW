@@ -1,4 +1,4 @@
-#include "Data/InventoryData.h"
+#include "Inventory//Data/InventoryData.h"
 
 #include "Item/ItemComponent.h"
 #include "Item/Data/ItemData.h"

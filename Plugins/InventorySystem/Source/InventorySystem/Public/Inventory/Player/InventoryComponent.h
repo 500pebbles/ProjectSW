@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Data/InventoryData.h"
+#include "Inventory/Data/InventoryData.h"
 #include "InventoryComponent.generated.h"
 
 class AItemActorBase;

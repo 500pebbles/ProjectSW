@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interface/InventoryInputInterface.h"
+#include "Inventory/Interface/InventoryInputInterface.h"
 #include "Runtime/Engine/Classes/Components/ActorComponent.h"
 #include "InventoryInputComponent.generated.h"
 
@@ -79,6 +79,9 @@ private:
 	// 에디터에서 설정할 아이템 감지를 위한 유효 범위(거리)
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	float TraceLength;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
+	FVector TraceOffset;
 	
 	// 아이템 트레이스에 사용할 콜리전 채널
 	// EditDefaultsOnly로 에디터에서 설정하기 위해서는 Enum타입으로 되어야하는데, ECollisionChannel은

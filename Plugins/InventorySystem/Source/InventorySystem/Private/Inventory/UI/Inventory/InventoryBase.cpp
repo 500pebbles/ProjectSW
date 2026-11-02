@@ -1,7 +1,7 @@
 // 
 
 
-#include "UI/Inventory/InventoryBase.h"
+#include "Inventory/UI/Inventory/InventoryBase.h"
 
 void UInventoryBase::NativeConstruct()
 {

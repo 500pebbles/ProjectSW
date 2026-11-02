@@ -1,7 +1,7 @@
 // 
 
 
-#include "UI/Inventory/GridInventoryWidget.h"
+#include "Inventory/UI/Inventory/GridInventoryWidget.h"
 
 UGridInventoryWidget::UGridInventoryWidget()
 {

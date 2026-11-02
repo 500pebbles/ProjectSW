@@ -1,11 +1,11 @@
 ﻿// 
-#include "Player/InventoryInputComponent.h"
+#include "Inventory/Player/InventoryInputComponent.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Blueprint/UserWidget.h"
-#include "Interface/HighlightMaterialInterface.h"
-#include "UI/InventoryHUDWidget.h"
+#include "Item/Interface/HighlightMaterialInterface.h"
+#include "Inventory/UI/InventoryHUDWidget.h"
 
 #include "Kismet/GameplayStatics.h"
 

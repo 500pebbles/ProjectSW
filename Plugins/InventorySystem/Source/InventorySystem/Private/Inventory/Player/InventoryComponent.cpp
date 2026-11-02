@@ -1,13 +1,13 @@
 // 
 
 
-#include "Player/InventoryComponent.h"
+#include "Inventory/Player/InventoryComponent.h"
 
 #include "Blueprint/UserWidget.h"
+#include "Inventory/Interface/InventoryInputInterface.h"
 #include "Item/ItemActorBase.h"
-#include "Player/InventoryInputComponent.h"
-#include "UI/Inventory/GridInventoryWidget.h"
-#include "UI/Inventory/InventoryBase.h"
+#include "Inventory/UI/Inventory/GridInventoryWidget.h"
+#include "Inventory/UI/Inventory/InventoryBase.h"
 #include "Item/ItemComponent.h"
 #include "Item/Data/ItemData.h"
 
