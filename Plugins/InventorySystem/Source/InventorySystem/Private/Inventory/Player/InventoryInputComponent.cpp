@@ -30,17 +30,17 @@ void UInventoryInputComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	// 컴포넌트가 플레이어 캐릭터 자체에 붙어있는 경우 소유하고 있는 폰의 컨트롤러를 가져와 할당
 	APawn* PlayerPawn = Cast<APawn>(GetOwner());
 	if (IsValid(PlayerPawn))
 	{
 		LocalGameController = Cast<APlayerController>(PlayerPawn->GetController());
-		
+
 		if (nullptr != LocalGameController)
 		{
-			// 플레이어 컨트롤러의 InputMappintContext에 생성한 인벤토리 맵핑 컨텍스트 추가하기
-			UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalGameController->GetLocalPlayer());
-		
+			// 플레이어 컨트롤러의 InputMappingContext에 인벤토리 매핑 컨텍스트 추가
+			UEnhancedInputLocalPlayerSubsystem* Subsystem =
+				ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalGameController->GetLocalPlayer());
+
 			if (nullptr != Subsystem)
 			{
 				for (auto Context : IMC_Inventory)
@@ -48,13 +48,10 @@ void UInventoryInputComponent::BeginPlay()
 					Subsystem->AddMappingContext(Context, 0);
 				}
 			}
-		
+
 			SetupInventoryInputComponent();
 		}
-	
-		CreateInventoryHUDWidget();
 	}
-	
 }
 
 // Called every frame
@@ -76,6 +73,7 @@ void UInventoryInputComponent::SetupInventoryInputComponent()
 	
 	EnhancedInputComponent->BindAction(InventoryInteractAction, ETriggerEvent::Started, this, &UInventoryInputComponent::InventoryInteract);
 	EnhancedInputComponent->BindAction(InventoryUIToggleAction, ETriggerEvent::Started, this, &UInventoryInputComponent::ToggleInventoryUI);
+	EnhancedInputComponent->BindAction(UseQuickSlotItemAction, ETriggerEvent::Started, this, &UInventoryInputComponent::UseQuickSlotItem);
 }
 
 void UInventoryInputComponent::InventoryInteract()
@@ -95,14 +93,9 @@ void UInventoryInputComponent::ToggleInventoryUI()
 	OnToggleInventoryUI.Broadcast();
 }
 
-void UInventoryInputComponent::CreateInventoryHUDWidget()
+void UInventoryInputComponent::UseQuickSlotItem()
 {
-	InventoryHUDWidget = CreateWidget<UInventoryHUDWidget>(LocalGameController, InventoryHUDWidgetClass);
-	
-	if (IsValid(InventoryHUDWidget))
-	{
-		InventoryHUDWidget->AddToViewport();
-	}
+	OnUseQuickSlotItem.Broadcast();	
 }
 
 void UInventoryInputComponent::TraceItem()
@@ -146,10 +139,12 @@ void UInventoryInputComponent::TraceItem()
 	LastTracedItem = CurrentTraceItem;
 	CurrentTraceItem = HitResult.GetActor();
 	
-	// 액터가 유효하지 않으면 픽업 메시지 숨김 처리
-	if (!CurrentTraceItem.IsValid())
+	// 현재 상호작용 가능한 액터를 검사하고 있다가 상호작용 대상 유무가 바뀌면 HUD에 알림
+	const bool bHasTarget = CurrentTraceItem.IsValid();
+	if (bHasTarget != bHasTraceTarget)
 	{
-		if (IsValid(InventoryHUDWidget)) InventoryHUDWidget->HideInteractionMessage();
+		bHasTraceTarget = bHasTarget;
+		OnTraceItemChanged.Broadcast(bHasTarget);
 	}
 	
 	if (CurrentTraceItem == LastTracedItem) return;
@@ -159,9 +154,7 @@ void UInventoryInputComponent::TraceItem()
 	{
 		// 임시 로그 처리
 		UE_LOG(LogInventoryInputComponent, Log, TEXT("Tracing New Item"));
-		
-		if (IsValid(InventoryHUDWidget)) InventoryHUDWidget->ShowInteractionMessage();
-		
+
 		// 어떤 아이템을 습득 가능한지 표시하기 위해 하이라이트 윤곽선 표시하기
 		UActorComponent* HighlightMeshComponent = CurrentTraceItem->FindComponentByInterface(UHighlightMaterialInterface::StaticClass());
 		if (IsValid(HighlightMeshComponent))

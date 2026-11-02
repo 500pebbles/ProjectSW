@@ -6,6 +6,8 @@
 #include "Blueprint/UserWidget.h"
 #include "InventoryHUDWidget.generated.h"
 
+
+class UTexture2D;
 /**
  * 
  */
@@ -20,4 +22,7 @@ public:
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	void HideInteractionMessage();
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void SetQuickSlotIcon(UTexture2D* Icon);
 };

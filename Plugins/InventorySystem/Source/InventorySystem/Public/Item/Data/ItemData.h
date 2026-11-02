@@ -39,7 +39,7 @@ public:
 	
 	// 아이템 효과 데이터 에셋
 	UPROPERTY(EditAnywhere, Category="ItemEffects")
-	TSoftClassPtr<UItemUseDefinition> UseDefinition;
+	TSoftObjectPtr<UItemUseDefinition> UseDefinition;
 	
 	// 아이템 이미지
 	UPROPERTY(EditAnywhere, Category = "Item")
@@ -79,6 +79,7 @@ public:
 	
 	FDataTableRowHandle GetRowHandle() const { return ItemRowHandle; }
 	
+	EItemType GetItemType() const;
 	FIntPoint GetItemSize() const;
 	FName GetRowName() const {return ItemRowHandle.RowName;}
 	

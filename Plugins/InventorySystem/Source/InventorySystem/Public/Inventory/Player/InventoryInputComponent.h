@@ -11,7 +11,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogInventoryInputComponent, Log, All);
 
 class UInputMappingContext;
 class UInputAction;
-class UInventoryHUDWidget;
 
 UCLASS(Blueprintable, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class INVENTORYSYSTEM_API UInventoryInputComponent : public UActorComponent, public IInventoryInputInterface
@@ -21,6 +20,8 @@ class INVENTORYSYSTEM_API UInventoryInputComponent : public UActorComponent, pub
 public:
 	FOnToggleInventoryUIDelegate OnToggleInventoryUI;
 	FOnCollectItemDelegate OnCollectItem;
+	FOnUseQuickSlotItemDelegate OnUseQuickSlotItem;
+	FOnTraceItemChangedDelegate OnTraceItemChanged;
 
 public:
 	// Sets default values for this component's properties
@@ -40,14 +41,18 @@ public:
 public:
 	virtual FOnToggleInventoryUIDelegate& GetOnToggleInventoryUI() override {return OnToggleInventoryUI;}
 	virtual FOnCollectItemDelegate& GetOnCollectItem() override {return OnCollectItem;};
+	virtual FOnUseQuickSlotItemDelegate& GetOnUseQuickSlotItem() override {return OnUseQuickSlotItem;}
+	virtual FOnTraceItemChangedDelegate& GetOnTraceItemChanged() override {return OnTraceItemChanged;}
 	
+	// 입력 관련 함수
 private:
 	void InventoryInteract();
 	
 	void ToggleInventoryUI();
 	
-	void CreateInventoryHUDWidget();
+	void UseQuickSlotItem();
 	
+private:
 	// 아이템을 바라보고 있을 때 범위 내에 있다면 상호작용이 가능함을 표시하기 위한 함수
 	// 해당 함수는 아이템 획득을 진행할 때 획득을 위한 상호작용 가능 범위를 영역이 아닌 바라보고 있는
 	// 방향에서 일정 거리 내에 있는지로 판단하는 것을 전재로 한다.
@@ -66,13 +71,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	TObjectPtr<UInputAction> InventoryUIToggleAction;
 	
-	// HUD 섹션
-private:
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
-	TSubclassOf<UInventoryHUDWidget> InventoryHUDWidgetClass;
-	
-	UPROPERTY()
-	TObjectPtr<UInventoryHUDWidget> InventoryHUDWidget;
+	TObjectPtr<UInputAction> UseQuickSlotItemAction;
 	
 	// 아이템 상호작용 검사 섹션
 private:
@@ -101,4 +101,6 @@ private:
 	
 	UPROPERTY()
 	TWeakObjectPtr<AActor> LastTracedItem;
+	
+	bool bHasTraceTarget = false;
 };

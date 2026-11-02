@@ -7,6 +7,7 @@
 #include "Inventory/Data/InventoryData.h"
 #include "InventoryComponent.generated.h"
 
+class UInventoryHUDWidget;
 class AItemActorBase;
 class UItemData;
 class UInventoryBase;
@@ -39,6 +40,13 @@ public:
 	
 	//UI
 public:
+	// 인벤토리 HUD 생성
+	void CreateInventoryHUDWidget();
+	
+	UFUNCTION()
+	void HandleTraceItemChanged(bool bHasTarget);
+	
+	// 인벤토리 UI 생성
 	void CreateInventoryUIWidget();
 	
 	UFUNCTION(BlueprintCallable, Category = "Inventory" )
@@ -48,10 +56,47 @@ private:
 	UPROPERTY()
 	TObjectPtr<APlayerController> LocalGameController;
 	
+	// UI 섹션
+private:
+	UPROPERTY(EditAnywhere, Category = "Inventory")
+	TSubclassOf<UInventoryHUDWidget> InventoryHUDWidgetClass;
+	
+	UPROPERTY()
+	TObjectPtr<UInventoryHUDWidget> InventoryHUDWidget;	
+	
+	UPROPERTY(EditAnywhere, Category = "Inventory")
+	TSubclassOf<UInventoryBase> InventoryUIClass;
+
+	UPROPERTY()
+	TObjectPtr<UInventoryBase> InventoryUI;
+	
+	bool bIsInventoryUIOpen = false;
+	
+	// 퀵슬롯 관련 섹션
+private:
+	// 인벤토리에서 소비 아이템의 종류를 가져오는 함수
+	TArray<FName> GetConsumableItemKinds() const;
+	
+	const FInventoryDataEntry* FindFirstConsumableKind(FName Kind) const;
+	
+	void RefreshQuickSlot();
+	
+public:
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void CycleQuickSlot();
+	
+private:
+	// 현재 선택된 아이템의 종류
+ 	FName SeletedQuickSlotItemKind = NAME_None;
+	
+	
 	// 아이템 습득 및 버리기
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void CollectItem(AActor* TargetItem);
+	
+	UFUNCTION(BlueprintCallable)
+	void UseQuickSlotItem();
 	
 	// 아이템 사용 함수
 	UFUNCTION(BlueprintCallable)
@@ -76,16 +121,6 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Item")
 	float DropDistance = 100.f;
-	
-	// UI 섹션
-private:
-	UPROPERTY(EditAnywhere, Category = "Inventory")
-	TSubclassOf<UInventoryBase> InventoryUIClass;
-
-	UPROPERTY()
-	TObjectPtr<UInventoryBase> InventoryUI;
-	
-	bool bIsInventoryUIOpen = false;
 	
 	// 인벤토리 데이터 섹션
 public:

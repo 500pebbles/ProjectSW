@@ -5,6 +5,7 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Inventory/Interface/InventoryInputInterface.h"
+#include "Inventory/UI/InventoryHUDWidget.h"
 #include "Item/ItemActorBase.h"
 #include "Inventory/UI/Inventory/GridInventoryWidget.h"
 #include "Inventory/UI/Inventory/InventoryBase.h"
@@ -31,6 +32,7 @@ void UInventoryComponent::BeginPlay()
 		LocalGameController = Cast<APlayerController>(PlayerPawn->GetController());
 		
 		CreateInventoryUIWidget();
+		CreateInventoryHUDWidget();
 	}
 	
 	// 인터페이스를 통해 의존성 분리
@@ -42,11 +44,37 @@ void UInventoryComponent::BeginPlay()
 		{
 			InputInterface->GetOnToggleInventoryUI().AddDynamic(this, &UInventoryComponent::ToggleInventoryUI);
 			InputInterface->GetOnCollectItem().AddDynamic(this, &UInventoryComponent::CollectItem);
+			InputInterface->GetOnUseQuickSlotItem().AddDynamic(this, &UInventoryComponent::UseQuickSlotItem);
+			InputInterface->GetOnTraceItemChanged().AddDynamic(this, &UInventoryComponent::HandleTraceItemChanged);
 		}
 	}
 	
 	// 인벤토리 데이터 초기화
 	//InventoryData.InitializeArray();
+	
+	RefreshQuickSlot();
+	HandleTraceItemChanged(false);
+}
+
+void UInventoryComponent::CreateInventoryHUDWidget()
+{
+	if (!InventoryHUDWidgetClass)
+	{
+		return;
+	}
+	
+	InventoryHUDWidget = CreateWidget<UInventoryHUDWidget>(LocalGameController, InventoryHUDWidgetClass);
+	
+	if (IsValid(InventoryHUDWidget))
+	{
+		InventoryHUDWidget->AddToViewport();
+	}
+}
+
+void UInventoryComponent::HandleTraceItemChanged(bool bHasTarget)
+{
+	if (!IsValid(InventoryHUDWidget)) return;
+	bHasTarget ? InventoryHUDWidget->ShowInteractionMessage(): InventoryHUDWidget->HideInteractionMessage();
 }
 
 void UInventoryComponent::CreateInventoryUIWidget()
@@ -63,7 +91,7 @@ void UInventoryComponent::ToggleInventoryUI()
 {
 	InventoryUI->ToggleInventoryUI();
 
-	const FInputModeUIOnly InventoryInputMode;
+	const FInputModeGameAndUI InventoryInputMode;
 	const FInputModeGameOnly GameInputMode;
 	
 	// 인벤토리 UI 닫기
@@ -83,6 +111,80 @@ void UInventoryComponent::ToggleInventoryUI()
 }
 
 
+TArray<FName> UInventoryComponent::GetConsumableItemKinds() const
+{
+	TArray<FName> Kinds;
+	for (const FInventoryDataEntry& Entry : InventoryData.ItemDataArray)
+	{
+		const UItemData* Item = Entry.GetItem();
+		// 아이템이 소비 타입인 경우 퀵슬롯에 자동 등록
+		if (Item && Item->GetItemType() == EItemType::Consumable)
+		{
+			// AddUnique라서 중복 등록 안함
+			Kinds.AddUnique(Item->GetRowName());
+		}
+	}
+	return Kinds;
+}
+
+const FInventoryDataEntry* UInventoryComponent::FindFirstConsumableKind(FName Kind) const
+{
+	if (Kind.IsNone())
+	{
+		return nullptr;
+	}
+	
+	return InventoryData.ItemDataArray.FindByPredicate([Kind](const FInventoryDataEntry& Entry)
+	{
+		const UItemData* Item = Entry.GetItem();
+		// 파라미터로 전달받은 타입이 인벤토리 데이터 내에 존재하면 해당 타입의 RowName(데이터 테이블고유 값)을 갖고옴
+		return Item && Item->GetRowName() == Kind;
+	});
+}
+
+void UInventoryComponent::RefreshQuickSlot()
+{
+	const TArray<FName> Kinds = GetConsumableItemKinds();
+	// 소비 아이템이 하나도 없으면 아이템이 없으므로 None 전달
+	if (Kinds.IsEmpty())
+	{
+		SeletedQuickSlotItemKind = NAME_None;
+	}
+	
+	// 소비 아이템 있으면 기본값으로 0번 인덱스에 해당하는 이름 값 가져옴
+	else if (!Kinds.Contains(SeletedQuickSlotItemKind))
+	{
+		SeletedQuickSlotItemKind = Kinds[0];
+	}
+
+	UTexture2D* Icon = nullptr;
+	if (const FInventoryDataEntry* Entry = FindFirstConsumableKind(SeletedQuickSlotItemKind))
+	{
+		// 현재 퀵슬롯에 선택된 아이템에 해당하는 소비 아이템이 인벤토리에 존재하면 해당 아이콘으로 퀵슬롯 아이콘 변경
+		if (UItemData* Item = Entry->GetItem())
+		{
+			Icon = Item->GetItemIcon();
+		}
+	}
+
+	if (IsValid(InventoryHUDWidget))
+	{
+		InventoryHUDWidget->SetQuickSlotIcon(Icon);
+	}
+}
+
+void UInventoryComponent::CycleQuickSlot()
+{
+	const TArray<FName> Kinds = GetConsumableItemKinds();
+	if (Kinds.Num() <= 1)
+	{
+		return;
+	}
+	
+	const int32 Index = Kinds.IndexOfByKey(SeletedQuickSlotItemKind); // 없으면 -1
+	SeletedQuickSlotItemKind = Kinds[(Index + 1) % Kinds.Num()];
+	RefreshQuickSlot();
+}
 
 void UInventoryComponent::CollectItem(AActor* TargetItem)
 {
@@ -105,7 +207,20 @@ void UInventoryComponent::CollectItem(AActor* TargetItem)
 	
 	// 월드 상에서 아이템 제거
 	TargetItem->Destroy();
+	
+	RefreshQuickSlot();
 }
+
+// Testcode
+void UInventoryComponent::UseQuickSlotItem()
+{
+	// 현재 선택된 퀵슬롯 아이템의 ID를 이용해 아이템 사용
+	if (const FInventoryDataEntry* Entry = FindFirstConsumableKind(SeletedQuickSlotItemKind))
+	{
+		UseItem(Entry->GetID());
+	}
+}
+
 
 void UInventoryComponent::UseItem(const FGuid& ItemID)
 {
@@ -149,6 +264,8 @@ int32 UInventoryComponent::RemoveItem(const FGuid& InItemID, int32 RemoveCount)
 	{
 		OnItemQuantityChanged.Broadcast(InItemID, Result.RemainingItemCount);
 	}
+	
+	RefreshQuickSlot();
 	
 	return Result.RemovedCount;
 }
