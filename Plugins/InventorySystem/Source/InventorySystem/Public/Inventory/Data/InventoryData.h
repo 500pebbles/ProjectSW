@@ -91,6 +91,8 @@ public:
 	// 아이템 목록 가져오기
 	TArray<UItemData*> GetAllItems() const;
 	
+	TArray<FInventoryDataEntry> GetConsumableItems() const { return ConsumableItemDataArray; }
+	
 private:
 	// ID를 받아 ID에 해당하는 아이템 데이터를 받은 위치로 이동시키는 함수
 	bool MoveItemPosition(const FGuid& InID, FIntPoint InNewPosition);
@@ -119,4 +121,8 @@ private:
 	// 인벤토리 컴포넌트가 해당 아이템 리스트를 갖도록 지정한다.
 	UPROPERTY()
 	TObjectPtr<UActorComponent> OwnerComponent;
+	
+	// 소비 아이템 리스트는 추가로 저장한다
+	UPROPERTY()
+	TArray<FInventoryDataEntry> ConsumableItemDataArray;
 };

@@ -56,6 +56,30 @@ const FItemDataTable* UItemData::GetRow() const
 	return ItemRowHandle.GetRow<FItemDataTable>(TEXT("UITemData::GetItemData"));
 }
 
+EItemType UItemData::GetItemType() const
+{
+	const FItemDataTable* ItemData = GetRow();
+	
+	if (!ItemData)
+	{
+		return EItemType::None;
+	}
+	
+	return ItemData->ItemType;
+}
+
+FText UItemData::GetItemName() const
+{
+	const FItemDataTable* ItemData = GetRow();
+	
+	if (!ItemData)
+	{
+		return FText::GetEmpty();
+	}
+	
+	return ItemData->ItemName;
+}
+
 FIntPoint UItemData::GetItemSize() const
 {
 	const FItemDataTable* ItemData = GetRow();
