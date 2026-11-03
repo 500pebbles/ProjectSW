@@ -91,6 +91,9 @@ private:
 	float TraceLength;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
+	float TraceRadius;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	FVector TraceOffset;
 	
 	// 아이템 트레이스에 사용할 콜리전 채널
