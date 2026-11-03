@@ -62,6 +62,7 @@ void ASoulCharacterBase::GiveStartupAbilities()
 	
 	USoulAbilitySystemComponent* SoulASC = Cast<USoulAbilitySystemComponent>(AbilitySystemComponent);
 	SoulASC->GiveStartupAbilities(StartupAbilities);
+	SoulASC->GiveSkillSlotChains(StartupSkillChains);
 }
 
 void ASoulCharacterBase::Die()

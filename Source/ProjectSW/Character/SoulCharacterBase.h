@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
 #include "GameFramework/Character.h"
+#include "GAS/Core/SoulAbilitySystemComponent.h"
 #include "Interface/SoulCombatInterface.h"
 #include "SoulCharacterBase.generated.h"
 
@@ -64,6 +65,10 @@ protected:
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Setup")
 	TArray<TSubclassOf<UGameplayAbility>> StartupAbilities;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Setup")
+	TArray<FSoulSkillSlotChain> StartupSkillChains;
+	
 	
 /* Combat Interface Section */
 public:
