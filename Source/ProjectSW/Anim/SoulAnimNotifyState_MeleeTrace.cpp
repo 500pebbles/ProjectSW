@@ -25,6 +25,27 @@ namespace
 		if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner)) return;
 		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, Payload.EventTag, Payload);
 	}
+	
+	// 두 소켓을 다 가진 컴포넌트. 몸에 소켓으로 붙은 무기를 먼저 보고, 없으면 몸.
+	// 소켓 없이 붙은 자식(같은 스켈레톤을 쓰는 파츠 등)은 몸과 같은 소켓을 가지므로 건너뜀.
+	const USceneComponent* FindTraceComponent(const USkeletalMeshComponent* Body, FName StartSocket, FName EndSocket)
+	{
+		for (const USceneComponent* Child : Body->GetAttachChildren())
+		{
+			if (!Child || Child->GetAttachSocketName().IsNone()) continue;
+			if (Child->DoesSocketExist(StartSocket) && Child->DoesSocketExist(EndSocket)) return Child;
+		}
+		return (Body->DoesSocketExist(StartSocket) && Body->DoesSocketExist(EndSocket)) ? Body : nullptr;
+	}
+
+	// 노티파이는 몸 포즈가 확정된 직후, 무기 위치가 갱신되기 전에 불림. 그래서 무기 위치를 몸 소켓의 이번 프레임 위치에서 다시 계산.
+	FVector GetTraceSocketLocation(const USceneComponent* TraceComp, const USkeletalMeshComponent* Body, FName Socket)
+	{
+		if (TraceComp == Body) return Body->GetSocketLocation(Socket);
+
+		const FTransform WeaponWorld = TraceComp->GetRelativeTransform() * Body->GetSocketTransform(TraceComp->GetAttachSocketName());
+		return (TraceComp->GetSocketTransform(Socket, RTS_Component) * WeaponWorld).GetLocation();
+	}
 }
 
 USoulAnimNotifyState_MeleeTrace::USoulAnimNotifyState_MeleeTrace()
@@ -39,10 +60,16 @@ void USoulAnimNotifyState_MeleeTrace::NotifyBegin(USkeletalMeshComponent* MeshCo
 	AActor* Owner = MeshComp ? MeshComp->GetOwner() : nullptr;
 	if (!Owner) return;
 
-	// 소켓 이름 오타 확인. 구간마다 1번만 알림.
-	if (!MeshComp->DoesSocketExist(StartSocketName) || !MeshComp->DoesSocketExist(EndSocketName))
+	// 소켓 이름 오타 확인. 구간마다 1번만 알림. 디버그를 켜면 어느 컴포넌트로 판정하는지도 표시.
+	const USceneComponent* TraceComp = FindTraceComponent(MeshComp, StartSocketName, EndSocketName);
+	if (!TraceComp)
 	{
 		SW_LOG_WARNING("[MeleeTrace] Socket missing on %s: %s / %s", *GetNameSafe(MeshComp->GetSkeletalMeshAsset()), *StartSocketName.ToString(), *EndSocketName.ToString());
+	}
+	else if (CVarDebugMeleeTrace.GetValueOnAnyThread())
+	{
+		const USkinnedMeshComponent* Skinned = Cast<USkinnedMeshComponent>(TraceComp);
+		SW_LOG("[MeleeTrace] %s -> %s (%s)", *EndSocketName.ToString(), *GetNameSafe(TraceComp), *GetNameSafe(Skinned ? Skinned->GetSkinnedAsset() : nullptr));
 	}
 
 	// 판정 구간 시작 알림. 받는 쪽(GA)이 맞은 대상 목록을 비움.
@@ -58,11 +85,13 @@ void USoulAnimNotifyState_MeleeTrace::NotifyTick(USkeletalMeshComponent* MeshCom
 
 	AActor* Owner = MeshComp ? MeshComp->GetOwner() : nullptr;
 	if (!Owner) return;
-	if (!MeshComp->DoesSocketExist(StartSocketName) || !MeshComp->DoesSocketExist(EndSocketName)) return;
+	
+	const USceneComponent* TraceComp = FindTraceComponent(MeshComp, StartSocketName, EndSocketName);
+	if (!TraceComp) return;
 
 	// Step 1 : 지금 칼날 선(손잡이 쪽 -> 칼끝)을 따라 구 스윕. 오브젝트 쿼리라 막히지 않고 겹친 것을 전부 반환.
-	const FVector Start = MeshComp->GetSocketLocation(StartSocketName);
-	const FVector End = MeshComp->GetSocketLocation(EndSocketName);
+	const FVector Start = GetTraceSocketLocation(TraceComp, MeshComp, StartSocketName);
+	const FVector End = GetTraceSocketLocation(TraceComp, MeshComp, EndSocketName);
 	const TArray<AActor*> ActorsToIgnore = { Owner };
 	const EDrawDebugTrace::Type DrawDebugType = CVarDebugMeleeTrace.GetValueOnAnyThread() ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None;
 
