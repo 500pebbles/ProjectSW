@@ -11,7 +11,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogInventoryInputComponent, Log, All);
 
 class UInputMappingContext;
 class UInputAction;
-class UInventoryHUDWidget;
 
 UCLASS(Blueprintable, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class INVENTORYSYSTEM_API UInventoryInputComponent : public UActorComponent, public IInventoryInputInterface
@@ -21,6 +20,9 @@ class INVENTORYSYSTEM_API UInventoryInputComponent : public UActorComponent, pub
 public:
 	FOnToggleInventoryUIDelegate OnToggleInventoryUI;
 	FOnCollectItemDelegate OnCollectItem;
+	FOnUseQuickSlotItemDelegate OnUseQuickSlotItem;
+	FOnTraceItemChangedDelegate OnTraceItemChanged;
+	FOnSwitchQuickSlotItemDelegate OnSwitchQuickSlotItem;
 
 public:
 	// Sets default values for this component's properties
@@ -40,14 +42,21 @@ public:
 public:
 	virtual FOnToggleInventoryUIDelegate& GetOnToggleInventoryUI() override {return OnToggleInventoryUI;}
 	virtual FOnCollectItemDelegate& GetOnCollectItem() override {return OnCollectItem;};
+	virtual FOnUseQuickSlotItemDelegate& GetOnUseQuickSlotItem() override {return OnUseQuickSlotItem;}
+	virtual FOnTraceItemChangedDelegate& GetOnTraceItemChanged() override {return OnTraceItemChanged;}
+	virtual FOnSwitchQuickSlotItemDelegate& GetSwitchQuickSlotItem() override {return OnSwitchQuickSlotItem;}
 	
+	// 입력 관련 함수
 private:
 	void InventoryInteract();
 	
 	void ToggleInventoryUI();
 	
-	void CreateInventoryHUDWidget();
+	void UseQuickSlotItem();
 	
+	void SwitchQuickSlotItem(bool bIsHeadingNext);
+	
+private:
 	// 아이템을 바라보고 있을 때 범위 내에 있다면 상호작용이 가능함을 표시하기 위한 함수
 	// 해당 함수는 아이템 획득을 진행할 때 획득을 위한 상호작용 가능 범위를 영역이 아닌 바라보고 있는
 	// 방향에서 일정 거리 내에 있는지로 판단하는 것을 전재로 한다.
@@ -66,19 +75,23 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	TObjectPtr<UInputAction> InventoryUIToggleAction;
 	
-	// HUD 섹션
-private:
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
-	TSubclassOf<UInventoryHUDWidget> InventoryHUDWidgetClass;
+	TObjectPtr<UInputAction> UseQuickSlotItemAction;
 	
-	UPROPERTY()
-	TObjectPtr<UInventoryHUDWidget> InventoryHUDWidget;
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
+	TObjectPtr<UInputAction> SwitchNextQuickSlotItemAction;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
+	TObjectPtr<UInputAction> SwitchPrevQuickSlotItemAction;
 	
 	// 아이템 상호작용 검사 섹션
 private:
 	// 에디터에서 설정할 아이템 감지를 위한 유효 범위(거리)
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	float TraceLength;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
+	float TraceRadius;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	FVector TraceOffset;
@@ -101,4 +114,10 @@ private:
 	
 	UPROPERTY()
 	TWeakObjectPtr<AActor> LastTracedItem;
+	
+	bool bHasTraceTarget = false;
+	
+	// 아이템 상호작용 메시지에서 플레이어의 상호작용 키를 표시하기 위해 저장하는 변수
+	UPROPERTY()
+	TArray<FKey> InteractionKeys;
 };

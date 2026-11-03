@@ -30,6 +30,8 @@ ASoulCharacterEnemy::ASoulCharacterEnemy()
 	
 	// Movement Setup.
 	GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed;
+
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
 void ASoulCharacterEnemy::BeginPlay()
