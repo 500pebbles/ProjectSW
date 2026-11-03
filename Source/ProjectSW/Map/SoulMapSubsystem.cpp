@@ -76,5 +76,14 @@ void USoulMapSubsystem::HandleRoomEntered(ASoulPackedLevelActor* Room)
 
 	Room->MarkVisited();
 
+	if (Room->HasCombat())
+	{
+		SW_LOG("HasCombat : true");
+	}
+	else
+	{
+		SW_LOG("HasCombat : false");
+	}
+
 	SW_LOG("%d 방 진입", Room->GetRoomId());
 }

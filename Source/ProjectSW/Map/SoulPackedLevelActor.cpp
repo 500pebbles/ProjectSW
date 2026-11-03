@@ -3,8 +3,11 @@
 
 #include "SoulPackedLevelActor.h"
 #include "Components/BoxComponent.h"
+#include "SoulRoomSpawnPointComponent.h"
+#include "Character/SoulEnemySet.h"
 #include "Character/SoulCharacterPlayer.h"
 #include "Data/PMGResult.h"
+#include "Utility/SoulLog.h"
 
 ASoulPackedLevelActor::ASoulPackedLevelActor()
 {
@@ -53,10 +56,44 @@ void ASoulPackedLevelActor::MarkVisited()
 	SetTriggerEnabled(false);
 }
 
+bool ASoulPackedLevelActor::HasCombat() const
+{
+	TArray<USoulRoomSpawnPointComponent*> SpawnPoints;
+	GetComponents(SpawnPoints);
+
+	for (const USoulRoomSpawnPointComponent* SpawnPoint : SpawnPoints)
+	{
+		if (GetEnemySetFor(SpawnPoint))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void ASoulPackedLevelActor::StartCombat()
+{
+}
+
 void ASoulPackedLevelActor::HandleTriggerBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (Cast<ASoulCharacterPlayer>(OtherActor))
 	{
 		OnPlayerEntered.Broadcast(this);
 	}
+}
+
+const USoulEnemySet* ASoulPackedLevelActor::GetEnemySetFor(const USoulRoomSpawnPointComponent* SpawnPoint) const
+{
+	const USoulEnemySet* EnemySet = SpawnPoint->GetEnemySet() ? SpawnPoint->GetEnemySet() : DefaultEnemySet.Get();
+	return EnemySet && !EnemySet->GetEnemyClasses().IsEmpty() ? EnemySet : nullptr;
+}
+
+void ASoulPackedLevelActor::FinishCombat()
+{
+}
+
+void ASoulPackedLevelActor::HandleEnemyGone(AActor* Enemy)
+{
 }
