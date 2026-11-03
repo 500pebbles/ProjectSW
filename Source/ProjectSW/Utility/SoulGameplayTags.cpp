@@ -63,6 +63,7 @@ namespace SoulTags
 		UE_DEFINE_GAMEPLAY_TAG(Primary, "SoulTags.Abilities.Primary")
 		UE_DEFINE_GAMEPLAY_TAG(Attack, "SoulTags.Abilities.Attack")
 		UE_DEFINE_GAMEPLAY_TAG(Dash, "SoulTags.Abilities.Dash")
+		UE_DEFINE_GAMEPLAY_TAG(Skill, "SoulTags.Abilities.Skill")
 	} 
 	
 	namespace States
@@ -71,6 +72,20 @@ namespace SoulTags
 		UE_DEFINE_GAMEPLAY_TAG(Attacking, "SoulTags.States.Attacking")
 		UE_DEFINE_GAMEPLAY_TAG(Dashing, "SoulTags.States.Dashing")
 		UE_DEFINE_GAMEPLAY_TAG(Invincible, "SoulTags.States.Invincible")
+	}
+	
+	namespace Cooldown
+	{
+		UE_DEFINE_GAMEPLAY_TAG(Duration, "SoulTags.Cooldown.Duration")
+		UE_DEFINE_GAMEPLAY_TAG(Skill_1_0, "SoulTags.Cooldown.Skill.1_0")
+		UE_DEFINE_GAMEPLAY_TAG(Skill_1_1, "SoulTags.Cooldown.Skill.1_1")
+		UE_DEFINE_GAMEPLAY_TAG(Skill_1_2, "SoulTags.Cooldown.Skill.1_2")
+		UE_DEFINE_GAMEPLAY_TAG(Skill_2_0, "SoulTags.Cooldown.Skill.2_0")
+		UE_DEFINE_GAMEPLAY_TAG(Skill_2_1, "SoulTags.Cooldown.Skill.2_1")
+		UE_DEFINE_GAMEPLAY_TAG(Skill_2_2, "SoulTags.Cooldown.Skill.2_2")
+		UE_DEFINE_GAMEPLAY_TAG(Skill_3_0, "SoulTags.Cooldown.Skill.3_0")
+		UE_DEFINE_GAMEPLAY_TAG(Skill_3_1, "SoulTags.Cooldown.Skill.3_1")
+		UE_DEFINE_GAMEPLAY_TAG(Skill_3_2, "SoulTags.Cooldown.Skill.3_2")
 	}
 	
 	namespace InputTags
