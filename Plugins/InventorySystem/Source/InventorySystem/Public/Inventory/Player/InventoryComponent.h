@@ -116,7 +116,7 @@ private:
 	
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void CycleQuickSlot();
+	void CycleQuickSlot(bool bIsHeadingNext);
 	
 private:
 	// 현재 선택된 아이템의 종류

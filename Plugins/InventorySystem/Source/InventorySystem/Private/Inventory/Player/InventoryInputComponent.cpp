@@ -74,6 +74,8 @@ void UInventoryInputComponent::SetupInventoryInputComponent()
 	EnhancedInputComponent->BindAction(InventoryInteractAction, ETriggerEvent::Started, this, &UInventoryInputComponent::InventoryInteract);
 	EnhancedInputComponent->BindAction(InventoryUIToggleAction, ETriggerEvent::Started, this, &UInventoryInputComponent::ToggleInventoryUI);
 	EnhancedInputComponent->BindAction(UseQuickSlotItemAction, ETriggerEvent::Started, this, &UInventoryInputComponent::UseQuickSlotItem);
+	EnhancedInputComponent->BindAction(SwitchNextQuickSlotItemAction, ETriggerEvent::Started, this, &UInventoryInputComponent::SwitchQuickSlotItem, true);
+	EnhancedInputComponent->BindAction(SwitchPrevQuickSlotItemAction, ETriggerEvent::Started, this, &UInventoryInputComponent::SwitchQuickSlotItem, false);
 }
 
 void UInventoryInputComponent::InventoryInteract()
@@ -96,6 +98,11 @@ void UInventoryInputComponent::ToggleInventoryUI()
 void UInventoryInputComponent::UseQuickSlotItem()
 {
 	OnUseQuickSlotItem.Broadcast();	
+}
+
+void UInventoryInputComponent::SwitchQuickSlotItem(bool bIsHeadingNext)
+{
+	OnSwitchQuickSlotItem.Broadcast(bIsHeadingNext);
 }
 
 void UInventoryInputComponent::TraceItem()

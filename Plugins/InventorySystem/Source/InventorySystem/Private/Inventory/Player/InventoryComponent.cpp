@@ -9,7 +9,6 @@
 #include "Item/ItemActorBase.h"
 #include "Inventory/UI/Inventory/GridInventoryWidget.h"
 #include "Inventory/UI/Inventory/InventoryBase.h"
-#include "Inventory/UI/Inventory/InventoryGrid.h"
 #include "Item/ItemComponent.h"
 #include "Item/Data/ItemData.h"
 
@@ -47,6 +46,7 @@ void UInventoryComponent::BeginPlay()
 			InputInterface->GetOnCollectItem().AddDynamic(this, &UInventoryComponent::CollectItem);
 			InputInterface->GetOnUseQuickSlotItem().AddDynamic(this, &UInventoryComponent::UseQuickSlotItem);
 			InputInterface->GetOnTraceItemChanged().AddDynamic(this, &UInventoryComponent::HandleTraceItemChanged);
+			InputInterface->GetSwitchQuickSlotItem().AddDynamic(this, &UInventoryComponent::CycleQuickSlot);
 		}
 	}
 	
@@ -338,7 +338,7 @@ void UInventoryComponent::RefreshQuickSlot()
 	}
 }
 
-void UInventoryComponent::CycleQuickSlot()
+void UInventoryComponent::CycleQuickSlot(bool bIsHeadingNext)
 {
 	const TArray<FName> Kinds = GetConsumableItemKinds();
 	if (Kinds.Num() <= 1)
@@ -347,7 +347,16 @@ void UInventoryComponent::CycleQuickSlot()
 	}
 	
 	const int32 Index = Kinds.IndexOfByKey(SeletedQuickSlotItemKind); // 없으면 -1
-	SeletedQuickSlotItemKind = Kinds[(Index + 1) % Kinds.Num()];
+	
+	if (bIsHeadingNext)
+	{
+		SeletedQuickSlotItemKind = Kinds[(Index + 1) % Kinds.Num()];
+	}
+	else
+	{
+		SeletedQuickSlotItemKind = Kinds[(Index - 1 + Kinds.Num()) % Kinds.Num()];
+	}
+	
 	RefreshQuickSlot();
 }
 
