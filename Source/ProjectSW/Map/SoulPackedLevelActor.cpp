@@ -6,6 +6,7 @@
 #include "SoulRoomSpawnPointComponent.h"
 #include "Character/SoulEnemySet.h"
 #include "Character/SoulCharacterPlayer.h"
+#include "Character/SoulCharacterEnemy.h"
 #include "Data/PMGResult.h"
 #include "Utility/SoulLog.h"
 
@@ -74,6 +75,33 @@ bool ASoulPackedLevelActor::HasCombat() const
 
 void ASoulPackedLevelActor::StartCombat()
 {
+	TArray<USoulRoomSpawnPointComponent*> SpawnPoints;
+	GetComponents(SpawnPoints);
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	for (const USoulRoomSpawnPointComponent* SpawnPoint : SpawnPoints)
+	{
+		const USoulEnemySet* EnemySet = GetEnemySetFor(SpawnPoint);
+
+		if (!EnemySet)
+		{
+			SW_LOG_WARNING("ASoulPackedLevelActor::StartCombat : %s 스폰 포인트 %s에 쓸 몹 목록 없음.", *GetName(), *SpawnPoint->GetName());
+			continue;
+		}
+
+		const TArray<TSubclassOf<ASoulCharacterEnemy>>& EnemyClasses = EnemySet->GetEnemyClasses();
+		const TSubclassOf<ASoulCharacterEnemy> EnemyClass = EnemyClasses[FMath::RandRange(0, EnemyClasses.Num() - 1)];
+
+		ASoulCharacterEnemy* Enemy = GetWorld()->SpawnActor<ASoulCharacterEnemy>(EnemyClass, SpawnPoint->GetComponentTransform(), SpawnParameters);
+
+		if (!Enemy)
+			continue;
+
+		//Enemy->SpawnDefaultController();
+	}
+
 }
 
 void ASoulPackedLevelActor::HandleTriggerBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
