@@ -103,4 +103,8 @@ private:
 	TWeakObjectPtr<AActor> LastTracedItem;
 	
 	bool bHasTraceTarget = false;
+	
+	// 아이템 상호작용 메시지에서 플레이어의 상호작용 키를 표시하기 위해 저장하는 변수
+	UPROPERTY()
+	TArray<FKey> InteractionKeys;
 };

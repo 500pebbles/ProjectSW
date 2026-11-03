@@ -44,7 +44,7 @@ public:
 	void CreateInventoryHUDWidget();
 	
 	UFUNCTION()
-	void HandleTraceItemChanged(bool bHasTarget);
+	void HandleTraceItemChanged(bool bHasTarget, FKey InputKey, AActor* TargetItemActor);
 	
 	// 인벤토리 UI 생성
 	void CreateInventoryUIWidget();

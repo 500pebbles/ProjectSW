@@ -18,7 +18,7 @@ class INVENTORYSYSTEM_API UInventoryHUDWidget : public UUserWidget
 	
 public:
 	UFUNCTION(BlueprintImplementableEvent)
-	void ShowInteractionMessage();
+	void ShowInteractionMessage(FKey InputKey, const FText& ItemName);
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	void HideInteractionMessage();

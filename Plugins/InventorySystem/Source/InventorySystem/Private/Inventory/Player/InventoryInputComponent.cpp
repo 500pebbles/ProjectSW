@@ -3,9 +3,9 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "Blueprint/UserWidget.h"
 #include "Item/Interface/HighlightMaterialInterface.h"
-#include "Inventory/UI/InventoryHUDWidget.h"
+#include "Item/ItemComponent.h"
+#include "Item/Data/ItemData.h"
 
 #include "Kismet/GameplayStatics.h"
 
@@ -139,12 +139,23 @@ void UInventoryInputComponent::TraceItem()
 	LastTracedItem = CurrentTraceItem;
 	CurrentTraceItem = HitResult.GetActor();
 	
+	
+	
 	// 현재 상호작용 가능한 액터를 검사하고 있다가 상호작용 대상 유무가 바뀌면 HUD에 알림
 	const bool bHasTarget = CurrentTraceItem.IsValid();
 	if (bHasTarget != bHasTraceTarget)
 	{
 		bHasTraceTarget = bHasTarget;
-		OnTraceItemChanged.Broadcast(bHasTarget);
+		
+		if (InteractionKeys.IsEmpty())
+		{
+			UEnhancedInputLocalPlayerSubsystem* Subsystem =
+				ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalGameController->GetLocalPlayer());
+			InteractionKeys = Subsystem->QueryKeysMappedToAction(InventoryInteractAction);
+		}
+
+		// 타겟이 있으면 타겟도 전달 (이름 텍스트 적용 위함)
+		OnTraceItemChanged.Broadcast(bHasTarget, InteractionKeys[0], CurrentTraceItem.Get());
 	}
 	
 	if (CurrentTraceItem == LastTracedItem) return;

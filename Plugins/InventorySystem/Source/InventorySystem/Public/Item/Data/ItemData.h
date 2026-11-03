@@ -80,6 +80,7 @@ public:
 	FDataTableRowHandle GetRowHandle() const { return ItemRowHandle; }
 	
 	EItemType GetItemType() const;
+	FText GetItemName() const;
 	FIntPoint GetItemSize() const;
 	FName GetRowName() const {return ItemRowHandle.RowName;}
 	

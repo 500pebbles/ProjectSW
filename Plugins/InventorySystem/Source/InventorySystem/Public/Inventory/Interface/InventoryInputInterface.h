@@ -9,7 +9,7 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnToggleInventoryUIDelegate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCollectItemDelegate, AActor*, TargetItem);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUseQuickSlotItemDelegate);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTraceItemChangedDelegate, bool, bHasTarget);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnTraceItemChangedDelegate, bool, bHasTarget, FKey, InputKey, AActor*, TargetItemActor);
 
 // This class does not need to be modified.
 UINTERFACE()

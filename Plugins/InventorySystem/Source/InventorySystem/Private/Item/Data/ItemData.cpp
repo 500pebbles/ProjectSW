@@ -68,6 +68,18 @@ EItemType UItemData::GetItemType() const
 	return ItemData->ItemType;
 }
 
+FText UItemData::GetItemName() const
+{
+	const FItemDataTable* ItemData = GetRow();
+	
+	if (!ItemData)
+	{
+		return FText::GetEmpty();
+	}
+	
+	return ItemData->ItemName;
+}
+
 FIntPoint UItemData::GetItemSize() const
 {
 	const FItemDataTable* ItemData = GetRow();

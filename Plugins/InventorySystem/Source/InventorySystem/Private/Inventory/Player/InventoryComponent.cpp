@@ -53,7 +53,7 @@ void UInventoryComponent::BeginPlay()
 	//InventoryData.InitializeArray();
 	
 	RefreshQuickSlot();
-	HandleTraceItemChanged(false);
+	HandleTraceItemChanged(false, TEXT("None"), nullptr);
 }
 
 void UInventoryComponent::CreateInventoryHUDWidget()
@@ -71,10 +71,31 @@ void UInventoryComponent::CreateInventoryHUDWidget()
 	}
 }
 
-void UInventoryComponent::HandleTraceItemChanged(bool bHasTarget)
+void UInventoryComponent::HandleTraceItemChanged(bool bHasTarget, FKey InputKey, AActor* TargetItemActor)
 {
-	if (!IsValid(InventoryHUDWidget)) return;
-	bHasTarget ? InventoryHUDWidget->ShowInteractionMessage(): InventoryHUDWidget->HideInteractionMessage();
+	if (!IsValid(InventoryHUDWidget))
+	{
+		return;
+	}
+	
+	if (!bHasTarget)
+	{
+		InventoryHUDWidget->HideInteractionMessage();
+		return;
+	}
+	
+	// 아이템이 있는 경우 아이템의 이름 전달
+	FText ItemName = FText::GetEmpty();
+	if (IsValid(TargetItemActor))
+	{
+		UItemComponent* ItemComponent = Cast<UItemComponent>(TargetItemActor->GetComponentByClass(UItemComponent::StaticClass()));
+		if (ItemComponent)
+		{
+			ItemName = ItemComponent->GetItemData()->GetItemName();	
+		}
+	}
+
+	InventoryHUDWidget->ShowInteractionMessage(InputKey, ItemName);
 }
 
 void UInventoryComponent::CreateInventoryUIWidget()
