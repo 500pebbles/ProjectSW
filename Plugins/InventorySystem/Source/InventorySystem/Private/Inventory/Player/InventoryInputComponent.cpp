@@ -43,13 +43,18 @@ void UInventoryInputComponent::BeginPlay()
 
 			if (nullptr != Subsystem)
 			{
+				// 원래 인풋 액션이 맵핑되기까지 다음 입력 틱을 기다려야 하지만 버튼 텍스트 설정을 위해 강제로 즉시 리빌드 하도록 함
+				FModifyContextOptions Options;
+				Options.bForceImmediately = true;
+				
 				for (auto Context : IMC_Inventory)
 				{
-					Subsystem->AddMappingContext(Context, 0);
+					Subsystem->AddMappingContext(Context, 0, Options);
 				}
 			}
 
 			SetupInventoryInputComponent();
+			SetupQuickSlotButtonText(Subsystem);
 		}
 	}
 }
@@ -74,8 +79,40 @@ void UInventoryInputComponent::SetupInventoryInputComponent()
 	EnhancedInputComponent->BindAction(InventoryInteractAction, ETriggerEvent::Started, this, &UInventoryInputComponent::InventoryInteract);
 	EnhancedInputComponent->BindAction(InventoryUIToggleAction, ETriggerEvent::Started, this, &UInventoryInputComponent::ToggleInventoryUI);
 	EnhancedInputComponent->BindAction(UseQuickSlotItemAction, ETriggerEvent::Started, this, &UInventoryInputComponent::UseQuickSlotItem);
-	EnhancedInputComponent->BindAction(SwitchNextQuickSlotItemAction, ETriggerEvent::Started, this, &UInventoryInputComponent::SwitchQuickSlotItem, true);
 	EnhancedInputComponent->BindAction(SwitchPrevQuickSlotItemAction, ETriggerEvent::Started, this, &UInventoryInputComponent::SwitchQuickSlotItem, false);
+	EnhancedInputComponent->BindAction(SwitchNextQuickSlotItemAction, ETriggerEvent::Started, this, &UInventoryInputComponent::SwitchQuickSlotItem, true);
+}
+
+void UInventoryInputComponent::SetupQuickSlotButtonText(UEnhancedInputLocalPlayerSubsystem* Subsystem)
+{
+	if (!IsValid(Subsystem))
+	{
+		return;
+	}
+	
+	FKey UseKey;
+	FKey SwitchPrevKey;
+	FKey SwitchNextKey;
+	
+	TArray<FKey> TempKeyArray = Subsystem->QueryKeysMappedToAction(UseQuickSlotItemAction);
+	if (!TempKeyArray.IsEmpty())
+	{
+		UseKey = TempKeyArray[0];	
+	}
+	
+	TempKeyArray = Subsystem->QueryKeysMappedToAction(SwitchPrevQuickSlotItemAction);
+	if (!TempKeyArray.IsEmpty())
+	{
+		SwitchPrevKey = TempKeyArray[0];
+	}
+	
+	TempKeyArray = Subsystem->QueryKeysMappedToAction(SwitchNextQuickSlotItemAction);
+	if (!TempKeyArray.IsEmpty())
+	{
+		SwitchNextKey = TempKeyArray[0];
+	}
+	
+	OnSetupQuickSlotButtonText.Broadcast(UseKey, SwitchPrevKey, SwitchNextKey);
 }
 
 void UInventoryInputComponent::InventoryInteract()

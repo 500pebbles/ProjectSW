@@ -47,6 +47,7 @@ void UInventoryComponent::BeginPlay()
 			InputInterface->GetOnUseQuickSlotItem().AddDynamic(this, &UInventoryComponent::UseQuickSlotItem);
 			InputInterface->GetOnTraceItemChanged().AddDynamic(this, &UInventoryComponent::HandleTraceItemChanged);
 			InputInterface->GetSwitchQuickSlotItem().AddDynamic(this, &UInventoryComponent::CycleQuickSlot);
+			InputInterface->GetSetupQuickSlotButtonText().AddDynamic(this, &UInventoryComponent::SetupQuickSlotButtonText);
 		}
 	}
 	
@@ -240,6 +241,14 @@ void UInventoryComponent::HandleTraceItemChanged(bool bHasTarget, FKey InputKey,
 	}
 
 	InventoryHUDWidget->ShowInteractionMessage(InputKey, ItemName);
+}
+
+void UInventoryComponent::SetupQuickSlotButtonText(FKey UseKey, FKey SwitchPrevKey, FKey SwitchNextKey)
+{
+	if (UseKey.IsValid() && SwitchPrevKey.IsValid() && SwitchNextKey.IsValid())
+	{
+		InventoryHUDWidget->SetQuickSlotButtonText(UseKey, SwitchPrevKey, SwitchNextKey);
+	}
 }
 
 void UInventoryComponent::CreateInventoryUIWidget()

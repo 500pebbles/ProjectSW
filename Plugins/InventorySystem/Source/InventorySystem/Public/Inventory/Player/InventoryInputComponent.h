@@ -7,6 +7,7 @@
 #include "Runtime/Engine/Classes/Components/ActorComponent.h"
 #include "InventoryInputComponent.generated.h"
 
+class UEnhancedInputLocalPlayerSubsystem;
 DECLARE_LOG_CATEGORY_EXTERN(LogInventoryInputComponent, Log, All);
 
 class UInputMappingContext;
@@ -23,6 +24,7 @@ public:
 	FOnUseQuickSlotItemDelegate OnUseQuickSlotItem;
 	FOnTraceItemChangedDelegate OnTraceItemChanged;
 	FOnSwitchQuickSlotItemDelegate OnSwitchQuickSlotItem;
+	FOnSetupQuickSlotButtonTextDelegate OnSetupQuickSlotButtonText;
 
 public:
 	// Sets default values for this component's properties
@@ -33,6 +35,9 @@ public:
 	
 	// 이 함수를 플레이어 컨트롤러의 SetupInputComponent()에서 호출할 것
 	void SetupInventoryInputComponent();
+	
+	// HUD의 퀵슬롯 단축키 버튼 텍스트 할당을 위한 함수
+	void SetupQuickSlotButtonText(UEnhancedInputLocalPlayerSubsystem* Subsystem);
 
 public:
 	// Called every frame
@@ -45,6 +50,7 @@ public:
 	virtual FOnUseQuickSlotItemDelegate& GetOnUseQuickSlotItem() override {return OnUseQuickSlotItem;}
 	virtual FOnTraceItemChangedDelegate& GetOnTraceItemChanged() override {return OnTraceItemChanged;}
 	virtual FOnSwitchQuickSlotItemDelegate& GetSwitchQuickSlotItem() override {return OnSwitchQuickSlotItem;}
+	virtual FOnSetupQuickSlotButtonTextDelegate& GetSetupQuickSlotButtonText() override {return OnSetupQuickSlotButtonText;}
 	
 	// 입력 관련 함수
 private:

@@ -79,6 +79,9 @@ public:
 	UFUNCTION()
 	void HandleTraceItemChanged(bool bHasTarget, FKey InputKey, AActor* TargetItemActor);
 	
+	UFUNCTION()
+	void SetupQuickSlotButtonText(FKey UseKey, FKey SwitchPrevKey, FKey SwitchNextKey);
+	
 	// 인벤토리 UI 생성
 	void CreateInventoryUIWidget();
 	
