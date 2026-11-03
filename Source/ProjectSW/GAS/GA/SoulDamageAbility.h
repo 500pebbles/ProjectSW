@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "SoulGameplayAbility.h"
+#include "Interface/SoulCombatInterface.h"
 #include "SoulDamageAbility.generated.h"
 
 
@@ -22,4 +23,7 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Setup")
 	TMap<FGameplayTag, FScalableFloat> DamageTypes;
+	
+	UFUNCTION(BlueprintPure)
+	FTaggedMontage GetRandomTaggedMontage(const TArray<FTaggedMontage>& TaggedMontages);
 };
