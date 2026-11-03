@@ -5,6 +5,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GAS/Core/SoulAbilitySystemComponent.h"
 #include "Input/SoulEnhancedInputComponent.h"
 #include "UI/WidgetComponent/SoulDamageTextComponent.h"
@@ -119,6 +120,18 @@ void ASoulPlayerController::StopHoverMouse()
 
 void ASoulPlayerController::AbilityInputTagPressed(const FGameplayTag InputTag)
 {
+	// 대시 키를 누르면 질주 속도로 변경 (0.25초 대시 종료 후에도 키를 누르고 있으면 빠른 속도로 계속 달림)
+	if (InputTag.MatchesTagExact(SoulTags::InputTags::Dash))
+	{
+		if (ACharacter* ControlledCharacter = GetCharacter())
+		{
+			if (UCharacterMovementComponent* MoveComp = ControlledCharacter->GetCharacterMovement())
+			{
+				MoveComp->MaxWalkSpeed = SprintSpeed;
+			}
+		}
+	}
+	
 	// 입력 정책 : 누른 순간 1회 발동, 실행 중이면 입력만 전달 (콤보 입력). Held 연사 없음.
 	if (!IsValid(GetASC())) return;
 	GetASC()->AbilityInputTagPressed(InputTag);
@@ -126,6 +139,18 @@ void ASoulPlayerController::AbilityInputTagPressed(const FGameplayTag InputTag)
 
 void ASoulPlayerController::AbilityInputTagReleased(const FGameplayTag InputTag)
 {
+	// 대시 키에서 손을 떼면 기본 이동 속도로 복구
+	if (InputTag.MatchesTagExact(SoulTags::InputTags::Dash))
+	{
+		if (ACharacter* ControlledCharacter = GetCharacter())
+		{
+			if (UCharacterMovementComponent* MoveComp = ControlledCharacter->GetCharacterMovement())
+			{
+				MoveComp->MaxWalkSpeed = WalkSpeed;
+			}
+		}
+	}
+	
 	if (!IsValid(GetASC())) return;
 	GetASC()->AbilityInputTagReleased(InputTag);
 }

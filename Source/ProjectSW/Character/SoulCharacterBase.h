@@ -102,6 +102,6 @@ protected:
 	
 /* Component Section */	
 protected:
-	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Setup")
 	TObjectPtr<USkeletalMeshComponent> Weapon;
 };
