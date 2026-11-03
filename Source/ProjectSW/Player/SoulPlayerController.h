@@ -85,6 +85,13 @@ private:
 	FVector AttackInputDirection = FVector::ZeroVector;
 	FVector MoveInputDirection = FVector::ZeroVector;
 	
+	// 기본 이동 속도 (평상시)
+    UPROPERTY(EditDefaultsOnly, Category = "Setup|Movement")
+    float WalkSpeed = 600.0f;
+	
+    // 대시 키(LeftShift) 유지 시 질주 이동 속도
+    UPROPERTY(EditDefaultsOnly, Category = "Setup|Movement")
+    float SprintSpeed = 1000.0f;
 	
 /* GAS Core Section */
 private:
