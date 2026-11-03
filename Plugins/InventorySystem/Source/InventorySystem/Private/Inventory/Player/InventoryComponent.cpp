@@ -9,6 +9,7 @@
 #include "Item/ItemActorBase.h"
 #include "Inventory/UI/Inventory/GridInventoryWidget.h"
 #include "Inventory/UI/Inventory/InventoryBase.h"
+#include "Inventory/UI/Inventory/InventoryGrid.h"
 #include "Item/ItemComponent.h"
 #include "Item/Data/ItemData.h"
 
@@ -55,6 +56,149 @@ void UInventoryComponent::BeginPlay()
 	RefreshQuickSlot();
 	HandleTraceItemChanged(false, TEXT("None"), nullptr);
 }
+
+
+void UInventoryComponent::CollectItem(AActor* TargetItem)
+{
+	if (!IsValid(TargetItem))
+	{
+		return;
+	}
+	
+	UItemComponent* TargetItemComponent = TargetItem->GetComponentByClass<UItemComponent>();
+	
+	// 아이템이 추가될 떄 UI에 반영하도록 조건 추가
+	const int32 PrevItemCount = InventoryData.ItemDataArray.Num();
+	InventoryData.AddItemData(TargetItemComponent);
+	
+	if(InventoryData.ItemDataArray.Num() > PrevItemCount)
+	{
+		// 가장 마지막에 추가된 아이템을 전달
+		OnInventoryItemAdded.Broadcast(&InventoryData.ItemDataArray.Last());
+	}
+	
+	// 월드 상에서 아이템 제거
+	TargetItem->Destroy();
+	
+	RefreshQuickSlot();
+}
+
+// Testcode
+void UInventoryComponent::UseQuickSlotItem()
+{
+	// 현재 선택된 퀵슬롯 아이템의 ID를 이용해 아이템 사용
+	if (const FInventoryDataEntry* Entry = FindFirstConsumableKind(SeletedQuickSlotItemKind))
+	{
+		UseItem(Entry->GetID());
+	}
+}
+
+
+void UInventoryComponent::UseItem(const FGuid& ItemID)
+{
+	const FInventoryDataEntry* UsedItemEntry = InventoryData.FindItemWithID(ItemID);
+	if (!UsedItemEntry)
+	{
+		return;
+	}
+	
+	UItemData* UsedItem = UsedItemEntry->GetItem();
+	if (!UsedItem)
+	{
+		return;
+	}
+	
+	if (!UsedItem->UseItem(GetOwner()))
+	{
+		return;
+	}
+	
+	if (UsedItem->IsConsumedOnUse())
+	{
+		// 소모성 아이템이면 아이템 제거
+		RemoveItem(ItemID);
+	}
+}
+
+int32 UInventoryComponent::RemoveItem(const FGuid& InItemID, int32 RemoveCount)
+{
+	const FRemoveResult Result = InventoryData.RemoveItemData(InItemID, RemoveCount);
+	if (Result.RemovedCount <= 0)
+	{
+		return 0;
+	}
+
+	if (Result.RemainingItemCount <= 0)
+	{
+		OnInventoryItemRemoved.Broadcast(InItemID);
+	}
+	else
+	{
+		OnItemQuantityChanged.Broadcast(InItemID, Result.RemainingItemCount);
+	}
+	
+	RefreshQuickSlot();
+	
+	return Result.RemovedCount;
+}
+
+int32 UInventoryComponent::DropItem(const FGuid& InID, int32 Count)
+{
+	if (Count <= 0) { return 0; }
+
+	const FInventoryDataEntry* Entry = InventoryData.FindItemWithID(InID);
+	if (!Entry || !Entry->GetItem()) { return 0; }
+
+	// 제거 전에 필요한 값을 복사해 둔다. 이후 Entry 포인터는 쓰지 않는다.
+	const FDataTableRowHandle ItemRow = Entry->GetItem()->GetRowHandle(); // 가정
+	const int32 DropQuantity = FMath::Min(Count, Entry->GetQuantity());
+
+	if (!SpawnDroppedItem(ItemRow))
+	{
+		return 0; // 스폰 실패 시 인벤토리는 그대로
+	}
+	return RemoveItem(InID, DropQuantity);
+}
+
+bool UInventoryComponent::SpawnDroppedItem(const FDataTableRowHandle& InItemRow)
+{
+	UWorld* World = GetWorld();
+	const AActor* OwnerActor = GetOwner();
+	if (!World || !OwnerActor || InItemRow.IsNull())
+	{
+		return false;
+	}
+
+	const TSubclassOf<AItemActorBase> SpawnClass = ItemActorClass ? ItemActorClass : TSubclassOf<AItemActorBase>(AItemActorBase::StaticClass());
+	const FTransform SpawnTransform = CalculateDropPosition(*OwnerActor);
+
+	AItemActorBase* Spawned = World->SpawnActorDeferred<AItemActorBase>(
+		SpawnClass, SpawnTransform, nullptr, nullptr,
+		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+	if (!Spawned)
+	{
+		return false;
+	}
+
+	Spawned->SetupItem(InItemRow);
+	Spawned->FinishSpawning(SpawnTransform);
+	return true;
+}
+
+FTransform UInventoryComponent::CalculateDropPosition(const AActor& OwnerActor) const
+{
+	const FVector Desired = OwnerActor.GetActorLocation() + OwnerActor.GetActorForwardVector() * DropDistance;
+
+	FHitResult Hit;
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(&OwnerActor);
+
+	const bool bHit = GetWorld()->LineTraceSingleByChannel(
+		Hit, Desired + FVector(0, 0, 100.f), Desired - FVector(0, 0, 500.f), ECC_Visibility, QueryParams);
+
+	return FTransform(FRotator::ZeroRotator, bHit ? FVector(Hit.ImpactPoint) : Desired);
+}
+
 
 void UInventoryComponent::CreateInventoryHUDWidget()
 {
@@ -205,147 +349,6 @@ void UInventoryComponent::CycleQuickSlot()
 	const int32 Index = Kinds.IndexOfByKey(SeletedQuickSlotItemKind); // 없으면 -1
 	SeletedQuickSlotItemKind = Kinds[(Index + 1) % Kinds.Num()];
 	RefreshQuickSlot();
-}
-
-void UInventoryComponent::CollectItem(AActor* TargetItem)
-{
-	if (!IsValid(TargetItem))
-	{
-		return;
-	}
-	
-	UItemComponent* TargetItemComponent = TargetItem->GetComponentByClass<UItemComponent>();
-	
-	// 아이템이 추가될 떄 UI에 반영하도록 조건 추가
-	const int32 PrevItemCount = InventoryData.ItemDataArray.Num();
-	InventoryData.AddItemData(TargetItemComponent);
-	
-	if(InventoryData.ItemDataArray.Num() > PrevItemCount)
-	{
-		// 가장 마지막에 추가된 아이템을 전달
-		OnInventoryItemAdded.Broadcast(&InventoryData.ItemDataArray.Last());
-	}
-	
-	// 월드 상에서 아이템 제거
-	TargetItem->Destroy();
-	
-	RefreshQuickSlot();
-}
-
-// Testcode
-void UInventoryComponent::UseQuickSlotItem()
-{
-	// 현재 선택된 퀵슬롯 아이템의 ID를 이용해 아이템 사용
-	if (const FInventoryDataEntry* Entry = FindFirstConsumableKind(SeletedQuickSlotItemKind))
-	{
-		UseItem(Entry->GetID());
-	}
-}
-
-
-void UInventoryComponent::UseItem(const FGuid& ItemID)
-{
-	const FInventoryDataEntry* UsedItemEntry = InventoryData.FindItemWithID(ItemID);
-	if (!UsedItemEntry)
-	{
-		return;
-	}
-	
-	UItemData* UsedItem = UsedItemEntry->GetItem();
-	if (!UsedItem)
-	{
-		return;
-	}
-	
-	if (!UsedItem->UseItem(GetOwner()))
-	{
-		return;
-	}
-	
-	if (UsedItem->IsConsumedOnUse())
-	{
-		// 소모성 아이템이면 아이템 제거
-		RemoveItem(ItemID);
-	}
-}
-
-int32 UInventoryComponent::RemoveItem(const FGuid& InItemID, int32 RemoveCount)
-{
-	const FRemoveResult Result = InventoryData.RemoveItemData(InItemID, RemoveCount);
-	if (Result.RemovedCount <= 0)
-	{
-		return 0;
-	}
-
-	if (Result.RemainingItemCount <= 0)
-	{
-		OnInventoryItemRemoved.Broadcast(InItemID);
-	}
-	else
-	{
-		OnItemQuantityChanged.Broadcast(InItemID, Result.RemainingItemCount);
-	}
-	
-	RefreshQuickSlot();
-	
-	return Result.RemovedCount;
-}
-
-int32 UInventoryComponent::DropItem(const FGuid& InID, int32 Count)
-{
-	if (Count <= 0) { return 0; }
-
-	const FInventoryDataEntry* Entry = InventoryData.FindItemWithID(InID);
-	if (!Entry || !Entry->GetItem()) { return 0; }
-
-	// 제거 전에 필요한 값을 복사해 둔다. 이후 Entry 포인터는 쓰지 않는다.
-	const FDataTableRowHandle ItemRow = Entry->GetItem()->GetRowHandle(); // 가정
-	const int32 DropQuantity = FMath::Min(Count, Entry->GetQuantity());
-
-	if (!SpawnDroppedItem(ItemRow))
-	{
-		return 0; // 스폰 실패 시 인벤토리는 그대로
-	}
-	return RemoveItem(InID, DropQuantity);
-}
-
-bool UInventoryComponent::SpawnDroppedItem(const FDataTableRowHandle& InItemRow)
-{
-	UWorld* World = GetWorld();
-	const AActor* OwnerActor = GetOwner();
-	if (!World || !OwnerActor || InItemRow.IsNull())
-	{
-		return false;
-	}
-
-	const TSubclassOf<AItemActorBase> SpawnClass = ItemActorClass ? ItemActorClass : TSubclassOf<AItemActorBase>(AItemActorBase::StaticClass());
-	const FTransform SpawnTransform = CalculateDropPosition(*OwnerActor);
-
-	AItemActorBase* Spawned = World->SpawnActorDeferred<AItemActorBase>(
-		SpawnClass, SpawnTransform, nullptr, nullptr,
-		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
-	if (!Spawned)
-	{
-		return false;
-	}
-
-	Spawned->SetupItem(InItemRow);
-	Spawned->FinishSpawning(SpawnTransform);
-	return true;
-}
-
-FTransform UInventoryComponent::CalculateDropPosition(const AActor& OwnerActor) const
-{
-	const FVector Desired = OwnerActor.GetActorLocation() + OwnerActor.GetActorForwardVector() * DropDistance;
-
-	FHitResult Hit;
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(&OwnerActor);
-
-	const bool bHit = GetWorld()->LineTraceSingleByChannel(
-		Hit, Desired + FVector(0, 0, 100.f), Desired - FVector(0, 0, 500.f), ECC_Visibility, QueryParams);
-
-	return FTransform(FRotator::ZeroRotator, bHit ? FVector(Hit.ImpactPoint) : Desired);
 }
 
 

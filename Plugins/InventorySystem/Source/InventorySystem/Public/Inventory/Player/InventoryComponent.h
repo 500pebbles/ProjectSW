@@ -38,6 +38,39 @@ public:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 	
+	// 아이템 습득 및 버리기
+public:
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+		void CollectItem(AActor* TargetItem);
+	
+	UFUNCTION(BlueprintCallable)
+		void UseQuickSlotItem();
+	
+	// 아이템 사용 함수
+	UFUNCTION(BlueprintCallable)
+		void UseItem(const FGuid& ItemID);
+
+	// 아이템 제거 함수, 내부적으로 수량을 통해 전체를 제거할지 수량을 조정할지 결정
+	int32 RemoveItem(const FGuid& InItemID, int32 RemoveCount = 1);
+	
+	// 아이템 버리는 함수
+	int32 DropItem(const FGuid& InID, int32 Count = 1);
+	
+	
+private:
+	// 아이템 버렸을 때 월드에 생성하는 함수
+	bool SpawnDroppedItem(const FDataTableRowHandle& InItemRow);
+	
+	FTransform CalculateDropPosition(const AActor& OwnerActor) const;
+	
+private:
+	UPROPERTY(EditAnywhere, Category = "Item")
+	TSubclassOf<AItemActorBase> ItemActorClass;
+
+	UPROPERTY(EditAnywhere, Category = "Item")
+	float DropDistance = 100.f;
+	
+	
 	//UI
 public:
 	// 인벤토리 HUD 생성
@@ -89,38 +122,6 @@ private:
 	// 현재 선택된 아이템의 종류
  	FName SeletedQuickSlotItemKind = NAME_None;
 	
-	
-	// 아이템 습득 및 버리기
-public:
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	void CollectItem(AActor* TargetItem);
-	
-	UFUNCTION(BlueprintCallable)
-	void UseQuickSlotItem();
-	
-	// 아이템 사용 함수
-	UFUNCTION(BlueprintCallable)
-	void UseItem(const FGuid& ItemID);
-
-	// 아이템 제거 함수, 내부적으로 수량을 통해 전체를 제거할지 수량을 조정할지 결정
-	int32 RemoveItem(const FGuid& InItemID, int32 RemoveCount = 1);
-	
-	// 아이템 버리는 함수
-	int32 DropItem(const FGuid& InID, int32 Count = 1);
-	
-	
-private:
-	// 아이템 버렸을 때 월드에 생성하는 함수
-	bool SpawnDroppedItem(const FDataTableRowHandle& InItemRow);
-	
-	FTransform CalculateDropPosition(const AActor& OwnerActor) const;
-	
-private:
-	UPROPERTY(EditAnywhere, Category = "Item")
-	TSubclassOf<AItemActorBase> ItemActorClass;
-
-	UPROPERTY(EditAnywhere, Category = "Item")
-	float DropDistance = 100.f;
 	
 	// 인벤토리 데이터 섹션
 public:
