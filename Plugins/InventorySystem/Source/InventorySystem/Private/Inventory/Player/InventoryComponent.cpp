@@ -16,8 +16,32 @@
 UInventoryComponent::UInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	bWantsInitializeComponent = true;
 
 	InventoryUIClass = UGridInventoryWidget::StaticClass();
+	
+	ItemActorClass = AItemActorBase::StaticClass();
+}
+
+void UInventoryComponent::InitializeComponent()
+{
+	Super::InitializeComponent();
+	
+	// 인터페이스를 통해 의존성 분리
+	// InputComponent에서 인터페이스를 상속해 델리게이트의 정의를 반환하고, 여기서 반환받은 정의에 이벤트 구독
+	TArray<UActorComponent*> InventoryInputComponent = GetOwner()->GetComponentsByInterface(UInventoryInputInterface::StaticClass());
+	for (UActorComponent* InventoryInput : InventoryInputComponent)
+	{
+		if (IInventoryInputInterface* InputInterface = Cast<IInventoryInputInterface>(InventoryInput))
+		{
+			InputInterface->GetOnToggleInventoryUI().AddDynamic(this, &UInventoryComponent::ToggleInventoryUI);
+			InputInterface->GetOnCollectItem().AddDynamic(this, &UInventoryComponent::CollectItem);
+			InputInterface->GetOnUseQuickSlotItem().AddDynamic(this, &UInventoryComponent::UseQuickSlotItem);
+			InputInterface->GetOnTraceItemChanged().AddDynamic(this, &UInventoryComponent::HandleTraceItemChanged);
+			InputInterface->GetSwitchQuickSlotItem().AddDynamic(this, &UInventoryComponent::CycleQuickSlot);
+			InputInterface->GetSetupQuickSlotButtonText().AddDynamic(this, &UInventoryComponent::SetupQuickSlotButtonText);
+		}
+	}
 }
 
 
@@ -35,24 +59,13 @@ void UInventoryComponent::BeginPlay()
 		CreateInventoryHUDWidget();
 	}
 	
-	// 인터페이스를 통해 의존성 분리
-	// InputComponent에서 인터페이스를 상속해 델리게이트의 정의를 반환하고, 여기서 반환받은 정의에 이벤트 구독
-	TArray<UActorComponent*> InventoryInputComponent = GetOwner()->GetComponentsByInterface(UInventoryInputInterface::StaticClass());
-	for (UActorComponent* InventoryInput : InventoryInputComponent)
-	{
-		if (IInventoryInputInterface* InputInterface = Cast<IInventoryInputInterface>(InventoryInput))
-		{
-			InputInterface->GetOnToggleInventoryUI().AddDynamic(this, &UInventoryComponent::ToggleInventoryUI);
-			InputInterface->GetOnCollectItem().AddDynamic(this, &UInventoryComponent::CollectItem);
-			InputInterface->GetOnUseQuickSlotItem().AddDynamic(this, &UInventoryComponent::UseQuickSlotItem);
-			InputInterface->GetOnTraceItemChanged().AddDynamic(this, &UInventoryComponent::HandleTraceItemChanged);
-			InputInterface->GetSwitchQuickSlotItem().AddDynamic(this, &UInventoryComponent::CycleQuickSlot);
-			InputInterface->GetSetupQuickSlotButtonText().AddDynamic(this, &UInventoryComponent::SetupQuickSlotButtonText);
-		}
-	}
-	
 	// 인벤토리 데이터 초기화
 	//InventoryData.InitializeArray();
+	
+	if (CachedUseKey.IsValid() && CachedPrevKey.IsValid() && CachedNextKey.IsValid())
+	{
+		InventoryHUDWidget->SetQuickSlotButtonText(CachedUseKey, CachedPrevKey, CachedNextKey);
+	}
 	
 	RefreshQuickSlot();
 	HandleTraceItemChanged(false, TEXT("None"), nullptr);
@@ -245,7 +258,11 @@ void UInventoryComponent::HandleTraceItemChanged(bool bHasTarget, FKey InputKey,
 
 void UInventoryComponent::SetupQuickSlotButtonText(FKey UseKey, FKey SwitchPrevKey, FKey SwitchNextKey)
 {
-	if (UseKey.IsValid() && SwitchPrevKey.IsValid() && SwitchNextKey.IsValid())
+	CachedUseKey = UseKey;
+	CachedPrevKey = SwitchPrevKey;
+	CachedNextKey = SwitchNextKey;
+	
+	if (UseKey.IsValid() && SwitchPrevKey.IsValid() && SwitchNextKey.IsValid() && IsValid(InventoryHUDWidget))
 	{
 		InventoryHUDWidget->SetQuickSlotButtonText(UseKey, SwitchPrevKey, SwitchNextKey);
 	}

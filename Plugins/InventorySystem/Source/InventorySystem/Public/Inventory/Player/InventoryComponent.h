@@ -35,6 +35,8 @@ public:
 	UInventoryComponent();
 
 public:
+	virtual void InitializeComponent() override;
+	
 	// Called when the game starts
 	virtual void BeginPlay() override;
 	
@@ -125,6 +127,10 @@ private:
 	// 현재 선택된 아이템의 종류
  	FName SeletedQuickSlotItemKind = NAME_None;
 	
+	// 텍스트 할당을 위해 저장하는 캐시값 -> Beginplay 호출 순서 문제 해결을 위함
+	FKey CachedUseKey;
+	FKey CachedNextKey;
+	FKey CachedPrevKey;
 	
 	// 인벤토리 데이터 섹션
 public:

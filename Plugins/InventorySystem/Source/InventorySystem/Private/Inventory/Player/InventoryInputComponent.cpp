@@ -4,10 +4,10 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Item/Interface/HighlightMaterialInterface.h"
-#include "Item/ItemComponent.h"
-#include "Item/Data/ItemData.h"
+
 
 #include "Kismet/GameplayStatics.h"
+#include "InputMappingContext.h"
 
 DEFINE_LOG_CATEGORY(LogInventoryInputComponent);
 
@@ -17,8 +17,52 @@ DEFINE_LOG_CATEGORY(LogInventoryInputComponent);
 UInventoryInputComponent::UInventoryInputComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-
+	
+	static ConstructorHelpers::FObjectFinder<UInputMappingContext> MappingContextRef(
+		TEXT("/InventorySystem/Input/IMC_Inventory.IMC_Inventory"));
+	if (MappingContextRef.Succeeded())
+	{
+		IMC_Inventory.Add(MappingContextRef.Object);
+	}
+	
+	static ConstructorHelpers::FObjectFinder<UInputAction> InteractionRef(
+		TEXT("/InventorySystem/Input/Actions/IA_CollectItem.IA_CollectItem"));
+	if (InteractionRef.Succeeded())
+	{
+		InventoryInteractAction = InteractionRef.Object;
+	}
+	
+	static ConstructorHelpers::FObjectFinder<UInputAction> ToggleUIRef(
+		TEXT("/InventorySystem/Input/Actions/IA_ToggleInventory.IA_ToggleInventory"));
+	if (ToggleUIRef.Succeeded())
+	{
+		InventoryUIToggleAction = ToggleUIRef.Object;
+	}
+	
+	static ConstructorHelpers::FObjectFinder<UInputAction> UseItemRef(
+		TEXT("/InventorySystem/Input/Actions/IA_UseConsumableItem.IA_UseConsumableItem"));
+	if (UseItemRef.Succeeded())
+	{
+		UseQuickSlotItemAction = UseItemRef.Object;
+	}
+	
+	static ConstructorHelpers::FObjectFinder<UInputAction> SwitchNextSlotRef(
+		TEXT("/InventorySystem/Input/Actions/IA_SwitchQuickSlotNext.IA_SwitchQuickSlotNext"));
+	if (SwitchNextSlotRef.Succeeded())
+	{
+		SwitchNextQuickSlotItemAction = SwitchNextSlotRef.Object;
+	}
+	
+	static ConstructorHelpers::FObjectFinder<UInputAction> SwitchPrevSlotRef(
+		TEXT("/InventorySystem/Input/Actions/IA_SwitchQuickSlotPrev.IA_SwitchQuickSlotPrev"));
+	if (SwitchPrevSlotRef.Succeeded())
+	{
+		SwitchPrevQuickSlotItemAction = SwitchPrevSlotRef.Object;
+	}
+	
 	TraceLength = 600.0f;
+	
+	TraceRadius = 50.0f;
 	
 	LastTracedItem = nullptr;
 	CurrentTraceItem = nullptr;
