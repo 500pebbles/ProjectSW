@@ -87,18 +87,18 @@ public:
 	
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_PhysicalResistance)
 	FGameplayAttributeData PhysicalResistance;	
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_SinResistance)
-	FGameplayAttributeData SinResistance;	
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_VirtueResistance)
-	FGameplayAttributeData VirtueResistance;	
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_GraceResistance)
-	FGameplayAttributeData GraceResistance;	
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_HateResistance)
-	FGameplayAttributeData HateResistance;	
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_TormentResistance)
-	FGameplayAttributeData TormentResistance;	
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_SolaceResistance)
-	FGameplayAttributeData SolaceResistance;	
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_FireResistance)
+	FGameplayAttributeData FireResistance;	
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_FrostResistance)
+	FGameplayAttributeData FrostResistance;	
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_LightningResistance)
+	FGameplayAttributeData LightningResistance;	
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_WindResistance)
+	FGameplayAttributeData WindResistance;	
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_HolyResistance)
+	FGameplayAttributeData HolyResistance;	
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_DarkResistance)
+	FGameplayAttributeData DarkResistance;	
 	
 	UPROPERTY(BlueprintReadOnly)
 	FGameplayAttributeData IncomingDamage;
@@ -135,17 +135,17 @@ public:
 	UFUNCTION()
 	void OnRep_PhysicalResistance(const FGameplayAttributeData& OldPhysicalResistance) const;
 	UFUNCTION()
-	void OnRep_SinResistance(const FGameplayAttributeData& OldSinResistance) const;
+	void OnRep_FireResistance(const FGameplayAttributeData& OldFireResistance) const;
 	UFUNCTION()
-	void OnRep_VirtueResistance(const FGameplayAttributeData& OldVirtueResistance) const;
+	void OnRep_FrostResistance(const FGameplayAttributeData& OldFrostResistance) const;
 	UFUNCTION()
-	void OnRep_GraceResistance(const FGameplayAttributeData& OldGraceResistance) const;
+	void OnRep_LightningResistance(const FGameplayAttributeData& OldLightningResistance) const;
 	UFUNCTION()
-	void OnRep_HateResistance(const FGameplayAttributeData& OldHateResistance) const;
+	void OnRep_WindResistance(const FGameplayAttributeData& OldWindResistance) const;
 	UFUNCTION()
-	void OnRep_TormentResistance(const FGameplayAttributeData& OldTormentResistance) const;
+	void OnRep_HolyResistance(const FGameplayAttributeData& OldHolyResistance) const;
 	UFUNCTION()
-	void OnRep_SolaceResistance(const FGameplayAttributeData& OldSolaceResistance) const;
+	void OnRep_DarkResistance(const FGameplayAttributeData& OldDarkResistance) const;
 	
 /* Macro Accessors */
 public:
@@ -164,12 +164,12 @@ public:
 	ATTRIBUTE_ACCESSORS(USoulAttributeSet, DamageAmplification);	
 	
 	ATTRIBUTE_ACCESSORS(USoulAttributeSet, PhysicalResistance);
-	ATTRIBUTE_ACCESSORS(USoulAttributeSet, SinResistance);
-	ATTRIBUTE_ACCESSORS(USoulAttributeSet, VirtueResistance);
-	ATTRIBUTE_ACCESSORS(USoulAttributeSet, GraceResistance);
-	ATTRIBUTE_ACCESSORS(USoulAttributeSet, HateResistance);
-	ATTRIBUTE_ACCESSORS(USoulAttributeSet, TormentResistance);
-	ATTRIBUTE_ACCESSORS(USoulAttributeSet, SolaceResistance);
+	ATTRIBUTE_ACCESSORS(USoulAttributeSet, FireResistance);
+	ATTRIBUTE_ACCESSORS(USoulAttributeSet, FrostResistance);
+	ATTRIBUTE_ACCESSORS(USoulAttributeSet, LightningResistance);
+	ATTRIBUTE_ACCESSORS(USoulAttributeSet, WindResistance);
+	ATTRIBUTE_ACCESSORS(USoulAttributeSet, HolyResistance);
+	ATTRIBUTE_ACCESSORS(USoulAttributeSet, DarkResistance);
 	
 	ATTRIBUTE_ACCESSORS(USoulAttributeSet, IncomingDamage);	
 	

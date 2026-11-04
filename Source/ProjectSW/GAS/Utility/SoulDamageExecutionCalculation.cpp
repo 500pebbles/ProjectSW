@@ -15,12 +15,12 @@ struct SoulDamageStatics
 	DECLARE_ATTRIBUTE_CAPTUREDEF(CriticalDamage);
 	
 	DECLARE_ATTRIBUTE_CAPTUREDEF(PhysicalResistance);
-	DECLARE_ATTRIBUTE_CAPTUREDEF(SinResistance);
-	DECLARE_ATTRIBUTE_CAPTUREDEF(VirtueResistance);
-	DECLARE_ATTRIBUTE_CAPTUREDEF(GraceResistance);
-	DECLARE_ATTRIBUTE_CAPTUREDEF(HateResistance);
-	DECLARE_ATTRIBUTE_CAPTUREDEF(TormentResistance);
-	DECLARE_ATTRIBUTE_CAPTUREDEF(SolaceResistance);
+	DECLARE_ATTRIBUTE_CAPTUREDEF(FireResistance);
+	DECLARE_ATTRIBUTE_CAPTUREDEF(FrostResistance);
+	DECLARE_ATTRIBUTE_CAPTUREDEF(LightningResistance);
+	DECLARE_ATTRIBUTE_CAPTUREDEF(WindResistance);
+	DECLARE_ATTRIBUTE_CAPTUREDEF(HolyResistance);
+	DECLARE_ATTRIBUTE_CAPTUREDEF(DarkResistance);
 	
 	TMap<FGameplayTag, FGameplayEffectAttributeCaptureDefinition> GameplayTagsToCaptureDefs;
 	
@@ -30,23 +30,23 @@ struct SoulDamageStatics
 		DEFINE_ATTRIBUTE_CAPTUREDEF(USoulAttributeSet, CriticalDamage, Source, false);
 				
 		DEFINE_ATTRIBUTE_CAPTUREDEF(USoulAttributeSet, PhysicalResistance, Target, false);
-		DEFINE_ATTRIBUTE_CAPTUREDEF(USoulAttributeSet, SinResistance, Target, false);
-		DEFINE_ATTRIBUTE_CAPTUREDEF(USoulAttributeSet, VirtueResistance, Target, false);
-		DEFINE_ATTRIBUTE_CAPTUREDEF(USoulAttributeSet, GraceResistance, Target, false);
-		DEFINE_ATTRIBUTE_CAPTUREDEF(USoulAttributeSet, HateResistance, Target, false);
-		DEFINE_ATTRIBUTE_CAPTUREDEF(USoulAttributeSet, TormentResistance, Target, false);
-		DEFINE_ATTRIBUTE_CAPTUREDEF(USoulAttributeSet, SolaceResistance, Target, false)
+		DEFINE_ATTRIBUTE_CAPTUREDEF(USoulAttributeSet, FireResistance, Target, false);
+		DEFINE_ATTRIBUTE_CAPTUREDEF(USoulAttributeSet, FrostResistance, Target, false);
+		DEFINE_ATTRIBUTE_CAPTUREDEF(USoulAttributeSet, LightningResistance, Target, false);
+		DEFINE_ATTRIBUTE_CAPTUREDEF(USoulAttributeSet, WindResistance, Target, false);
+		DEFINE_ATTRIBUTE_CAPTUREDEF(USoulAttributeSet, HolyResistance, Target, false);
+		DEFINE_ATTRIBUTE_CAPTUREDEF(USoulAttributeSet, DarkResistance, Target, false)
 
 		
 		GameplayTagsToCaptureDefs.Add(SoulTags::Attributes::CriticalRate, CriticalRateDef);
 		GameplayTagsToCaptureDefs.Add(SoulTags::Attributes::CriticalDamage, CriticalRateDef);
 		GameplayTagsToCaptureDefs.Add(SoulTags::Attributes::PhysicalResistance, PhysicalResistanceDef);
-		GameplayTagsToCaptureDefs.Add(SoulTags::Attributes::SinResistance, SinResistanceDef);
-		GameplayTagsToCaptureDefs.Add(SoulTags::Attributes::VirtueResistance, VirtueResistanceDef);
-		GameplayTagsToCaptureDefs.Add(SoulTags::Attributes::GraceResistance, GraceResistanceDef);
-		GameplayTagsToCaptureDefs.Add(SoulTags::Attributes::HateResistance, HateResistanceDef);
-		GameplayTagsToCaptureDefs.Add(SoulTags::Attributes::TormentResistance, TormentResistanceDef);
-		GameplayTagsToCaptureDefs.Add(SoulTags::Attributes::SolaceResistance, SolaceResistanceDef);
+		GameplayTagsToCaptureDefs.Add(SoulTags::Attributes::FireResistance, FireResistanceDef);
+		GameplayTagsToCaptureDefs.Add(SoulTags::Attributes::FrostResistance, FrostResistanceDef);
+		GameplayTagsToCaptureDefs.Add(SoulTags::Attributes::LightningResistance, LightningResistanceDef);
+		GameplayTagsToCaptureDefs.Add(SoulTags::Attributes::WindResistance, WindResistanceDef);
+		GameplayTagsToCaptureDefs.Add(SoulTags::Attributes::HolyResistance, HolyResistanceDef);
+		GameplayTagsToCaptureDefs.Add(SoulTags::Attributes::DarkResistance, DarkResistanceDef);
 	}
 };
 
@@ -62,12 +62,12 @@ USoulDamageExecutionCalculation::USoulDamageExecutionCalculation()
 	RelevantAttributesToCapture.Add(DamageStatics().CriticalDamageDef);
 	
 	RelevantAttributesToCapture.Add(DamageStatics().PhysicalResistanceDef);
-	RelevantAttributesToCapture.Add(DamageStatics().SinResistanceDef);
-	RelevantAttributesToCapture.Add(DamageStatics().VirtueResistanceDef);
-	RelevantAttributesToCapture.Add(DamageStatics().GraceResistanceDef);
-	RelevantAttributesToCapture.Add(DamageStatics().HateResistanceDef);
-	RelevantAttributesToCapture.Add(DamageStatics().TormentResistanceDef);
-	RelevantAttributesToCapture.Add(DamageStatics().SolaceResistanceDef);
+	RelevantAttributesToCapture.Add(DamageStatics().FireResistanceDef);
+	RelevantAttributesToCapture.Add(DamageStatics().FrostResistanceDef);
+	RelevantAttributesToCapture.Add(DamageStatics().LightningResistanceDef);
+	RelevantAttributesToCapture.Add(DamageStatics().WindResistanceDef);
+	RelevantAttributesToCapture.Add(DamageStatics().HolyResistanceDef);
+	RelevantAttributesToCapture.Add(DamageStatics().DarkResistanceDef);
 }
 
 void USoulDamageExecutionCalculation::Execute_Implementation(const FGameplayEffectCustomExecutionParameters& ExecutionParams, FGameplayEffectCustomExecutionOutput& OutExecutionOutput) const
