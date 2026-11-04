@@ -17,12 +17,12 @@ namespace SoulTags
 		UE_DEFINE_GAMEPLAY_TAG(CooldownReduction, "SoulTags.Attributes.CooldownReduction")
 		UE_DEFINE_GAMEPLAY_TAG(DamageAmplification, "SoulTags.Attributes.DamageAmplification")
 		UE_DEFINE_GAMEPLAY_TAG(PhysicalResistance, "SoulTags.Attributes.PhysicalResistance")
-		UE_DEFINE_GAMEPLAY_TAG(SinResistance, "SoulTags.Attributes.SinResistance")
-		UE_DEFINE_GAMEPLAY_TAG(VirtueResistance, "SoulTags.Attributes.VirtueResistance")
-		UE_DEFINE_GAMEPLAY_TAG(GraceResistance, "SoulTags.Attributes.GraceResistance")
-		UE_DEFINE_GAMEPLAY_TAG(HateResistance, "SoulTags.Attributes.HateResistance")
-		UE_DEFINE_GAMEPLAY_TAG(TormentResistance, "SoulTags.Attributes.TormentResistance")
-		UE_DEFINE_GAMEPLAY_TAG(SolaceResistance, "SoulTags.Attributes.SolaceResistance")
+		UE_DEFINE_GAMEPLAY_TAG(FireResistance, "SoulTags.Attributes.FireResistance")
+		UE_DEFINE_GAMEPLAY_TAG(FrostResistance, "SoulTags.Attributes.FrostResistance")
+		UE_DEFINE_GAMEPLAY_TAG(LightningResistance, "SoulTags.Attributes.LightningResistance")
+		UE_DEFINE_GAMEPLAY_TAG(WindResistance, "SoulTags.Attributes.WindResistance")
+		UE_DEFINE_GAMEPLAY_TAG(HolyResistance, "SoulTags.Attributes.HolyResistance")
+		UE_DEFINE_GAMEPLAY_TAG(DarkResistance, "SoulTags.Attributes.DarkResistance")
 	}
 	
 	namespace Combats
@@ -34,24 +34,24 @@ namespace SoulTags
 	namespace DamageTypes
 	{
 		UE_DEFINE_GAMEPLAY_TAG(Physical, "SoulTags.DamageTypes.Physical")
-		UE_DEFINE_GAMEPLAY_TAG(Sin, "SoulTags.DamageTypes.Sin")
-		UE_DEFINE_GAMEPLAY_TAG(Virtue, "SoulTags.DamageTypes.Virtue")
-		UE_DEFINE_GAMEPLAY_TAG(Grace, "SoulTags.DamageTypes.Grace")
-		UE_DEFINE_GAMEPLAY_TAG(Hate, "SoulTags.DamageTypes.Hate")
-		UE_DEFINE_GAMEPLAY_TAG(Torment, "SoulTags.DamageTypes.Torment")
-		UE_DEFINE_GAMEPLAY_TAG(Solace, "SoulTags.DamageTypes.Solace")
+		UE_DEFINE_GAMEPLAY_TAG(Fire, "SoulTags.DamageTypes.Fire")
+		UE_DEFINE_GAMEPLAY_TAG(Frost, "SoulTags.DamageTypes.Frost")
+		UE_DEFINE_GAMEPLAY_TAG(Lightning, "SoulTags.DamageTypes.Lightning")
+		UE_DEFINE_GAMEPLAY_TAG(Wind, "SoulTags.DamageTypes.Wind")
+		UE_DEFINE_GAMEPLAY_TAG(Holy, "SoulTags.DamageTypes.Holy")
+		UE_DEFINE_GAMEPLAY_TAG(Dark, "SoulTags.DamageTypes.Dark")
 		
 		const TMap<FGameplayTag, FGameplayTag>& GetDamageTypes()
 		{
 			static const TMap<FGameplayTag, FGameplayTag> AllDamageTypes = 
 			{
 				{ Physical, Attributes::PhysicalResistance}, 
-				{ Sin, Attributes::SinResistance},
-				{ Virtue, Attributes::VirtueResistance},
-				{ Grace, Attributes::GraceResistance},
-				{ Hate, Attributes::HateResistance},
-				{ Torment, Attributes::TormentResistance},
-				{ Solace, Attributes::SolaceResistance}
+				{ Fire, Attributes::FireResistance},
+				{ Frost, Attributes::FrostResistance},
+				{ Lightning, Attributes::LightningResistance},
+				{ Wind, Attributes::WindResistance},
+				{ Holy, Attributes::HolyResistance},
+				{ Dark, Attributes::DarkResistance}
 			};			
 			
 			return AllDamageTypes;

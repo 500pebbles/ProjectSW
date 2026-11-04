@@ -93,6 +93,11 @@ int32 ASoulCharacterEnemy::GetCharacterLevel()
 void ASoulCharacterEnemy::Die()
 {
 	Super::Die();
+	
+	UBehaviorTreeComponent* BTComponent = Cast<UBehaviorTreeComponent>(AIController->BrainComponent);
+	if (!IsValid(BTComponent)) return;	
+	BTComponent->StopTree();
+	
 	SetLifeSpan(10.f);	
 }
 
