@@ -57,6 +57,7 @@ void USoulMapSubsystem::HandleGenerationFinished(const FPMGResult& Result, const
 
 		Room->InitRoom(RoomData, CellSize);
 		Room->OnPlayerEntered.AddUObject(this, &ThisClass::HandleRoomEntered);
+		Room->OnCombatFinished.AddUObject(this, &ThisClass::HandleCombatFinished);
 		Rooms.Add(RoomData.Id, Room);
 	}
 
@@ -65,7 +66,7 @@ void USoulMapSubsystem::HandleGenerationFinished(const FPMGResult& Result, const
 
 	for (const TPair<int32, TObjectPtr<ASoulPackedLevelActor>>& Pair : Rooms)
 	{
-		Pair.Value->SetTriggerEnabled(Result.Rooms[Pair.Key].bConnected && !Pair.Value->IsVisited());
+		Pair.Value->SetTriggerEnabled(Result.Rooms[Pair.Key].bConnected);
 	}
 }
 
@@ -80,4 +81,9 @@ void USoulMapSubsystem::HandleRoomEntered(ASoulPackedLevelActor* Room)
 		Room->StartCombat();
 
 	SW_LOG("%d 방 진입", Room->GetRoomId());
+}
+
+void USoulMapSubsystem::HandleCombatFinished(ASoulPackedLevelActor* Room)
+{
+	SW_LOG("%d 방 전투 종료", Room->GetRoomId());
 }

@@ -13,6 +13,8 @@ class UGameplayEffect;
 class UAbilitySystemComponent;
 class UAttributeSet;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FSoulCharacterDiedSignature, AActor*);
+
 UCLASS()
 class PROJECTSW_API ASoulCharacterBase : public ACharacter, public IAbilitySystemInterface, public ISoulCombatInterface
 {
@@ -86,6 +88,8 @@ public:
 	virtual UAnimMontage* GetHitReactMontage_Implementation() override;
 	
 	virtual TArray<FTaggedMontage> GetAttackMontages_Implementation() override;
+
+	FSoulCharacterDiedSignature OnDied;
 	
 protected:
 	bool bDead = false;
