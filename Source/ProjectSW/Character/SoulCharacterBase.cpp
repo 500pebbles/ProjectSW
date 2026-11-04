@@ -72,6 +72,8 @@ void ASoulCharacterBase::Die()
 	SW_LOG("[%s] Died.", *GetName());
 	
 	Multicast_HandleDeath();
+
+	OnDied.Broadcast(this);
 }
 
 AActor* ASoulCharacterBase::GetAvatarActor_Implementation()

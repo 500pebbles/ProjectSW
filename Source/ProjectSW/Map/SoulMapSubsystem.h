@@ -27,6 +27,8 @@ private:
 
 	void HandleRoomEntered(ASoulPackedLevelActor* Room);
 
+	void HandleCombatFinished(ASoulPackedLevelActor* Room);
+
 private:
 	UPROPERTY()
 	TWeakObjectPtr<APMGMapBuilder> MapBuilder;

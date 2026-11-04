@@ -54,7 +54,7 @@ void ASoulPackedLevelActor::SetTriggerEnabled(bool bEnabled)
 void ASoulPackedLevelActor::MarkVisited()
 {
 	bVisited = true;
-	SetTriggerEnabled(false);
+	//SetTriggerEnabled(false);
 }
 
 bool ASoulPackedLevelActor::HasCombat() const
@@ -81,6 +81,8 @@ void ASoulPackedLevelActor::StartCombat()
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
+	bInCombat = true;
+
 	for (const USoulRoomSpawnPointComponent* SpawnPoint : SpawnPoints)
 	{
 		const USoulEnemySet* EnemySet = GetEnemySetFor(SpawnPoint);
@@ -99,9 +101,16 @@ void ASoulPackedLevelActor::StartCombat()
 		if (!Enemy)
 			continue;
 
-		//Enemy->SpawnDefaultController();
+		Enemy->OnDied.AddUObject(this, &ThisClass::HandleEnemyGone);
+		Enemy->OnDestroyed.AddDynamic(this, &ThisClass::HandleEnemyGone);
+		AliveEnemies.Add(Enemy);
 	}
 
+	if (AliveEnemies.IsEmpty())
+	{
+		bInCombat = false;
+		OnCombatFinished.Broadcast(this);
+	}
 }
 
 void ASoulPackedLevelActor::HandleTriggerBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -120,8 +129,12 @@ const USoulEnemySet* ASoulPackedLevelActor::GetEnemySetFor(const USoulRoomSpawnP
 
 void ASoulPackedLevelActor::FinishCombat()
 {
+	bInCombat = false;
+	OnCombatFinished.Broadcast(this);
 }
 
 void ASoulPackedLevelActor::HandleEnemyGone(AActor* Enemy)
 {
+	if (AliveEnemies.Remove(Cast<ASoulCharacterEnemy>(Enemy)) > 0 && AliveEnemies.IsEmpty())
+		FinishCombat();
 }
