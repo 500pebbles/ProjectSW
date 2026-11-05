@@ -175,7 +175,7 @@ public:
 	bool UnequipItem(const FGameplayTag& EquipmentTag, FIntPoint Position);
 	
 	// 장비 교체 시 인벤토리에 공간 없으면 바닥에 버리도록 하는 함수
-	bool DropEquippedItem(const FGameplayTag& EquipemTag);
+	bool DropEquippedItem(const FGameplayTag& EquipmentTag);
 	
 private:
 	bool AddUnequipedItem(UItemData* Item, FIntPoint Position);

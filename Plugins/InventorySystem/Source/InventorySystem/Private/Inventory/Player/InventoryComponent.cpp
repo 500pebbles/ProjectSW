@@ -546,7 +546,7 @@ bool UInventoryComponent::UnequipItem(const FGameplayTag& EquipmentTag, FIntPoin
 	return AddUnequipedItem(CurrentEquipment, Position);
 }
 
-bool UInventoryComponent::DropEquippedItem(const FGameplayTag& EquipemTag)
+bool UInventoryComponent::DropEquippedItem(const FGameplayTag& EquipmentTag)
 {
 	if (!IsValid(EquipmentComponent))
 	{
@@ -554,7 +554,7 @@ bool UInventoryComponent::DropEquippedItem(const FGameplayTag& EquipemTag)
 	}
 	
 	// 장착된 아이템 없으면 실패
-	UItemData* CurrentEquippedItem = EquipmentComponent->GetEquippedItem(EquipemTag);
+	UItemData* CurrentEquippedItem = EquipmentComponent->GetEquippedItem(EquipmentTag);
 	if (!CurrentEquippedItem)
 	{
 		return false;
@@ -565,7 +565,7 @@ bool UInventoryComponent::DropEquippedItem(const FGameplayTag& EquipemTag)
 		return false;
 	}
 	
-	EquipmentComponent->Unequip(EquipemTag);
+	EquipmentComponent->Unequip(EquipmentTag);
 	return true;
 }
 

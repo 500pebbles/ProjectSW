@@ -28,7 +28,7 @@ bool UEquipSlotUI::NativeOnDragOver(const FGeometry& InGeometry, const FDragDrop
 		return false;
 	}
 	
-	ShowHighlight(CanEquip(Operation));
+	ShowHighlight(CanEquip(Operation), Operation->ItemData);
 	return true;
 }
 
@@ -236,11 +236,20 @@ bool UEquipSlotUI::CanEquip(const UItemDragDrop* Operation) const
 		Operation->ItemData) && Operation->ItemData->GetEquipmentType().MatchesTagExact(SlotTag);
 }
 
-void UEquipSlotUI::ShowHighlight(bool bEquipable)
+void UEquipSlotUI::ShowHighlight(bool bEquipable, UItemData* ItemData)
 {
 	if (!HighlightImage)
 	{
 		return;
+	}
+	
+	if (!bEquipable && ItemData != EquippedItem)
+	{
+		HighlightImage->SetColorAndOpacity(FLinearColor(1.0f, 0.0f, 0.0f, 1.0f));
+	}
+	else
+	{
+		HighlightImage->SetColorAndOpacity(FLinearColor(0.0f, 1.0f, 0.0f, 1.0f));
 	}
 	
 	HighlightImage->SetVisibility(ESlateVisibility::HitTestInvisible);

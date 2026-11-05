@@ -25,7 +25,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	EItemType ItemType = EItemType::None;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta=(Categories="Equipment.Slot"))
 	FGameplayTag EquipmentType;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
@@ -68,7 +68,11 @@ public:
 	void Initialize(const FDataTableRowHandle& InRowHandle);
 	
 	// 아이템 사용
+	UFUNCTION(BlueprintCallable)
 	bool UseItem(AActor* User);
+	
+	UFUNCTION(BlueprintCallable)
+	bool RemoveEquippedItem(AActor* User);
 	
 	// 아이템이 사용 가능한 아이템인지 검사 (아이템 효과가 존재하는지 확인)
 	bool IsItemUsable() const;

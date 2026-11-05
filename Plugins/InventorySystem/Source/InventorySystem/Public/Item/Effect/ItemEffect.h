@@ -18,5 +18,8 @@ class INVENTORYSYSTEM_API UItemEffect : public UObject
 public:
 	// 블루프린트에서 구현하고, 블루프린트에서 구현하지 않으면 _Implement 호출됨
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = ItemEffect)
-	void ActivateItemEffect(AActor* User, UItemData* Item) const;
+	void ActivateItemEffect(AActor* User, UItemData* Item);
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = ItemEffect)
+	void DeactivateItemEffect(AActor* User, UItemData* Item);
 };

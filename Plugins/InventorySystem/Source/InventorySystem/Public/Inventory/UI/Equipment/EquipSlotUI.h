@@ -43,7 +43,7 @@ private:
 	// 해당 슬롯에 드래그로 장착하는 동작이 유효한 동작인지 확인
 	bool CanEquip(const UItemDragDrop* Operation) const;
 	
-	void ShowHighlight(bool bEquipable);
+	void ShowHighlight(bool bEquipable, UItemData* ItemData);
 	void HideHighlight();
 	
 	// 아이템 교체 시 수행될 델리게이트 함수
@@ -76,7 +76,7 @@ private:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UImage> HighlightImage;
 	
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	TObjectPtr<UItemData> EquippedItem;
 	
 	TWeakObjectPtr<UInventoryComponent> InventoryComponent;

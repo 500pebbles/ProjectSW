@@ -30,11 +30,30 @@ bool UItemData::UseItem(AActor* User)
 	}
 	
 	// 아이템 효과 적용
-	for (const UItemEffect* Effect : CachedUseDefinition->Effects)
+	for (UItemEffect* Effect : CachedUseDefinition->Effects)
 	{
 		if (Effect)
 		{
 			Effect->ActivateItemEffect(User, this);
+		}
+	}
+	
+	return true;
+}
+
+bool UItemData::RemoveEquippedItem(AActor* User)
+{
+	if (!User)
+	{
+		return false;
+	}
+	
+	// 아이템 효과 적용
+	for (UItemEffect* Effect : CachedUseDefinition->Effects)
+	{
+		if (Effect)
+		{
+			Effect->DeactivateItemEffect(User, this);
 		}
 	}
 	
