@@ -22,6 +22,9 @@ class PROJECTSW_API USoulMapSubsystem : public UWorldSubsystem
 public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 
+	FORCEINLINE bool HasMapData() const { return !Rooms.IsEmpty(); }
+	FORCEINLINE const FPMGResult& GetMapResult() const { return MapResult; }
+
 private:
 	UFUNCTION()
 	void HandleGenerationFinished(const FPMGResult& Result, const TArray<FString>& SpawnErrors);
