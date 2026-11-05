@@ -14,5 +14,5 @@ class PROJECTSW_API USoulDamageTextComponent : public UWidgetComponent
 
 public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
-	void SetDamageText(float Damage, bool bIsCriticalHit);
+	void SetDamageText(float Damage, bool bIsCriticalHit, int32 DamageType);
 };

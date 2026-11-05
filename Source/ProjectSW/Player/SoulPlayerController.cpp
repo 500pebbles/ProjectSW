@@ -169,7 +169,7 @@ USoulAbilitySystemComponent* ASoulPlayerController::GetASC()
 	return SoulAbilitySystemComponent;
 }
 
-void ASoulPlayerController::ShowDamageText_Implementation(float DamageAmount, ACharacter* TargetCharacter, bool bIsCriticalHit)
+void ASoulPlayerController::ShowDamageText_Implementation(float DamageAmount, ACharacter* TargetCharacter, bool bIsCriticalHit, int32 DamageType)
 {
 	if (!IsValid(TargetCharacter) && !IsLocalController()) return;
 	
@@ -177,7 +177,7 @@ void ASoulPlayerController::ShowDamageText_Implementation(float DamageAmount, AC
 	DamageText->RegisterComponent();
 	DamageText->AttachToComponent(TargetCharacter->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 	DamageText->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-	DamageText->SetDamageText(DamageAmount, bIsCriticalHit);
+	DamageText->SetDamageText(DamageAmount, bIsCriticalHit, DamageType);
 }
 
 FVector ASoulPlayerController::ConsumeAttackInputDirection()

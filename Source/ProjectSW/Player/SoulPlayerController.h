@@ -104,7 +104,7 @@ private:
 /* UI : DamageText */	
 public:
 	UFUNCTION(Client, Reliable)
-	void ShowDamageText(float DamageAmount, ACharacter* TargetCharacter, bool bIsCriticalHit);
+	void ShowDamageText(float DamageAmount, ACharacter* TargetCharacter, bool bIsCriticalHit, int32 DamageType);
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
