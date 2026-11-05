@@ -32,9 +32,15 @@ public:
 	void SetIsCriticalHit(bool bInIsCriticalHit) { bIsCriticalHit = bInIsCriticalHit; }
 	bool IsCriticalHit() const { return bIsCriticalHit; }
 	
+	void SetDamageType(int32 InDamageType) { DamageType = InDamageType; }
+	int32 GetDamageType() const { return DamageType; }
+	
 protected: 
 	UPROPERTY()
 	bool bIsCriticalHit = false;
+	
+	UPROPERTY()
+	int32 DamageType = 0;
 };
 
 

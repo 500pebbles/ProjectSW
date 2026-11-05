@@ -23,6 +23,7 @@ void UOverlayWidgetController::BindCallbacksToDependencies()
 	/* ASC에서 AttributeData의 변경값을 감지하고 콜백함수 바인딩. 콜백함수는 BlueprintAssignable로 BP에 정의한 이벤트 실행.
 	 * 바인딩 시점은 AttributeSet과 OverlayWidgetController가 모두 준비되는 GetOverlayWidgetController. */
 	
+	// Attributes UI.
 	const USoulAttributeSet* SoulAttributeSet = Cast<USoulAttributeSet>(AttributeSet);
 	if (!IsValid(SoulAttributeSet)) return;
 	

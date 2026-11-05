@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "SoulAbilitySystemComponent.generated.h"
 
+class USoulAbilitySystemComponent;
 class USoulSkillAbility;
 class UTexture2D;
 
@@ -82,8 +83,9 @@ public:
 	
 	void AbilityInputTagReleased(const FGameplayTag& InputTag);
 	
-	virtual void AbilitySpecInputPressed(FGameplayAbilitySpec& Spec) override;
+	virtual void AbilitySpecInputPressed(FGameplayAbilitySpec& Spec) override;	
 	
+public:
 	// USoulSkillAbility 종료 시 체인 단계 전진 및 3초 타이머 구동
 	void NotifySkillChainAbilityEnded(const FGameplayTag& SlotInputTag, int32 FinishedStep, bool bWasCancelled, bool bTransitioningToNext);
 	

@@ -114,6 +114,22 @@ bool USoulAbilitySystemLibrary::IsCriticalHit(const FGameplayEffectContextHandle
 	return SoulEffectContext->IsCriticalHit();
 }
 
+int32 USoulAbilitySystemLibrary::GetDamageType(const FGameplayEffectContextHandle& EffectContextHandle)
+{
+	const FSoulGameplayEffectContext* SoulEffectContext = static_cast<const FSoulGameplayEffectContext*>(EffectContextHandle.Get());
+	if (!SoulEffectContext) return false;
+	
+	return SoulEffectContext->GetDamageType();
+}
+
+void USoulAbilitySystemLibrary::SetDamageType(FGameplayEffectContextHandle& EffectContextHandle, int32 DamageType)
+{
+	FSoulGameplayEffectContext* SoulEffectContext = static_cast<FSoulGameplayEffectContext*>(EffectContextHandle.Get());
+	if (!SoulEffectContext) return;
+
+	SoulEffectContext->SetDamageType(DamageType);
+}
+
 void USoulAbilitySystemLibrary::SetIsCriticalHit(FGameplayEffectContextHandle& EffectContextHandle, bool bIsCriticalHit)
 {
 	FSoulGameplayEffectContext* SoulEffectContext = static_cast<FSoulGameplayEffectContext*>(EffectContextHandle.Get());
