@@ -5,6 +5,7 @@
 #include "SoulSkillAbility.generated.h"
 
 class UAnimMontage;
+class UTexture2D;
 
 UCLASS()
 class PROJECTSW_API USoulSkillAbility : public USoulMeleeAbility
@@ -28,6 +29,9 @@ public:
 
 	FGameplayTag GetAssignedSlotTag() const { return AssignedSlotTag; }
 	int32 GetAssignedChainStep() const { return AssignedChainStep; }
+	
+	UTexture2D* GetSkillIcon() const { return SkillIcon; }
+	FGameplayTag GetSkillCooldownTag() const { return CooldownTag; }                                                                                                                                                                    
 
 	virtual const FGameplayTagContainer* GetCooldownTags() const override;
 	virtual void ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const override;
@@ -63,6 +67,10 @@ protected:
 	// 재생할 스킬 몽타주 (단타 또는 다단히트 클립)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill")
 	TObjectPtr<UAnimMontage> SkillMontage;
+	
+	// UI 슬롯에 표시할 스킬 아이콘 텍스처
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill|UI")
+	TObjectPtr<UTexture2D> SkillIcon;
 
 	// 이 스킬의 기본 데미지 배율 (DamageTypes 기본값에 곱해짐)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill", meta = (ClampMin = "0.1"))
