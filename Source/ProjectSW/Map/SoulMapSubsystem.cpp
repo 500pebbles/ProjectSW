@@ -3,6 +3,7 @@
 
 #include "Map/SoulMapSubsystem.h"
 #include "SoulPackedLevelActor.h"
+#include "SoulRoomDoor.h"
 #include "Build/PMGMapBuilder.h"
 #include "Data/PMGSettings.h"
 #include "Utility/SoulLog.h"
@@ -23,6 +24,7 @@ void USoulMapSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 void USoulMapSubsystem::HandleGenerationFinished(const FPMGResult& Result, const TArray<FString>& SpawnErrors)
 {
 	Rooms.Reset();
+	Doors.Reset();
 
 	if (!Result.bSuccess)
 		return;
@@ -61,6 +63,8 @@ void USoulMapSubsystem::HandleGenerationFinished(const FPMGResult& Result, const
 		Rooms.Add(RoomData.Id, Room);
 	}
 
+	InitDoors(Result, SpawnedByName, BuilderName);
+
 	if (ASoulPackedLevelActor* EntranceRoom = Rooms.FindRef(Result.EntranceRoomId))
 		EntranceRoom->MarkVisited();
 
@@ -78,12 +82,67 @@ void USoulMapSubsystem::HandleRoomEntered(ASoulPackedLevelActor* Room)
 	Room->MarkVisited();
 
 	if (Room->HasCombat())
+	{
+		SetRoomDoorsClosed(Room->GetRoomId(), true);
 		Room->StartCombat();
+	}
 
 	SW_LOG("%d 방 진입", Room->GetRoomId());
 }
 
 void USoulMapSubsystem::HandleCombatFinished(ASoulPackedLevelActor* Room)
 {
+	SetRoomDoorsClosed(Room->GetRoomId(), false);
 	SW_LOG("%d 방 전투 종료", Room->GetRoomId());
+}
+
+void USoulMapSubsystem::InitDoors(const FPMGResult& Result, const TMap<FName, AActor*>& SpawnedByName, const FString& BuilderName)
+{
+	for (int32 ConnectorIndex = 0; ConnectorIndex < Result.Connectors.Num(); ++ConnectorIndex)
+	{
+		const FPMGResultConnector& Connector = Result.Connectors[ConnectorIndex];
+		
+		if (Connector.Type != EPMGConnectorType::Door)
+			continue;
+
+		const FName DoorName(*FString::Printf(TEXT("%s_Connector_%d"), *BuilderName, ConnectorIndex));
+
+		ASoulRoomDoor* Door = Cast<ASoulRoomDoor>(SpawnedByName.FindRef(DoorName));
+
+		if (!Door)
+		{
+			if (Connector.VariantIndex != INDEX_NONE)
+			{
+				SW_LOG_WARNING("USoulMapSubsystem::InitDoors : 문 액터를 찾지 못함: %s", *DoorName.ToString());
+			}
+			continue;
+		}
+
+		const FPMGResultDoor* DoorData = Result.Doors.FindByPredicate([&Connector](const FPMGResultDoor& Candidate)
+			{
+				return (Candidate.CellA == Connector.CellA) && (Candidate.CellB == Connector.CellB);
+			});
+
+		if (!DoorData)
+		{
+			SW_LOG_WARNING("USoulMapSubsystem::InitDoors : 문 데이터를 찾지 못함: %s", *DoorName.ToString());
+			continue;
+		}
+
+		Door->InitDoor(DoorData->RoomA, DoorData->RoomB);
+		Doors.Add(Door);
+	}
+
+	SW_LOG("문 %d개 초기화(PMGResult의 문 %d개)", Doors.Num(), Result.Doors.Num());
+}
+
+void USoulMapSubsystem::SetRoomDoorsClosed(int32 RoomId, bool bClosed)
+{
+	for (ASoulRoomDoor* Door : Doors)
+	{
+		if (IsValid(Door) && Door->ConnectsRoom(RoomId))
+		{
+			Door->SetClosed(bClosed);
+		}
+	}
 }

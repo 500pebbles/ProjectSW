@@ -54,7 +54,6 @@ void ASoulPackedLevelActor::SetTriggerEnabled(bool bEnabled)
 void ASoulPackedLevelActor::MarkVisited()
 {
 	bVisited = true;
-	//SetTriggerEnabled(false);
 }
 
 bool ASoulPackedLevelActor::HasCombat() const
@@ -108,8 +107,7 @@ void ASoulPackedLevelActor::StartCombat()
 
 	if (AliveEnemies.IsEmpty())
 	{
-		bInCombat = false;
-		OnCombatFinished.Broadcast(this);
+		FinishCombat();
 	}
 }
 

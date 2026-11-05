@@ -7,6 +7,35 @@
 
 class USoulAbilitySystemComponent;
 class USoulSkillAbility;
+class UTexture2D;
+
+// UI 위젯이 슬롯(또는 특정 체인 단계)의 상태를 조회할 때 반환받는 구조체
+USTRUCT(BlueprintType)
+struct FSoulSkillSlotUIData
+{
+	GENERATED_BODY()
+	UPROPERTY(BlueprintReadOnly, Category = "SkillChain")
+	FGameplayTag SlotInputTag;
+	// 현재 표시할 체인 단계 (0: 1단계[1-0], 1: 2단계[1-1], 2: 3단계[1-2])
+	UPROPERTY(BlueprintReadOnly, Category = "SkillChain")
+	int32 DisplayStep = 0;
+	// 표시할 스킬 아이콘
+	UPROPERTY(BlueprintReadOnly, Category = "SkillChain")
+	TObjectPtr<UTexture2D> SkillIcon = nullptr;
+	// 남은 쿨타임 시간(초)
+	UPROPERTY(BlueprintReadOnly, Category = "SkillChain")
+	float CooldownRemaining = 0.0f;
+	// 전체 쿨타임 길이(초)
+	UPROPERTY(BlueprintReadOnly, Category = "SkillChain")
+	float CooldownDuration = 0.0f;
+	// 3초 체인 유예 타이머가 돌고 있는지 여부
+	UPROPERTY(BlueprintReadOnly, Category = "SkillChain")
+	bool bIsChainWindowActive = false;
+	// 3초 체인 유예 타이머 남은 비율 (1.0 -> 0.0)
+	UPROPERTY(BlueprintReadOnly, Category = "SkillChain")
+	float ChainWindowRemainingRatio = 0.0f;
+};
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSkillChainStateChangedSignature);
 
 // 에디터에서 슬롯마다 설정할 체인 구조체
 USTRUCT(BlueprintType)
@@ -59,8 +88,19 @@ public:
 public:
 	// USoulSkillAbility 종료 시 체인 단계 전진 및 3초 타이머 구동
 	void NotifySkillChainAbilityEnded(const FGameplayTag& SlotInputTag, int32 FinishedStep, bool bWasCancelled, bool bTransitioningToNext);
+	
 	// 선입력 또는 후딜레이 구간에서 다음 체인 단계로 전환 시도
 	bool TryAdvanceChainFromBranch(const FGameplayTag& SlotInputTag);
+	
+	// UI 표시용 데이터 조회 (OverrideStepIndex가 -1이면 현재 발동될 체인 단계, 0~2이면 해당 고정 단계 조회)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "SkillChain")
+	bool GetSkillSlotUIData(const FGameplayTag& SlotInputTag, int32 OverrideStepIndex, FSoulSkillSlotUIData& OutData) const;
+	
+	// 스킬 체인 편집용: 두 슬롯/단계의 스킬(SpecHandle) 순서를 서로 교체
+	UFUNCTION(BlueprintCallable, Category = "SkillChain")
+	bool SwapSkillChainSteps(const FGameplayTag& SlotA, int32 StepA, const FGameplayTag& SlotB, int32 StepB);
+	UPROPERTY(BlueprintAssignable, Category = "SkillChain")
+	FOnSkillChainStateChangedSignature OnSkillChainStateChanged;
 	
 protected:
 	UFUNCTION(Client, Reliable)
