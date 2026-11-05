@@ -37,12 +37,12 @@ void USoulAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 	DOREPLIFETIME_CONDITION_NOTIFY(USoulAttributeSet, DamageAmplification, COND_None, REPNOTIFY_Always);
 	
 	DOREPLIFETIME_CONDITION_NOTIFY(USoulAttributeSet, PhysicalResistance, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(USoulAttributeSet, SinResistance, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(USoulAttributeSet, VirtueResistance, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(USoulAttributeSet, GraceResistance, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(USoulAttributeSet, HateResistance, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(USoulAttributeSet, TormentResistance, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(USoulAttributeSet, SolaceResistance, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(USoulAttributeSet, FireResistance, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(USoulAttributeSet, FrostResistance, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(USoulAttributeSet, LightningResistance, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(USoulAttributeSet, WindResistance, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(USoulAttributeSet, HolyResistance, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(USoulAttributeSet, DarkResistance, COND_None, REPNOTIFY_Always);
 }
 
 void USoulAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
@@ -189,34 +189,34 @@ void USoulAttributeSet::OnRep_PhysicalResistance(const FGameplayAttributeData& O
 	GAMEPLAYATTRIBUTE_REPNOTIFY(USoulAttributeSet, PhysicalResistance, OldPhysicalResistance);	
 }
 
-void USoulAttributeSet::OnRep_SinResistance(const FGameplayAttributeData& OldSinResistance) const
+void USoulAttributeSet::OnRep_FireResistance(const FGameplayAttributeData& OldFireResistance) const
 {
-	GAMEPLAYATTRIBUTE_REPNOTIFY(USoulAttributeSet, SinResistance, OldSinResistance);	
+	GAMEPLAYATTRIBUTE_REPNOTIFY(USoulAttributeSet, FireResistance, OldFireResistance);	
 }
 
-void USoulAttributeSet::OnRep_VirtueResistance(const FGameplayAttributeData& OldVirtueResistance) const
+void USoulAttributeSet::OnRep_FrostResistance(const FGameplayAttributeData& OldFrostResistance) const
 {
-	GAMEPLAYATTRIBUTE_REPNOTIFY(USoulAttributeSet, VirtueResistance, OldVirtueResistance);	
+	GAMEPLAYATTRIBUTE_REPNOTIFY(USoulAttributeSet, FrostResistance, OldFrostResistance);	
 }
 
-void USoulAttributeSet::OnRep_GraceResistance(const FGameplayAttributeData& OldGraceResistance) const
+void USoulAttributeSet::OnRep_LightningResistance(const FGameplayAttributeData& OldLightningResistance) const
 {
-	GAMEPLAYATTRIBUTE_REPNOTIFY(USoulAttributeSet, GraceResistance, OldGraceResistance);	
+	GAMEPLAYATTRIBUTE_REPNOTIFY(USoulAttributeSet, LightningResistance, OldLightningResistance);	
 }
 
-void USoulAttributeSet::OnRep_HateResistance(const FGameplayAttributeData& OldHateResistance) const
+void USoulAttributeSet::OnRep_WindResistance(const FGameplayAttributeData& OldWindResistance) const
 {
-	GAMEPLAYATTRIBUTE_REPNOTIFY(USoulAttributeSet, HateResistance, OldHateResistance);	
+	GAMEPLAYATTRIBUTE_REPNOTIFY(USoulAttributeSet, WindResistance, OldWindResistance);	
 }
 
-void USoulAttributeSet::OnRep_TormentResistance(const FGameplayAttributeData& OldTormentResistance) const
+void USoulAttributeSet::OnRep_HolyResistance(const FGameplayAttributeData& OldHolyResistance) const
 {
-	GAMEPLAYATTRIBUTE_REPNOTIFY(USoulAttributeSet, TormentResistance, OldTormentResistance);	
+	GAMEPLAYATTRIBUTE_REPNOTIFY(USoulAttributeSet, HolyResistance, OldHolyResistance);	
 }
 
-void USoulAttributeSet::OnRep_SolaceResistance(const FGameplayAttributeData& OldSolaceResistance) const
+void USoulAttributeSet::OnRep_DarkResistance(const FGameplayAttributeData& OldDarkResistance) const
 {
-	GAMEPLAYATTRIBUTE_REPNOTIFY(USoulAttributeSet, SolaceResistance, OldSolaceResistance);	
+	GAMEPLAYATTRIBUTE_REPNOTIFY(USoulAttributeSet, DarkResistance, OldDarkResistance);	
 }
 
 void USoulAttributeSet::SetEffectProperties(const FGameplayEffectModCallbackData& Data, FEffectProperties& Props) const

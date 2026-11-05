@@ -44,7 +44,7 @@ UAttributeMenuWidgetController* USoulAbilitySystemLibrary::GetAttributeMenuWidge
 	
 	ASoulPlayerState* PS = PC->GetPlayerState<ASoulPlayerState>();
 	UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent();
-	UAttributeSet* AS = PS->GetAttributeSet();
+	UAttributeSet* AS = PS->GetAttributeSet();	
 	const FWidgetControllerParams WidgetControllerParams(PC, PS, ASC, AS);
 	
 	return SoulHUD->GetAttributeMenuWidgetController(WidgetControllerParams);

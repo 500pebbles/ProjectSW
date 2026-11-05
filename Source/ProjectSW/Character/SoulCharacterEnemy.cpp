@@ -67,6 +67,7 @@ void ASoulCharacterEnemy::PossessedBy(AController* NewController)
 	if (!HasAuthority()) return;
 	
 	AIController = Cast<ASoulAIController>(NewController);
+	checkf(BehaviorTree && BehaviorTree->BlackboardAsset, TEXT("ASoulCharacterEnemy::PossessedBy : [%s] BehaviorTree 또는 BlackboardAsset이 설정되지 않음"), *GetName());
 	AIController->GetBlackboardComponent()->InitializeBlackboard(*BehaviorTree->BlackboardAsset);
 	AIController->RunBehaviorTree(BehaviorTree);
 	AIController->GetBlackboardComponent()->SetValueAsBool(FName("HitReacting"), false);
@@ -95,6 +96,11 @@ int32 ASoulCharacterEnemy::GetCharacterLevel()
 void ASoulCharacterEnemy::Die()
 {
 	Super::Die();
+	
+	UBehaviorTreeComponent* BTComponent = Cast<UBehaviorTreeComponent>(AIController->BrainComponent);
+	if (!IsValid(BTComponent)) return;	
+	BTComponent->StopTree();
+	
 	SetLifeSpan(10.f);	
 }
 
