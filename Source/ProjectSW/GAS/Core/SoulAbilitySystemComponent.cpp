@@ -113,8 +113,9 @@ void USoulAbilitySystemComponent::AbilitySpecInputPressed(FGameplayAbilitySpec& 
 	}
 }
 
+
 void USoulAbilitySystemComponent::NotifySkillChainAbilityEnded(const FGameplayTag& SlotInputTag, int32 FinishedStep,
-	bool bWasCancelled, bool bTransitioningToNext)
+                                                               bool bWasCancelled, bool bTransitioningToNext)
 {
 	// 이미 TryAdvanceChainFromBranch를 통해 다음 체인으로 즉시 넘어가는 중이면 타이머/단계 처리를 생략
 	if (bTransitioningToNext) return;

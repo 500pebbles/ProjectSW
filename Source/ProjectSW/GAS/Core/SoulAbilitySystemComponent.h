@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "SoulAbilitySystemComponent.generated.h"
 
+class USoulAbilitySystemComponent;
 class USoulSkillAbility;
 
 // 에디터에서 슬롯마다 설정할 체인 구조체
@@ -53,8 +54,9 @@ public:
 	
 	void AbilityInputTagReleased(const FGameplayTag& InputTag);
 	
-	virtual void AbilitySpecInputPressed(FGameplayAbilitySpec& Spec) override;
+	virtual void AbilitySpecInputPressed(FGameplayAbilitySpec& Spec) override;	
 	
+public:
 	// USoulSkillAbility 종료 시 체인 단계 전진 및 3초 타이머 구동
 	void NotifySkillChainAbilityEnded(const FGameplayTag& SlotInputTag, int32 FinishedStep, bool bWasCancelled, bool bTransitioningToNext);
 	// 선입력 또는 후딜레이 구간에서 다음 체인 단계로 전환 시도

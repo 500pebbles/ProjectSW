@@ -64,6 +64,8 @@ namespace SoulTags
 		UE_DEFINE_GAMEPLAY_TAG(Attack, "SoulTags.Abilities.Attack")
 		UE_DEFINE_GAMEPLAY_TAG(Dash, "SoulTags.Abilities.Dash")
 		UE_DEFINE_GAMEPLAY_TAG(Skill, "SoulTags.Abilities.Skill")
+		
+		UE_DEFINE_GAMEPLAY_TAG(Fireball, "SoulTags.Abilities.Fireball")
 	} 
 	
 	namespace States
