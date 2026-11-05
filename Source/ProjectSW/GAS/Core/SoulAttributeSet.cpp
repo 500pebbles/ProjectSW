@@ -119,7 +119,8 @@ void USoulAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectMo
 			}
 			
 			const bool bIsCriticalHit = USoulAbilitySystemLibrary::IsCriticalHit(Props.EffectContextHandle); 
-			ShowDamageText(Props, LocalIncomingDamage, bIsCriticalHit);
+			const int32 DamageType =USoulAbilitySystemLibrary::GetDamageType(Props.EffectContextHandle); 
+			ShowDamageText(Props, LocalIncomingDamage, bIsCriticalHit, DamageType);
 		}
 	}
 }
@@ -253,7 +254,7 @@ void USoulAttributeSet::SetEffectProperties(const FGameplayEffectModCallbackData
 	}
 }
 
-void USoulAttributeSet::ShowDamageText(const FEffectProperties& Props, float DamageAmount, bool bIsCriticalHit) const
+void USoulAttributeSet::ShowDamageText(const FEffectProperties& Props, float DamageAmount, bool bIsCriticalHit, int32 DamageType) const
 {
 	/* Damage Types 플로우
 	 * Damage Types는 Instigator측의 정보에 해당, GameplayEffectContext 구조체에 정보값을 추가해 Types에서 재정의.
@@ -265,5 +266,5 @@ void USoulAttributeSet::ShowDamageText(const FEffectProperties& Props, float Dam
 	if (Props.SourceCharacter == Props.TargetCharacter) return;
 	
 	ASoulPlayerController* PC = Cast<ASoulPlayerController>(Props.SourceCharacter->Controller);
-	if (PC) PC->ShowDamageText(DamageAmount, Props.TargetCharacter, bIsCriticalHit);
+	if (PC) PC->ShowDamageText(DamageAmount, Props.TargetCharacter, bIsCriticalHit, DamageType);
 }

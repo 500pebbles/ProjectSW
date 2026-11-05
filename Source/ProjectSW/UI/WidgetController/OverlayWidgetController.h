@@ -6,6 +6,7 @@
 #include "SoulWidgetController.h"
 #include "OverlayWidgetController.generated.h"
 
+class USoulAbilitySystemComponent;
 struct FOnAttributeChangeData;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAttributeChangedSignature, float, NewValue);
 

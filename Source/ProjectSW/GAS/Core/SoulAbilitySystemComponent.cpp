@@ -58,6 +58,7 @@ void USoulAbilitySystemComponent::GiveSkillSlotChains(const TArray<FSoulSkillSlo
 			SkillChainStates.Add(ChainConfig.SlotInputTag, MoveTemp(RuntimeState));
 		}
 	}
+	OnSkillChainStateChanged.Broadcast();
 }
 
 void USoulAbilitySystemComponent::AbilityInputTagPressed(const FGameplayTag& InputTag)
@@ -113,8 +114,9 @@ void USoulAbilitySystemComponent::AbilitySpecInputPressed(FGameplayAbilitySpec& 
 	}
 }
 
+
 void USoulAbilitySystemComponent::NotifySkillChainAbilityEnded(const FGameplayTag& SlotInputTag, int32 FinishedStep,
-	bool bWasCancelled, bool bTransitioningToNext)
+                                                               bool bWasCancelled, bool bTransitioningToNext)
 {
 	// 이미 TryAdvanceChainFromBranch를 통해 다음 체인으로 즉시 넘어가는 중이면 타이머/단계 처리를 생략
 	if (bTransitioningToNext) return;
@@ -138,6 +140,7 @@ void USoulAbilitySystemComponent::NotifySkillChainAbilityEnded(const FGameplayTa
 		World->GetTimerManager().SetTimer(ChainState->ResetTimerHandle, TimerDelegate, ChainState->ChainResetDelay, false);
 	}
 	SW_LOG("[SkillChain] Slot %s advanced to Step %d (Reset in %.1fs)", *SlotInputTag.ToString(), NextStep, ChainState->ChainResetDelay);
+	OnSkillChainStateChanged.Broadcast();
 }
 
 bool USoulAbilitySystemComponent::TryAdvanceChainFromBranch(const FGameplayTag& SlotInputTag)
@@ -156,6 +159,105 @@ bool USoulAbilitySystemComponent::TryAdvanceChainFromBranch(const FGameplayTag& 
 	// 소울워커 원작 방식: NextStep(예: 1-1)부터 뒷방향으로만 탐색하여 쿨타임이면 1-2로 자동 스킵, 뒷단계가 전부 쿨타임이면 불발(bAllowWrapToStart = false)
 	return TryActivateSlotChainStep(*ChainState, NextStep, false, ActiveSkill);
 }
+
+bool USoulAbilitySystemComponent::GetSkillSlotUIData(const FGameplayTag& SlotInputTag, int32 OverrideStepIndex,
+	FSoulSkillSlotUIData& OutData) const
+{
+	OutData = FSoulSkillSlotUIData();
+	OutData.SlotInputTag = SlotInputTag;
+	const FSoulSkillChainRuntimeState* ChainState = SkillChainStates.Find(SlotInputTag);
+	if (!ChainState || ChainState->SpecHandles.IsEmpty())
+	{
+		return false;
+	}
+	const int32 NumSteps = ChainState->SpecHandles.Num();
+	int32 StepToDisplay = 0;
+	if (ChainState->SpecHandles.IsValidIndex(OverrideStepIndex))
+	{
+		// 편집창(3x3 그리드) 모드: 지정된 고정 단계(0, 1, 2) 표시
+		StepToDisplay = OverrideStepIndex;
+	}
+	else
+	{
+		// 인게임 HUD 모드(-1): 쿨타임 스킵 로직이 반영된 '다음에 실제 나가는 단계' 표시
+		const int32 AvailableStep = FindAvailableChainStep(*ChainState, ChainState->CurrentStep, true);
+		StepToDisplay = (AvailableStep != INDEX_NONE)
+			? AvailableStep
+			: FMath::Clamp(ChainState->CurrentStep, 0, NumSteps - 1);
+	}
+	OutData.DisplayStep = StepToDisplay;
+	if (const FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(ChainState->SpecHandles[StepToDisplay]))
+	{
+		const UGameplayAbility* AbilityObject = Spec->GetPrimaryInstance() ? Spec->GetPrimaryInstance() : Spec->Ability.Get();
+		if (const USoulSkillAbility* SkillAbility = Cast<USoulSkillAbility>(AbilityObject))
+		{
+			OutData.SkillIcon = SkillAbility->GetSkillIcon();
+			const FGameplayTag SkillCooldownTag = SkillAbility->GetSkillCooldownTag();
+			if (SkillCooldownTag.IsValid())
+			{
+				const FGameplayEffectQuery Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(FGameplayTagContainer(SkillCooldownTag));
+				const TArray<TPair<float, float>> RemainingAndDuration = GetActiveEffectsTimeRemainingAndDuration(Query);
+				for (const TPair<float, float>& Pair : RemainingAndDuration)
+				{
+					if (Pair.Key > OutData.CooldownRemaining)
+					{
+						OutData.CooldownRemaining = Pair.Key;
+						OutData.CooldownDuration = Pair.Value;
+					}
+				}
+			}
+		}
+	}
+	if (const UWorld* World = GetWorld())
+	{
+		const FTimerManager& TimerManager = World->GetTimerManager();
+		if (TimerManager.IsTimerActive(ChainState->ResetTimerHandle) && ChainState->ChainResetDelay > 0.0f)
+		{
+			OutData.bIsChainWindowActive = true;
+			const float Remaining = TimerManager.GetTimerRemaining(ChainState->ResetTimerHandle);
+			OutData.ChainWindowRemainingRatio = FMath::Clamp(Remaining / ChainState->ChainResetDelay, 0.0f, 1.0f);
+		}
+	}
+	return true;
+}
+
+bool USoulAbilitySystemComponent::SwapSkillChainSteps(const FGameplayTag& SlotA, int32 StepA, const FGameplayTag& SlotB,
+	int32 StepB)
+{
+	if (SlotA == SlotB && StepA == StepB)
+	{
+		return false;
+	}
+	// 스킬 시전 중에는 체인 순서 변경 방지
+	if (FindCurrentlyActiveSkillAbility() != nullptr)
+	{
+		SW_LOG("[SkillChain] Cannot swap chain steps while a skill ability is active.");
+		return false;
+	}
+	FSoulSkillChainRuntimeState* StateA = SkillChainStates.Find(SlotA);
+	FSoulSkillChainRuntimeState* StateB = SkillChainStates.Find(SlotB);
+	if (!StateA || !StateB)
+	{
+		return false;
+	}
+	if (!StateA->SpecHandles.IsValidIndex(StepA) || !StateB->SpecHandles.IsValidIndex(StepB))
+	{
+		return false;
+	}
+	Swap(StateA->SpecHandles[StepA], StateB->SpecHandles[StepB]);
+	// 교체된 슬롯들의 체인 단계를 0(1단계)으로 초기화하고 유예 타이머 해제
+	StateA->CurrentStep = 0;
+	StateB->CurrentStep = 0;
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(StateA->ResetTimerHandle);
+		World->GetTimerManager().ClearTimer(StateB->ResetTimerHandle);
+	}
+	OnSkillChainStateChanged.Broadcast();
+	SW_LOG("[SkillChain] Swapped (%s [%d]) <-> (%s [%d])", *SlotA.ToString(), StepA, *SlotB.ToString(), StepB);
+	return true;
+}
+
 int32 USoulAbilitySystemComponent::FindAvailableChainStep(const FSoulSkillChainRuntimeState& ChainState, int32 StartStep, bool bAllowWrapToStart) const
 {
 	const int32 NumSteps = ChainState.SpecHandles.Num();
@@ -270,6 +372,7 @@ bool USoulAbilitySystemComponent::TryActivateSlotChainStep(FSoulSkillChainRuntim
 	}
 	else if (USoulSkillAbility* SkillCDO = Cast<USoulSkillAbility>(SelectedSpec->Ability))
 	{
+		OnSkillChainStateChanged.Broadcast();
 		SkillCDO->SetChainRuntimeInfo(ChainState.SlotInputTag, SelectedStep, bIsFinisher);
 	}
 	return TryActivateAbility(SelectedSpec->Handle);
@@ -295,6 +398,7 @@ void USoulAbilitySystemComponent::ResetSkillChainSlot(FGameplayTag SlotInputTag)
 	if (FSoulSkillChainRuntimeState* ChainState = SkillChainStates.Find(SlotInputTag))
 	{
 		ChainState->CurrentStep = 0;
+		OnSkillChainStateChanged.Broadcast();
 		SW_LOG("[SkillChain] Slot %s chain timer expired -> Reset to Step 0", *SlotInputTag.ToString());
 	}
 }

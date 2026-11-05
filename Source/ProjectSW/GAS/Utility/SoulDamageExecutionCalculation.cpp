@@ -86,8 +86,13 @@ void USoulDamageExecutionCalculation::Execute_Implementation(const FGameplayEffe
 	EvaluationParameters.SourceTags = SourceTags;
 	EvaluationParameters.TargetTags = TargetTags;	
 	
+	
+	
 	// Calculation.
+	int32 DamageTypeCount = 0;
+	int32 DamageIndex = 0;
 	float Damage = 0.f;
+	
 	for (const TTuple<FGameplayTag, FGameplayTag>& Pair : SoulTags::DamageTypes::GetDamageTypes())
 	{		
 		const FGameplayTag DamageTypeTag = Pair.Key;
@@ -95,6 +100,7 @@ void USoulDamageExecutionCalculation::Execute_Implementation(const FGameplayEffe
 		const FGameplayEffectAttributeCaptureDefinition CaptureDef = SoulDamageStatics().GameplayTagsToCaptureDefs[ResistanceTypeTag];
 		
 		float DamageTypeValue = Spec.GetSetByCallerMagnitude(Pair.Key, false, 0.f);
+		if (DamageTypeValue > KINDA_SMALL_NUMBER) DamageTypeCount = DamageIndex;
 		
 		float Resistance = 0.f;
 		ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(CaptureDef, EvaluationParameters, Resistance);
@@ -102,6 +108,7 @@ void USoulDamageExecutionCalculation::Execute_Implementation(const FGameplayEffe
 		
 		DamageTypeValue = DamageTypeValue * (100 / (100 + Resistance));	
 		Damage += DamageTypeValue;
+		DamageIndex++;
 	}
 	
 	// Damage Modification Setup. 
@@ -118,6 +125,7 @@ void USoulDamageExecutionCalculation::Execute_Implementation(const FGameplayEffe
 	// Setup GE Context. 
 	FGameplayEffectContextHandle EffectContextHandle = Spec.GetContext();
 	USoulAbilitySystemLibrary::SetIsCriticalHit(EffectContextHandle, bIsDamageCritical);
+	USoulAbilitySystemLibrary::SetDamageType(EffectContextHandle, DamageTypeCount);
 	
 	// Execution.
 	const FGameplayModifierEvaluatedData EvaluatedData(USoulAttributeSet::GetIncomingDamageAttribute(), EGameplayModOp::Additive, Damage);

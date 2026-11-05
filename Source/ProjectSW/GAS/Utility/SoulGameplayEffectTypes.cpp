@@ -38,6 +38,10 @@ bool FSoulGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* M
 		{
 			RepBits |= 1 << 7;
 		}
+		if (DamageType)
+		{
+			RepBits |= 1 << 8;
+		}
 	}
 	
 	Ar.SerializeBits(&RepBits, 8);
@@ -85,6 +89,10 @@ bool FSoulGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* M
 	if (RepBits & (1 << 7))
 	{
 		Ar << bIsCriticalHit;
+	}
+	if (RepBits & (1 << 8))
+	{
+		Ar << DamageType;
 	}
 
 	if (Ar.IsLoading())

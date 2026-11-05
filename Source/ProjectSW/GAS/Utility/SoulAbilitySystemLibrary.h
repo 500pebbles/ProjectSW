@@ -40,6 +40,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "SoulAbilitySystemLibrary")
 	static void SetIsCriticalHit(UPARAM(ref) FGameplayEffectContextHandle& EffectContextHandle, bool bIsCriticalHit);
 
+	UFUNCTION(BlueprintPure, Category = "SoulAbilitySystemLibrary")
+	static int32 GetDamageType(const FGameplayEffectContextHandle& EffectContextHandle);
+	
+	UFUNCTION(BlueprintCallable, Category = "SoulAbilitySystemLibrary")
+	static void SetDamageType(UPARAM(ref) FGameplayEffectContextHandle& EffectContextHandle, int32 DamageType);
+
+	
 	UFUNCTION(BlueprintCallable, Category = "SoulAbilitySystemLibrary")
 	static void GetActorsWithinRadius(const UObject* WorldContextObject, TArray<AActor*>& OutOverlappingActors, const TArray<AActor*>& ActorsToIgnore, float Radius, const FVector& SphereOrigin);
 
