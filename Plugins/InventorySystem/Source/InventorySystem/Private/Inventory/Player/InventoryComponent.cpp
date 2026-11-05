@@ -95,18 +95,19 @@ void UInventoryComponent::CollectItem(AActor* TargetItem)
 	
 	// 아이템이 추가될 떄 UI에 반영하도록 조건 추가
 	const int32 PrevItemCount = InventoryData.ItemDataArray.Num();
-	InventoryData.AddItemData(TargetItemComponent);
-	
-	if(InventoryData.ItemDataArray.Num() > PrevItemCount)
+	if(InventoryData.AddItemData(TargetItemComponent))
 	{
-		// 가장 마지막에 추가된 아이템을 전달
-		OnInventoryItemAdded.Broadcast(&InventoryData.ItemDataArray.Last());
+		// 월드 상에서 아이템 제거
+		TargetItem->Destroy();
+		
+		if(InventoryData.ItemDataArray.Num() > PrevItemCount)
+		{
+			// 가장 마지막에 추가된 아이템을 전달
+			OnInventoryItemAdded.Broadcast(&InventoryData.ItemDataArray.Last());
+		}
+	
+		RefreshQuickSlot();
 	}
-	
-	// 월드 상에서 아이템 제거
-	TargetItem->Destroy();
-	
-	RefreshQuickSlot();
 }
 
 // Testcode

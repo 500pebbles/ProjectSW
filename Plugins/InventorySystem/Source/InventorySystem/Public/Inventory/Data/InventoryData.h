@@ -80,8 +80,8 @@ public:
 	void InitializeArray();
 	
 	// 목록에 아이템 추가
-	void AddItemData(const UItemComponent* InItemComponent);
-	void AddItemData(UItemData* InItemData);
+	bool AddItemData(const UItemComponent* InItemComponent);
+	bool AddItemData(UItemData* InItemData);
 	
 	// 장비 슬롯에 아이템 장착
 	const FInventoryDataEntry* AddItemDataToPosition(UItemData* EquippedItem, FIntPoint InPosition);

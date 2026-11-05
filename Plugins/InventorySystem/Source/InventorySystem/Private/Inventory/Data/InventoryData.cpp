@@ -162,34 +162,38 @@ const FInventoryDataEntry* FInventoryDataArray::FindItemWithID(const FGuid& InID
 	});
 }
 
-void FInventoryDataArray::AddItemData(const UItemComponent* InItemComponent)
+bool FInventoryDataArray::AddItemData(const UItemComponent* InItemComponent)
 {
-	if (IsValid(InItemComponent))
+	if (!IsValid(InItemComponent))
 	{
-		AddItemData(InItemComponent->GetItemData());
+		return false;
 	}
-	return;
+	
+	return AddItemData(InItemComponent->GetItemData());;
 }
 
-void FInventoryDataArray::AddItemData(UItemData* InItemData)
+bool FInventoryDataArray::AddItemData(UItemData* InItemData)
 {
-	if (IsValid(InItemData))
+	if (!IsValid(InItemData))
 	{
-		// 인벤토리에서 아이템을 넣을 수 있는 빈 공간 찾기
-		FIntPoint TargetGridPosition = FindAvailablePosition(InItemData, FGuid());
-		if (TargetGridPosition.X < 0 || TargetGridPosition.Y < 0)
-		{
-			return;
-		}
-		
-		FInventoryDataEntry NewItemEntry;
-		NewItemEntry.Item = InItemData;
-		NewItemEntry.GridPosition = TargetGridPosition;
-		
-		ItemDataArray.Add(NewItemEntry);
-		
-		UE_LOG(LogTemp, Log, TEXT("Item Collected"))
+		return false;
 	}
+	
+	// 인벤토리에서 아이템을 넣을 수 있는 빈 공간 찾기
+	FIntPoint TargetGridPosition = FindAvailablePosition(InItemData, FGuid());
+	if (TargetGridPosition.X < 0 || TargetGridPosition.Y < 0)
+	{
+		return false;
+	}
+		
+	FInventoryDataEntry NewItemEntry;
+	NewItemEntry.Item = InItemData;
+	NewItemEntry.GridPosition = TargetGridPosition;
+		
+	ItemDataArray.Add(NewItemEntry);
+		
+	return true;
+	
 }
 
 const FInventoryDataEntry* FInventoryDataArray::AddItemDataToPosition(UItemData* EquippedItem, FIntPoint InPosition)
