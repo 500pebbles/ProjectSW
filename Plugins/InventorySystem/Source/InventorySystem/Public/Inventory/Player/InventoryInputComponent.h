@@ -25,6 +25,7 @@ public:
 	FOnTraceItemChangedDelegate OnTraceItemChanged;
 	FOnSwitchQuickSlotItemDelegate OnSwitchQuickSlotItem;
 	FOnSetupQuickSlotButtonTextDelegate OnSetupQuickSlotButtonText;
+	FOnToggleEquipmentUIDelegate OnToggleEquipmentUI;
 
 public:
 	// Sets default values for this component's properties
@@ -51,6 +52,7 @@ public:
 	virtual FOnTraceItemChangedDelegate& GetOnTraceItemChanged() override {return OnTraceItemChanged;}
 	virtual FOnSwitchQuickSlotItemDelegate& GetSwitchQuickSlotItem() override {return OnSwitchQuickSlotItem;}
 	virtual FOnSetupQuickSlotButtonTextDelegate& GetSetupQuickSlotButtonText() override {return OnSetupQuickSlotButtonText;}
+	virtual FOnToggleEquipmentUIDelegate& GetToggleEquipmentUI() override {return OnToggleEquipmentUI;}
 	
 	// 입력 관련 함수
 private:
@@ -61,6 +63,8 @@ private:
 	void UseQuickSlotItem();
 	
 	void SwitchQuickSlotItem(bool bIsHeadingNext);
+	
+	void ToggleEquipUI();
 	
 private:
 	// 아이템을 바라보고 있을 때 범위 내에 있다면 상호작용이 가능함을 표시하기 위한 함수
@@ -89,6 +93,9 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	TObjectPtr<UInputAction> SwitchPrevQuickSlotItemAction;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
+	TObjectPtr<UInputAction> ToggleEquipUIAction;
 	
 	// 아이템 상호작용 검사 섹션
 private:

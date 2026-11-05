@@ -29,6 +29,8 @@ void UItemCollectedUI::NativeOnDragDetected(const FGeometry& InGeometry, const F
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 	
 	UItemDragDrop* Operation = NewObject<UItemDragDrop>();
+	Operation->DragSource = EItemDragSource::Inventory;
+	Operation->ItemData = GetInventoryItem();
 	Operation->ItemID = ItemID;
 	Operation->MousePressedPosition = MousePressedLocalPosition;
 	Operation->Pivot = EDragPivot::MouseDown;

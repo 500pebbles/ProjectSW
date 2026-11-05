@@ -68,6 +68,18 @@ EItemType UItemData::GetItemType() const
 	return ItemData->ItemType;
 }
 
+FGameplayTag UItemData::GetEquipmentType() const
+{
+	const FItemDataTable* ItemData = GetRow();
+	
+	if (!ItemData)
+	{
+		return FGameplayTag::EmptyTag;
+	}
+	
+	return ItemData->EquipmentType;
+}
+
 FText UItemData::GetItemName() const
 {
 	const FItemDataTable* ItemData = GetRow();

@@ -60,6 +60,13 @@ UInventoryInputComponent::UInventoryInputComponent()
 		SwitchPrevQuickSlotItemAction = SwitchPrevSlotRef.Object;
 	}
 	
+	static ConstructorHelpers::FObjectFinder<UInputAction> ToggleEquipmentUIRef(
+		TEXT("/InventorySystem/Input/Actions/IA_ToggleEquipmentUI.IA_ToggleEquipmentUI"));
+	if (ToggleEquipmentUIRef.Succeeded())
+	{
+		ToggleEquipUIAction = ToggleEquipmentUIRef.Object;
+	}
+	
 	TraceLength = 600.0f;
 	
 	TraceRadius = 50.0f;
@@ -125,6 +132,7 @@ void UInventoryInputComponent::SetupInventoryInputComponent()
 	EnhancedInputComponent->BindAction(UseQuickSlotItemAction, ETriggerEvent::Started, this, &UInventoryInputComponent::UseQuickSlotItem);
 	EnhancedInputComponent->BindAction(SwitchPrevQuickSlotItemAction, ETriggerEvent::Started, this, &UInventoryInputComponent::SwitchQuickSlotItem, false);
 	EnhancedInputComponent->BindAction(SwitchNextQuickSlotItemAction, ETriggerEvent::Started, this, &UInventoryInputComponent::SwitchQuickSlotItem, true);
+	EnhancedInputComponent->BindAction(ToggleEquipUIAction, ETriggerEvent::Started, this, &UInventoryInputComponent::ToggleEquipUI);
 }
 
 void UInventoryInputComponent::SetupQuickSlotButtonText(UEnhancedInputLocalPlayerSubsystem* Subsystem)
@@ -184,6 +192,11 @@ void UInventoryInputComponent::UseQuickSlotItem()
 void UInventoryInputComponent::SwitchQuickSlotItem(bool bIsHeadingNext)
 {
 	OnSwitchQuickSlotItem.Broadcast(bIsHeadingNext);
+}
+
+void UInventoryInputComponent::ToggleEquipUI()
+{
+	OnToggleEquipmentUI.Broadcast();
 }
 
 void UInventoryInputComponent::TraceItem()

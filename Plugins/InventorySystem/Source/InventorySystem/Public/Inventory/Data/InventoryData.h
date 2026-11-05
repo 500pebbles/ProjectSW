@@ -83,15 +83,16 @@ public:
 	void AddItemData(const UItemComponent* InItemComponent);
 	void AddItemData(UItemData* InItemData);
 	
+	// 장비 슬롯에 아이템 장착
+	const FInventoryDataEntry* AddItemDataToPosition(UItemData* EquippedItem, FIntPoint InPosition);
+	
 	// 목록에서 아이템 고유 ID를 이용해 아이템 제거
 	FRemoveResult RemoveItemData(const FGuid& InID, int32 RemoveCount = 1);
 	
-	FIntPoint FindAvailablePosition(const UItemData* InItemData) const;
+	FIntPoint FindAvailablePosition(const UItemData* InItemData, const FGuid& InIgnoreID) const;
 
 	// 아이템 목록 가져오기
 	TArray<UItemData*> GetAllItems() const;
-	
-	TArray<FInventoryDataEntry> GetConsumableItems() const { return ConsumableItemDataArray; }
 	
 private:
 	// ID를 받아 ID에 해당하는 아이템 데이터를 받은 위치로 이동시키는 함수
@@ -121,8 +122,4 @@ private:
 	// 인벤토리 컴포넌트가 해당 아이템 리스트를 갖도록 지정한다.
 	UPROPERTY()
 	TObjectPtr<UActorComponent> OwnerComponent;
-	
-	// 소비 아이템 리스트는 추가로 저장한다
-	UPROPERTY()
-	TArray<FInventoryDataEntry> ConsumableItemDataArray;
 };

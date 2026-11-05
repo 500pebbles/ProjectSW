@@ -175,6 +175,15 @@ bool UInventoryGrid::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEv
 	}
 	
 	const FIntPoint SlotPosition = ComputeTargetCell(InDragDropEvent, Operation);
+	
+	// 장비 슬롯에서 드래그 해온 아이템인 경우에 대한 처리
+	if (Operation->DragSource == EItemDragSource::Equipment)
+	{
+		// 칸이 막혀있거나 그리드 밖이면 다시 원상태로 돌리기
+		InventoryComponent->UnequipItem(Operation->SourceEquipmentTag, SlotPosition);
+		return true;
+	}
+	
 	if (!InventoryComponent->MoveItemPosition(Operation->ItemID, SlotPosition))
 	{
 		// return false를 하는 경우 아이템이 이미 존재하는 위치로 아이템을 올리면 OnDragCancelled가 호출되어
@@ -205,30 +214,50 @@ bool UInventoryGrid::NativeOnDragOver(const FGeometry& InGeometry, const FDragDr
 	{
 		return false;
 	}
-
-	const FInventoryDataEntry* Entry = InventoryComponent->FindItemWithID(Operation->ItemID);
-	if (!Entry)
+	
+	const FIntPoint Cell = ComputeTargetCell(InDragDropEvent, Operation);
+	
+	FIntPoint EntrySize = FIntPoint::ZeroValue;
+	bool bCanPlace = false;
+	
+	if (Operation->DragSource == EItemDragSource::Equipment)
 	{
-		return false;
+		// 장비 슬롯에서 끌고온 아이템은 아이템 엔트리로 감싸있지 않으므로 ItemData를 이용
+		if (!Operation->ItemData)
+		{
+			return false;
+		}
+		
+		EntrySize = Operation->ItemData->GetItemSize();
+		bCanPlace = InventoryComponent->CheckSlotAvailableEquipment(Operation->ItemData, Cell);
+	}
+	else
+	{
+		const FInventoryDataEntry* Entry = InventoryComponent->FindItemWithID(Operation->ItemID);
+		if (!Entry)
+		{
+			return false;
+		}
+		
+		EntrySize = Entry->GetOccupiedSize();
+		bCanPlace = InventoryComponent->CheckSlotAvailable(Operation->ItemID, Cell);
 	}
 
 	// 그리드 안에서 ESC 등으로 취소돼도 하이라이트가 남지 않게 (중복 바인딩은 Unique로 방지)
 	Operation->OnDragCancelled.AddUniqueDynamic(this, &UInventoryGrid::HandleDragCancelled);
 
-	const FIntPoint Cell = ComputeTargetCell(InDragDropEvent, Operation);
 	
 	// 하이라이트가 그리드 밖으로 나가는 경우 인벤토리 그리드가 전체적으로 이동해서 본래 위치를 벗어나는 오류 방지
 	// 이미지가 인벤토리의 그리드와 동일한 캔버스 패널에 위치해서 발생하는 것으로 추정됨
 	// 그리드 밖으로 나갈 경우 하이라이트를 표시하지 않음
 	const FIntPoint DataGrid = InventoryComponent->GetInventoryDataArray().GridSize;
-	const FIntPoint EntrySize = Entry->GetOccupiedSize();
 	if (Cell.X < 0 || Cell.Y < 0 || Cell.X + EntrySize.X > DataGrid.X || Cell.Y + EntrySize.Y > DataGrid.Y)
 	{
 		HidePlacementPreview();
 		return true;
 	}
 	
-	ShowPlacementPreview(Cell, Entry->GetOccupiedSize(), InventoryComponent->CheckSlotAvailable(Operation->ItemID, Cell));
+	ShowPlacementPreview(Cell, EntrySize, bCanPlace);
 	return true;
 }
 
@@ -290,6 +319,12 @@ void UInventoryGrid::HandleDragCancelled(UDragDropOperation* InOperation)
 	
 	UItemDragDrop* Operation = Cast<UItemDragDrop>(InOperation);
 	if (!Operation)
+	{
+		return;
+	}
+	
+	// 장비 슬롯에서 시작한 드래그의 버리기는 장비 슬롯이 직접 처리하므로 인벤토리에서 끌고 온 것만 여기서 처리
+	if (Operation->DragSource != EItemDragSource::Inventory)
 	{
 		return;
 	}

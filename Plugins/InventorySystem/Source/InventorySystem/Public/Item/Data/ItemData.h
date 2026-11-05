@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GameplayTagContainer.h"
 #include "Engine/DataTable.h"
 #include "ItemData.generated.h"
 
@@ -23,6 +24,9 @@ struct FItemDataTable : public FTableRowBase
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	EItemType ItemType = EItemType::None;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	FGameplayTag EquipmentType;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	FText ItemName;
@@ -80,6 +84,7 @@ public:
 	FDataTableRowHandle GetRowHandle() const { return ItemRowHandle; }
 	
 	EItemType GetItemType() const;
+	FGameplayTag GetEquipmentType() const;
 	FText GetItemName() const;
 	FIntPoint GetItemSize() const;
 	FName GetRowName() const {return ItemRowHandle.RowName;}

@@ -32,7 +32,7 @@ bool FInventoryDataEntry::IsOverlapping(FIntPoint InPosition, FIntPoint InSize) 
 	return bOverlapX && bOverlapY;
 }
 
-FIntPoint FInventoryDataArray::FindAvailablePosition(const UItemData* InItemData) const
+FIntPoint FInventoryDataArray::FindAvailablePosition(const UItemData* InItemData, const FGuid& InIgnoreID) const
 {
 	const FIntPoint Size = InItemData->GetItemSize();   // 회전 안 한 기본 크기
 	if (Size.X <= 0 || Size.Y <= 0) return FIntPoint::NoneValue;
@@ -47,6 +47,11 @@ FIntPoint FInventoryDataArray::FindAvailablePosition(const UItemData* InItemData
 			bool bBlocked = false;
 			for (const FInventoryDataEntry& Entry : ItemDataArray)
 			{
+				if (Entry.GetID() == InIgnoreID)
+				{
+					continue;
+				}
+				
 				if (Entry.IsOverlapping(Candidate, Size))
 				{
 					bBlocked = true;
@@ -171,7 +176,7 @@ void FInventoryDataArray::AddItemData(UItemData* InItemData)
 	if (IsValid(InItemData))
 	{
 		// 인벤토리에서 아이템을 넣을 수 있는 빈 공간 찾기
-		FIntPoint TargetGridPosition = FindAvailablePosition(InItemData);
+		FIntPoint TargetGridPosition = FindAvailablePosition(InItemData, FGuid());
 		if (TargetGridPosition.X < 0 || TargetGridPosition.Y < 0)
 		{
 			return;
@@ -183,12 +188,29 @@ void FInventoryDataArray::AddItemData(UItemData* InItemData)
 		
 		ItemDataArray.Add(NewItemEntry);
 		
-		if (InItemData->GetItemType() == EItemType::Consumable)
-		{
-			ConsumableItemDataArray.Add(NewItemEntry);
-		}
 		UE_LOG(LogTemp, Log, TEXT("Item Collected"))
 	}
+}
+
+const FInventoryDataEntry* FInventoryDataArray::AddItemDataToPosition(UItemData* EquippedItem, FIntPoint InPosition)
+{
+	if (!IsValid(EquippedItem))
+	{
+		return nullptr; 
+	}
+	
+	if (!CheckSlotAvailable(InPosition, EquippedItem->GetItemSize(), FGuid()))
+	{
+		return nullptr;
+	}
+	
+	FInventoryDataEntry NewItemEntry;
+	NewItemEntry.Item = EquippedItem;
+	NewItemEntry.GridPosition = InPosition;
+	
+	ItemDataArray.Add(NewItemEntry);
+	
+	return &ItemDataArray.Last();
 }
 
 FRemoveResult FInventoryDataArray::RemoveItemData(const FGuid& InID, int32 RemoveCount)
