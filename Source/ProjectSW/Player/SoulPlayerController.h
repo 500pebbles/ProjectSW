@@ -43,6 +43,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TObjectPtr<UInputAction> HoverMouseAction;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TObjectPtr<UInputAction> MapAction;
+
 /* Actions Section */	
 protected:
 	void Move(const FInputActionValue& Value);
@@ -109,4 +112,8 @@ public:
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TSubclassOf<USoulDamageTextComponent> DamageTextComponentClass;
+
+/* UI : Map */
+public:
+	void ToggleMap();
 };

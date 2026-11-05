@@ -8,10 +8,14 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GAS/Core/SoulAbilitySystemComponent.h"
 #include "Input/SoulEnhancedInputComponent.h"
+#include "UI/HUD/SoulHUD.h"
+#include "Map/SoulMapWidget.h"
+#include "Map/SoulMapSubsystem.h"
 #include "UI/WidgetComponent/SoulDamageTextComponent.h"
 #include "Utility/SoulGameplayTags.h"
 #include "Utility/SoulDefineMacro.h"
 #include "Utility/SoulLog.h"
+
 
 ASoulPlayerController::ASoulPlayerController()
 {
@@ -46,6 +50,9 @@ void ASoulPlayerController::SetupInputComponent()
 	EnhancedInputComponent->BindAction(HoverMouseAction, ETriggerEvent::Started, this, &ThisClass::HoverMouse);
 	EnhancedInputComponent->BindAction(HoverMouseAction, ETriggerEvent::Completed, this, &ThisClass::StopHoverMouse);	
 	EnhancedInputComponent->BindAbilityActions(InputConfig, this, &ThisClass::AbilityInputTagPressed, &ThisClass::AbilityInputTagReleased, &ThisClass::AbilityInputTagHeld);
+
+	if (MapAction)
+		EnhancedInputComponent->BindAction(MapAction, ETriggerEvent::Started, this, &ThisClass::ToggleMap);
 }
 
 void ASoulPlayerController::Move(const FInputActionValue& Value)
@@ -112,6 +119,10 @@ void ASoulPlayerController::HoverMouse()
 
 void ASoulPlayerController::StopHoverMouse()
 {   
+	// 임시로 지도가 열려 있으면 입력 모드는 ToggleMap이 관리한다.
+	const ASoulHUD* SoulHUD = Cast<ASoulHUD>(GetHUD());
+	if (IsValid(SoulHUD) && SoulHUD->IsMapOpen()) return;
+
 	bShowMouseCursor = false;
 
 	FInputModeGameOnly InputMode;
@@ -167,6 +178,40 @@ USoulAbilitySystemComponent* ASoulPlayerController::GetASC()
 		SoulAbilitySystemComponent = Cast<USoulAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPawn<APawn>()));
 
 	return SoulAbilitySystemComponent;
+}
+
+void ASoulPlayerController::ToggleMap()
+{
+	ASoulHUD* SoulHUD = Cast<ASoulHUD>(GetHUD());
+	
+	if (!IsValid(SoulHUD))
+		return;
+
+	if (SoulHUD->IsMapOpen())
+	{
+		SoulHUD->CloseMap();
+		FlushPressedKeys();
+		bShowMouseCursor = false;
+		SetInputMode(FInputModeGameOnly());
+		return;
+	}
+
+	const USoulMapSubsystem* MapSubsystem = GetWorld()->GetSubsystem<USoulMapSubsystem>();
+
+	if (!MapSubsystem || !MapSubsystem->HasMapData())
+		return;
+
+	USoulMapWidget* MapWidget = SoulHUD->OpenMap();
+	if (!IsValid(MapWidget))
+		return;
+
+	FlushPressedKeys();
+
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(MapWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+	bShowMouseCursor = true;
 }
 
 void ASoulPlayerController::ShowDamageText_Implementation(float DamageAmount, ACharacter* TargetCharacter, bool bIsCriticalHit, int32 DamageType)
