@@ -9,6 +9,7 @@
 
 class APMGMapBuilder;
 class ASoulPackedLevelActor;
+class ASoulRoomDoor;
 
 /**
  * 
@@ -27,6 +28,11 @@ private:
 
 	void HandleRoomEntered(ASoulPackedLevelActor* Room);
 
+	void HandleCombatFinished(ASoulPackedLevelActor* Room);
+
+	void InitDoors(const FPMGResult& Result, const TMap<FName, AActor*>& SpawnedByName, const FString& BuilderName);
+	void SetRoomDoorsClosed(int32 RoomId, bool bClosed);
+
 private:
 	UPROPERTY()
 	TWeakObjectPtr<APMGMapBuilder> MapBuilder;
@@ -36,4 +42,7 @@ private:
 
 	UPROPERTY()
 	TMap<int32, TObjectPtr<ASoulPackedLevelActor>> Rooms;
+
+	UPROPERTY()
+	TArray<TObjectPtr<ASoulRoomDoor>> Doors;
 };

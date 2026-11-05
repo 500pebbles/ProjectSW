@@ -61,7 +61,7 @@ private:
 	TObjectPtr<UBoxComponent> Trigger;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
-	float TriggerInset = 100.f;
+	float TriggerInset = 150.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	float TriggerHalfHeight = 300.f;
