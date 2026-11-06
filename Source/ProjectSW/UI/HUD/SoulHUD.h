@@ -58,9 +58,19 @@ protected:
 
 /* Attribute Menu Section */	
 public:
+	void InitAttributeMenu(APlayerController* PC, APlayerState* PS, UAbilitySystemComponent* ASC, UAttributeSet* AS);
+	
 	UAttributeMenuWidgetController* GetAttributeMenuWidgetController(const FWidgetControllerParams& WCParams);
 	
+	void ToggleAttributeMenuWidget();
+	
 protected:
+	UPROPERTY()
+	TObjectPtr<USoulUserWidget> AttributeMenuWidget;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TSubclassOf<USoulUserWidget> AttributeMenuWidgetClass;
+	
 	UPROPERTY()
 	TObjectPtr<UAttributeMenuWidgetController> AttributeMenuWidgetController;
 	

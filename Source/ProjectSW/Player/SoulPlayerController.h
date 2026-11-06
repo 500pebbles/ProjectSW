@@ -42,6 +42,9 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TObjectPtr<UInputAction> HoverMouseAction;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TObjectPtr<UInputAction> TabAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TObjectPtr<UInputAction> MapAction;
@@ -55,6 +58,8 @@ protected:
 	void Look(const FInputActionValue& Value);
 	
 	void Jump();
+	
+	void ShowStatus();
 	
 	void StopJumping();
 	
@@ -103,6 +108,11 @@ private:
 private:
 	UPROPERTY()
 	TObjectPtr<USoulAbilitySystemComponent> SoulAbilitySystemComponent;
+	
+/* UI : Attribute */	
+public:
+	
+protected:
 	
 /* UI : DamageText */	
 public:

@@ -48,7 +48,8 @@ void ASoulPlayerController::SetupInputComponent()
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ThisClass::Jump);
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ThisClass::StopJumping);
 	EnhancedInputComponent->BindAction(HoverMouseAction, ETriggerEvent::Started, this, &ThisClass::HoverMouse);
-	EnhancedInputComponent->BindAction(HoverMouseAction, ETriggerEvent::Completed, this, &ThisClass::StopHoverMouse);	
+	EnhancedInputComponent->BindAction(HoverMouseAction, ETriggerEvent::Completed, this, &ThisClass::StopHoverMouse);
+	EnhancedInputComponent->BindAction(TabAction, ETriggerEvent::Started, this, &ThisClass::ShowStatus);
 	EnhancedInputComponent->BindAbilityActions(InputConfig, this, &ThisClass::AbilityInputTagPressed, &ThisClass::AbilityInputTagReleased, &ThisClass::AbilityInputTagHeld);
 
 	if (MapAction)
@@ -98,6 +99,13 @@ void ASoulPlayerController::Jump()
 	if (!IsValid(GetCharacter())) return;
 
 	GetCharacter()->Jump();
+}
+
+void ASoulPlayerController::ShowStatus()
+{
+	ASoulHUD* SoulHUD = Cast<ASoulHUD>(GetHUD());	
+	if (!IsValid(SoulHUD)) return;
+	SoulHUD->ToggleAttributeMenuWidget();
 }
 
 void ASoulPlayerController::StopJumping()
