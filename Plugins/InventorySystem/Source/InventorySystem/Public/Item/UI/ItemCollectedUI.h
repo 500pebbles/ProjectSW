@@ -28,9 +28,6 @@ protected:
 	
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
-	
-private:
-	void InitItemTooltip(UItemTooltip* InItemTooltip, UItemData* Item);
 
 public:
 	UImage* GetImageIcon() {return ItemIcon;}

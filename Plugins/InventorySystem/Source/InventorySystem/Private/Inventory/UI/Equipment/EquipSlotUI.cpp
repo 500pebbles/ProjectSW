@@ -11,6 +11,7 @@
 #include "Item/Data/ItemData.h"
 #include "Item/UI/ItemCollectedUI.h"
 #include "Item/UI/ItemDragDrop.h"
+#include "Item/UI/ItemTooltip.h"
 
 void UEquipSlotUI::NativeOnInitialized()
 {
@@ -132,6 +133,45 @@ void UEquipSlotUI::NativeOnDragDetected(const FGeometry& InGeometry, const FPoin
 	Operation->OnDragCancelled.AddDynamic(this, &UEquipSlotUI::HandleDragCancelled);
 	
 	OutOperation = Operation;
+}
+
+void UEquipSlotUI::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+	
+	if (!EquippedItem || !ItemTooltipClass)
+	{
+		return;
+	}
+	
+	if (!ItemTooltip)
+	{
+		ItemTooltip = CreateWidget<UItemTooltip>(GetOwningPlayer(), ItemTooltipClass);
+		ItemTooltip->InitItemTooltip(EquippedItem.Get());
+		ItemTooltip->SetAnchorsInViewport(FAnchors(0.f, 0.f));      // 점 앵커
+		ItemTooltip->SetAlignmentInViewport(FVector2D(0.f, 0.f));
+		ItemTooltip->AddToViewport(7);
+	}
+	
+	if (!ItemTooltip->GetIsSet())
+	{
+		return;
+	}
+	
+	ItemTooltip->SetVisibility(ESlateVisibility::HitTestInvisible);
+	ItemTooltip->UpdateTooltipPosition(InGeometry);
+}
+
+void UEquipSlotUI::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseLeave(InMouseEvent);
+	
+	if (!ItemTooltip)
+	{
+		return;
+	}
+	
+	ItemTooltip->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void UEquipSlotUI::HandleDragEnded(UDragDropOperation* Operation)

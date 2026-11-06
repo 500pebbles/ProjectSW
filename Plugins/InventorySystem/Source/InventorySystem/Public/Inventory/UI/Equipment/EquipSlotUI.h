@@ -7,6 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "EquipSlotUI.generated.h"
 
+class UItemTooltip;
 class UImage;
 class UEquipmentComponent;
 class UInventoryComponent;
@@ -32,6 +33,9 @@ protected:
 	// 탈거를 위해 드래그를 시작하는 부분
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
+	
+	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
 	
 private:
 	// 델리게이트 구독 처리를 일괄적으로 수행할 함수
@@ -84,4 +88,11 @@ private:
 	
 	// 마우스를 누른 이취를 아이콘 크기 대비 비율로 저장
 	FVector2D PressedRatio = FVector2D(0.5f, 0.5f);
+	
+private:
+	UPROPERTY(EditDefaultsOnly, Category="ItemUI")
+	TSubclassOf<UItemTooltip> ItemTooltipClass;
+	
+	UPROPERTY()
+	TObjectPtr<UItemTooltip> ItemTooltip;
 };

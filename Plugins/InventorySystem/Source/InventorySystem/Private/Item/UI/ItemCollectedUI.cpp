@@ -65,10 +65,15 @@ void UItemCollectedUI::NativeOnMouseEnter(const FGeometry& InGeometry, const FPo
 {
 	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
 	
+	if (!ItemTooltipClass)
+	{
+		return;
+	}
+	
 	if (!ItemTooltip)
 	{
 		ItemTooltip = CreateWidget<UItemTooltip>(GetOwningPlayer(), ItemTooltipClass);
-		InitItemTooltip(ItemTooltip, InventoryItem.Get());
+		ItemTooltip->InitItemTooltip(InventoryItem.Get());
 		ItemTooltip->SetAnchorsInViewport(FAnchors(0.f, 0.f));      // 점 앵커
 		ItemTooltip->SetAlignmentInViewport(FVector2D(0.f, 0.f));
 		ItemTooltip->AddToViewport(7);
@@ -93,11 +98,6 @@ void UItemCollectedUI::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
 	}
 	
 	ItemTooltip->SetVisibility(ESlateVisibility::Collapsed);
-}
-
-void UItemCollectedUI::InitItemTooltip(UItemTooltip* InItemTooltip, UItemData* Item)
-{
-	InItemTooltip->InitItemTooltip(Item);
 }
 
 void UItemCollectedUI::SetInventoryItem(UItemData* InInventoryItem)
