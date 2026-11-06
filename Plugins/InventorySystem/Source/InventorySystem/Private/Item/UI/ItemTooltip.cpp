@@ -3,7 +3,6 @@
 
 #include "Item/UI/ItemTooltip.h"
 
-#include "SNodePanel.h"
 #include "Blueprint/SlateBlueprintLibrary.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/Image.h"
