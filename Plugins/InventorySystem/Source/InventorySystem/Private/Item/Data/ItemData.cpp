@@ -43,7 +43,7 @@ bool UItemData::UseItem(AActor* User)
 
 bool UItemData::RemoveEquippedItem(AActor* User)
 {
-	if (!User)
+	if (!User || !CachedUseDefinition)
 	{
 		return false;
 	}
@@ -121,6 +121,18 @@ FText UItemData::GetItemDescription() const
 	}
 	
 	return ItemData->ItemDescription;
+}
+
+FText UItemData::GetItemEffectDescription() const
+{
+	const FItemDataTable* ItemData = GetRow();
+	
+	if (!ItemData)
+	{
+		return FText::GetEmpty();
+	}
+	
+	return ItemData->ItemEffectDescription;
 }
 
 FIntPoint UItemData::GetItemSize() const

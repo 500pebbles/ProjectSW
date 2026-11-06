@@ -30,7 +30,7 @@ void UItemTooltip::InitItemTooltip(UItemData* InItemData)
 	}
 	Text_ItemName->SetText(InItemData->GetItemName());
 	Text_ItemDescription->SetText(InItemData->GetItemDescription());
-	//Text_ItemEffect = 
+	Text_ItemEffect->SetText(InItemData->GetItemEffectDescription()); 
 	bIsSet = true;
 }
 

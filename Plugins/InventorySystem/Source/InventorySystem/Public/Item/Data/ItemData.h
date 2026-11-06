@@ -34,6 +34,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	FText ItemDescription;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	FText ItemEffectDescription;
+	
 	// 아이템 사이즈
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin="1"), Category = "Item")
 	FIntPoint ItemSize = FIntPoint(1, 1);
@@ -91,6 +94,7 @@ public:
 	FGameplayTag GetEquipmentType() const;
 	FText GetItemName() const;
 	FText GetItemDescription() const;
+	FText GetItemEffectDescription() const;
 	FIntPoint GetItemSize() const;
 	FName GetRowName() const {return ItemRowHandle.RowName;}
 	
