@@ -64,7 +64,7 @@ class UItemData : public UObject
 	GENERATED_BODY()
 	
 public:
-	// 이 아이템 인스턴스가 가리키는 행이 어떤 행인지 지정
+	// 이 아이템 인스턴스가 가리키는 행이 어떤 행인지 지정 (초기화 함수)
 	void Initialize(const FDataTableRowHandle& InRowHandle);
 	
 	// 아이템 사용
@@ -90,6 +90,7 @@ public:
 	EItemType GetItemType() const;
 	FGameplayTag GetEquipmentType() const;
 	FText GetItemName() const;
+	FText GetItemDescription() const;
 	FIntPoint GetItemSize() const;
 	FName GetRowName() const {return ItemRowHandle.RowName;}
 	

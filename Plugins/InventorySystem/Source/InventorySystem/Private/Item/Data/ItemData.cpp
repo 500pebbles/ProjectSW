@@ -111,6 +111,18 @@ FText UItemData::GetItemName() const
 	return ItemData->ItemName;
 }
 
+FText UItemData::GetItemDescription() const
+{
+	const FItemDataTable* ItemData = GetRow();
+	
+	if (!ItemData)
+	{
+		return FText::GetEmpty();
+	}
+	
+	return ItemData->ItemDescription;
+}
+
 FIntPoint UItemData::GetItemSize() const
 {
 	const FItemDataTable* ItemData = GetRow();

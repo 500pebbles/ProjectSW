@@ -7,6 +7,7 @@
 #include "Components/SizeBox.h"
 #include "Item/Data/ItemData.h"
 #include "Item/UI/ItemDragDrop.h"
+#include "Item/UI/ItemTooltip.h"
 
 void UItemCollectedUI::NativeOnInitialized()
 {
@@ -58,6 +59,45 @@ void UItemCollectedUI::NativeOnDragDetected(const FGeometry& InGeometry, const F
 void UItemCollectedUI::HandleDragEnded(UDragDropOperation* Operation)
 {
 	SetRenderOpacity(1.f);
+}
+
+void UItemCollectedUI::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+	
+	if (!ItemTooltip)
+	{
+		ItemTooltip = CreateWidget<UItemTooltip>(GetOwningPlayer(), ItemTooltipClass);
+		InitItemTooltip(ItemTooltip, InventoryItem.Get());
+		ItemTooltip->SetAnchorsInViewport(FAnchors(0.f, 0.f));      // 점 앵커
+		ItemTooltip->SetAlignmentInViewport(FVector2D(0.f, 0.f));
+		ItemTooltip->AddToViewport(7);
+	}
+	
+	if (!ItemTooltip->GetIsSet())
+	{
+		return;
+	}
+	
+	ItemTooltip->SetVisibility(ESlateVisibility::HitTestInvisible);
+	ItemTooltip->UpdateTooltipPosition(InGeometry);
+}
+
+void UItemCollectedUI::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+	Super::NativeOnMouseLeave(InMouseEvent);
+	
+	if (!ItemTooltip)
+	{
+		return;
+	}
+	
+	ItemTooltip->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UItemCollectedUI::InitItemTooltip(UItemTooltip* InItemTooltip, UItemData* Item)
+{
+	InItemTooltip->InitItemTooltip(Item);
 }
 
 void UItemCollectedUI::SetInventoryItem(UItemData* InInventoryItem)
