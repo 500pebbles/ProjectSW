@@ -31,6 +31,9 @@ struct FSoulMapRoomView
 
 	UPROPERTY(BlueprintReadOnly)
 	ESoulMapRoomState State = ESoulMapRoomState::Adjacent;
+
+	UPROPERTY(BlueprintReadOnly)
+	FName RoomType;
 };
 
 USTRUCT(BlueprintType)

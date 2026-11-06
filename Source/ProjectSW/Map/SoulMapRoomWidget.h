@@ -18,4 +18,12 @@ class PROJECTSW_API USoulMapRoomWidget : public USoulUserWidget
 public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void ApplyRoomView(const FSoulMapRoomView& View);
+
+protected:
+	UFUNCTION(BlueprintPure, Category = "Map")
+	UTexture2D* FindRoomTypeIcon(FName RoomType) const { return RoomTypeIcons.FindRef(RoomType); }
+
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Setup")
+	TMap<FName, TObjectPtr<UTexture2D>> RoomTypeIcons;
 };

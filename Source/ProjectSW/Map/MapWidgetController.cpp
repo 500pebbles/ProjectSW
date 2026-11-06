@@ -81,6 +81,7 @@ TArray<FSoulMapRoomView> UMapWidgetController::GetRoomViews() const
 		View.RoomId = Room.Id;
 		View.CellBounds = Room.Bounds;
 		View.State = State;
+		View.RoomType = Room.RoomType;
 	}
 
 	return Views;
