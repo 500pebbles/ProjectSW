@@ -13,6 +13,16 @@
 #include "Item/UI/ItemDragDrop.h"
 #include "Item/UI/ItemTooltip.h"
 
+void UEquipSlotUI::NativePreConstruct()
+{
+	Super::NativePreConstruct();
+	
+	if (SlotIcon && nullptr != DefaultSlotBusrh.GetResourceObject())
+	{
+		SlotIcon->SetBrush(DefaultSlotBusrh);
+	}
+}
+
 void UEquipSlotUI::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
@@ -243,8 +253,16 @@ void UEquipSlotUI::RefreshSlot(UItemData* Item)
 	
 	if (!Item)
 	{
-		SlotIcon->SetBrush(FSlateBrush());
-		SlotIcon->SetVisibility(ESlateVisibility::Hidden);
+		if (nullptr != DefaultSlotBusrh.GetResourceObject())
+		{
+			SlotIcon->SetBrush(DefaultSlotBusrh);
+		}
+		else
+		{
+			FSlateBrush Brush;
+			SlotIcon->SetBrush(Brush);
+			SlotIcon->SetVisibility(ESlateVisibility::Hidden);
+		}
 		return;
 	}
 	

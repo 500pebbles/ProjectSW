@@ -23,6 +23,8 @@ class INVENTORYSYSTEM_API UEquipSlotUI : public UUserWidget
 	GENERATED_BODY()
 	
 protected:
+	virtual void NativePreConstruct() override;
+	
 	virtual void NativeOnInitialized() override;
 	
 	// 장착을 위한 드롭 받는 부분
@@ -76,6 +78,9 @@ private:
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> SlotIcon;
+	
+	UPROPERTY(EditAnywhere, Category="Equipment")
+	FSlateBrush DefaultSlotBusrh;
 	
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UImage> HighlightImage;
