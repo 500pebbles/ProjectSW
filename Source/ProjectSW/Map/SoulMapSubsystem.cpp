@@ -25,6 +25,7 @@ void USoulMapSubsystem::HandleGenerationFinished(const FPMGResult& Result, const
 {
 	Rooms.Reset();
 	Doors.Reset();
+	CurrentRoomId = INDEX_NONE;
 
 	if (!Result.bSuccess)
 		return;
@@ -66,7 +67,11 @@ void USoulMapSubsystem::HandleGenerationFinished(const FPMGResult& Result, const
 	InitDoors(Result, SpawnedByName, BuilderName);
 
 	if (ASoulPackedLevelActor* EntranceRoom = Rooms.FindRef(Result.EntranceRoomId))
+	{
 		EntranceRoom->MarkVisited();
+		CurrentRoomId = Result.EntranceRoomId;
+	}
+		
 
 	for (const TPair<int32, TObjectPtr<ASoulPackedLevelActor>>& Pair : Rooms)
 	{
@@ -76,6 +81,8 @@ void USoulMapSubsystem::HandleGenerationFinished(const FPMGResult& Result, const
 
 void USoulMapSubsystem::HandleRoomEntered(ASoulPackedLevelActor* Room)
 {
+	CurrentRoomId = Room->GetRoomId();
+
 	if (Room->IsVisited())
 		return;
 
@@ -145,4 +152,9 @@ void USoulMapSubsystem::SetRoomDoorsClosed(int32 RoomId, bool bClosed)
 			Door->SetClosed(bClosed);
 		}
 	}
+}
+
+const ASoulPackedLevelActor* USoulMapSubsystem::FindRoom(int32 RoomId) const
+{
+	return Rooms.FindRef(RoomId);
 }
