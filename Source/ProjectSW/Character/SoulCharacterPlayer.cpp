@@ -55,6 +55,7 @@ void ASoulCharacterPlayer::InitAbilityActorInfo()
 	if (!IsValid(SoulHUD)) return;
 	
 	SoulHUD->InitOverlay(SoulPlayerController, SoulPlayerState, AbilitySystemComponent, AttributeSet);	
+	SoulHUD->InitAttributeMenu(SoulPlayerController, SoulPlayerState, AbilitySystemComponent, AttributeSet);
 }
 
 int32 ASoulCharacterPlayer::GetCharacterLevel()
