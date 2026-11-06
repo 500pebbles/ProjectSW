@@ -64,6 +64,23 @@ void USoulMapWidget::NativeConstruct()
 		RoomWidget->SetWidgetController(WidgetController);
 		RoomWidget->ApplyRoomView(View);
 	}
+
+	if (DoorWidgetClass)
+	{
+		for (const FSoulMapDoorView& View : MapController->GetDoorViews())
+		{
+			UUserWidget* DoorWidget = CreateWidget<UUserWidget>(this, DoorWidgetClass);
+
+			// 웨이포인트 클릭 안막게
+			DoorWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+			UCanvasPanelSlot* DoorSlot = RoomCanvas->AddChildToCanvas(DoorWidget);
+			DoorSlot->SetAlignment(FVector2D(0.5, 0.5));
+			DoorSlot->SetPosition(CellToPx(View.Cell));
+			DoorSlot->SetSize(View.bCrossesX ? FVector2D(DoorThicknessPx, DoorLengthPx) :
+				FVector2D(DoorLengthPx, DoorThicknessPx));
+		}
+	}
 }
 
 void USoulMapWidget::RequestClose()

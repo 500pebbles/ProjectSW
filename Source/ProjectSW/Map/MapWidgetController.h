@@ -33,6 +33,19 @@ struct FSoulMapRoomView
 	ESoulMapRoomState State = ESoulMapRoomState::Adjacent;
 };
 
+USTRUCT(BlueprintType)
+struct FSoulMapDoorView
+{
+	GENERATED_BODY()
+
+	// 문이 놓이는 경계 중점의 셀 좌표 (예: (3.0, 2.5))
+	UPROPERTY(BlueprintReadOnly)
+	FVector2D Cell = FVector2D::ZeroVector;
+
+	// 두 셀이 X 방향으로 이웃해있으면 true (세로 경계선)
+	UPROPERTY(BlueprintReadOnly)
+	bool bCrossesX = false;
+};
 
 /**
  * 
@@ -48,6 +61,7 @@ public:
 	bool GetUsedCellBounds(FIntRect& OutBounds) const;
 
 	TArray<FSoulMapRoomView> GetRoomViews() const;
+	TArray<FSoulMapDoorView> GetDoorViews() const;
 
 private:
 	const USoulMapSubsystem* GetMapSubsystem() const;

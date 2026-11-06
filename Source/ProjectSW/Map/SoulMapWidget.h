@@ -53,6 +53,15 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	double RoomGapPx = 2.0;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TSubclassOf<UUserWidget> DoorWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	double DoorLengthPx = 28.0;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	double DoorThicknessPx = 10.0;
+
 	FVector2D UsedCenter = FVector2D::ZeroVector;
 	double CellPx = 0.0;
 };
