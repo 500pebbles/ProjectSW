@@ -81,6 +81,26 @@ void ASoulHUD::InitOverlay(APlayerController* PC, APlayerState* PS, UAbilitySyst
 	Widget->AddToViewport();
 }
 
+void ASoulHUD::InitAttributeMenu(APlayerController* PC, APlayerState* PS, UAbilitySystemComponent* ASC,	UAttributeSet* AS)
+{
+	// Overlay Widget 생성.
+	UUserWidget* Widget = CreateWidget<UUserWidget>(GetWorld(), AttributeMenuWidgetClass);
+	AttributeMenuWidget = Cast<USoulUserWidget>(Widget);
+	
+	// Overlay Widget Controller 생성.
+	const FWidgetControllerParams WidgetControllerParams(PC, PS, ASC, AS);
+	UAttributeMenuWidgetController* WidgetController = GetAttributeMenuWidgetController(WidgetControllerParams);
+	
+	// OverlayWidget에 OverlayWidgetController 등록. OnWidgetControllerSet 호출.
+	AttributeMenuWidget->SetWidgetController(WidgetController);
+	
+	// Broadcast Initial Values.
+	WidgetController->BroadcastInitialValues();
+	
+	Widget->AddToViewport();
+	Widget->SetVisibility(ESlateVisibility::Collapsed);
+}
+
 UAttributeMenuWidgetController* ASoulHUD::GetAttributeMenuWidgetController(const FWidgetControllerParams& WCParams)
 {
 	/* AttributeMenuWidgetController 자체는 HUD에서 보유. 
@@ -96,4 +116,16 @@ UAttributeMenuWidgetController* ASoulHUD::GetAttributeMenuWidgetController(const
 	}
 	
 	return AttributeMenuWidgetController;
+}
+
+void ASoulHUD::ToggleAttributeMenuWidget()
+{
+	if (AttributeMenuWidget->GetVisibility() == ESlateVisibility::Collapsed)
+	{
+		AttributeMenuWidget->SetVisibility(ESlateVisibility::Visible);
+	}
+	else
+	{
+		AttributeMenuWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
