@@ -1,4 +1,4 @@
-
+﻿
 
 #pragma once
 
@@ -8,6 +8,15 @@
 
 class APlayerController;
 class USoulMapSubsystem;
+
+// 미방문방은 위젯 자체를 만들지 않기 때문에 해당 상태는 없다.
+UENUM(BlueprintType)
+enum class ESoulMapRoomState : uint8
+{
+	Adjacent,
+	Visited,
+	Current
+};
 
 USTRUCT(BlueprintType)
 struct FSoulMapRoomView
@@ -19,6 +28,9 @@ struct FSoulMapRoomView
 
 	UPROPERTY(BlueprintReadOnly)
 	FIntRect CellBounds;
+
+	UPROPERTY(BlueprintReadOnly)
+	ESoulMapRoomState State = ESoulMapRoomState::Adjacent;
 };
 
 
@@ -38,7 +50,7 @@ public:
 	TArray<FSoulMapRoomView> GetRoomViews() const;
 
 private:
-	const USoulMapSubsystem* GetMapsubsystem() const;
+	const USoulMapSubsystem* GetMapSubsystem() const;
 
 	UPROPERTY()
 	TObjectPtr<APlayerController> PlayerController;

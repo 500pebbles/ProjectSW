@@ -22,8 +22,11 @@ class PROJECTSW_API USoulMapSubsystem : public UWorldSubsystem
 public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 
+	const ASoulPackedLevelActor* FindRoom(int32 RoomId) const;
+
 	FORCEINLINE bool HasMapData() const { return !Rooms.IsEmpty(); }
 	FORCEINLINE const FPMGResult& GetMapResult() const { return MapResult; }
+	FORCEINLINE int32 GetCurrentRoomId() const { return CurrentRoomId; }
 
 private:
 	UFUNCTION()
@@ -48,4 +51,6 @@ private:
 
 	UPROPERTY()
 	TArray<TObjectPtr<ASoulRoomDoor>> Doors;
+
+	int32 CurrentRoomId = INDEX_NONE;
 };
