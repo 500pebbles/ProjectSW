@@ -6,6 +6,8 @@
 #include "UI/Widget/SoulUserWidget.h"
 #include "UI/WidgetController/AttributeMenuWidgetController.h"
 #include "UI/WidgetController/OverlayWidgetController.h"
+#include "Map/SoulMapWidget.h"
+#include "Map/MapWidgetController.h"
 
 UOverlayWidgetController* ASoulHUD::GetOverlayWidgetController(const FWidgetControllerParams& WCParams)
 {
@@ -17,6 +19,43 @@ UOverlayWidgetController* ASoulHUD::GetOverlayWidgetController(const FWidgetCont
 	}		
 	
 	return OverlayWidgetController;
+}
+
+UMapWidgetController* ASoulHUD::GetMapWidgetController()
+{
+	if (MapWidgetController == nullptr)
+	{
+		MapWidgetController = NewObject<UMapWidgetController>(this);
+		MapWidgetController->Init(GetOwningPlayerController());
+	}
+	
+	return MapWidgetController;
+}
+
+USoulMapWidget* ASoulHUD::OpenMap()
+{
+	MapWidget = CreateWidget<USoulMapWidget>(GetOwningPlayerController(), MapWidgetClass);
+
+	if (!IsValid(MapWidget))
+		return nullptr;
+
+	MapWidget->SetWidgetController(GetMapWidgetController());
+	MapWidget->AddToViewport(MapWidgetZOrder);
+
+	return MapWidget;
+}
+
+void ASoulHUD::CloseMap()
+{
+	if (IsValid(MapWidget))
+		MapWidget->RemoveFromParent();
+
+	MapWidget = nullptr;
+}
+
+bool ASoulHUD::IsMapOpen() const
+{
+	return MapWidget != nullptr;
 }
 
 void ASoulHUD::InitOverlay(APlayerController* PC, APlayerState* PS, UAbilitySystemComponent* ASC, UAttributeSet* AS)
