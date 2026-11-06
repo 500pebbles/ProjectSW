@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GameplayTagContainer.h"
 #include "Engine/DataTable.h"
 #include "ItemData.generated.h"
 
@@ -24,11 +25,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	EItemType ItemType = EItemType::None;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta=(Categories="Equipment.Slot"))
+	FGameplayTag EquipmentType;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	FText ItemName;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	FText ItemDescription;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	FText ItemEffectDescription;
 	
 	// 아이템 사이즈
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (ClampMin="1"), Category = "Item")
@@ -60,11 +67,15 @@ class UItemData : public UObject
 	GENERATED_BODY()
 	
 public:
-	// 이 아이템 인스턴스가 가리키는 행이 어떤 행인지 지정
+	// 이 아이템 인스턴스가 가리키는 행이 어떤 행인지 지정 (초기화 함수)
 	void Initialize(const FDataTableRowHandle& InRowHandle);
 	
 	// 아이템 사용
+	UFUNCTION(BlueprintCallable)
 	bool UseItem(AActor* User);
+	
+	UFUNCTION(BlueprintCallable)
+	bool RemoveEquippedItem(AActor* User);
 	
 	// 아이템이 사용 가능한 아이템인지 검사 (아이템 효과가 존재하는지 확인)
 	bool IsItemUsable() const;
@@ -80,7 +91,10 @@ public:
 	FDataTableRowHandle GetRowHandle() const { return ItemRowHandle; }
 	
 	EItemType GetItemType() const;
+	FGameplayTag GetEquipmentType() const;
 	FText GetItemName() const;
+	FText GetItemDescription() const;
+	FText GetItemEffectDescription() const;
 	FIntPoint GetItemSize() const;
 	FName GetRowName() const {return ItemRowHandle.RowName;}
 	

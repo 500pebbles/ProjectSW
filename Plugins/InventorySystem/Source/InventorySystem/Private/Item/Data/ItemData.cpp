@@ -30,11 +30,30 @@ bool UItemData::UseItem(AActor* User)
 	}
 	
 	// 아이템 효과 적용
-	for (const UItemEffect* Effect : CachedUseDefinition->Effects)
+	for (UItemEffect* Effect : CachedUseDefinition->Effects)
 	{
 		if (Effect)
 		{
 			Effect->ActivateItemEffect(User, this);
+		}
+	}
+	
+	return true;
+}
+
+bool UItemData::RemoveEquippedItem(AActor* User)
+{
+	if (!User || !CachedUseDefinition)
+	{
+		return false;
+	}
+	
+	// 아이템 효과 적용
+	for (UItemEffect* Effect : CachedUseDefinition->Effects)
+	{
+		if (Effect)
+		{
+			Effect->DeactivateItemEffect(User, this);
 		}
 	}
 	
@@ -68,6 +87,18 @@ EItemType UItemData::GetItemType() const
 	return ItemData->ItemType;
 }
 
+FGameplayTag UItemData::GetEquipmentType() const
+{
+	const FItemDataTable* ItemData = GetRow();
+	
+	if (!ItemData)
+	{
+		return FGameplayTag::EmptyTag;
+	}
+	
+	return ItemData->EquipmentType;
+}
+
 FText UItemData::GetItemName() const
 {
 	const FItemDataTable* ItemData = GetRow();
@@ -78,6 +109,30 @@ FText UItemData::GetItemName() const
 	}
 	
 	return ItemData->ItemName;
+}
+
+FText UItemData::GetItemDescription() const
+{
+	const FItemDataTable* ItemData = GetRow();
+	
+	if (!ItemData)
+	{
+		return FText::GetEmpty();
+	}
+	
+	return ItemData->ItemDescription;
+}
+
+FText UItemData::GetItemEffectDescription() const
+{
+	const FItemDataTable* ItemData = GetRow();
+	
+	if (!ItemData)
+	{
+		return FText::GetEmpty();
+	}
+	
+	return ItemData->ItemEffectDescription;
 }
 
 FIntPoint UItemData::GetItemSize() const

@@ -25,4 +25,7 @@ public:
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	void SetQuickSlotIcon(UTexture2D* Icon);
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void SetQuickSlotButtonText(FKey UseKey, FKey SwitchPrevKey, FKey SwitchNextKey);
 };

@@ -11,6 +11,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCollectItemDelegate, AActor*, Tar
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUseQuickSlotItemDelegate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnTraceItemChangedDelegate, bool, bHasTarget, FKey, InputKey, AActor*, TargetItemActor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSwitchQuickSlotItemDelegate, bool, bIsHeadingNext);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnSetupQuickSlotButtonTextDelegate, FKey, UseKey, FKey, SwitchPrevKey, FKey, SwitchNextKey);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnToggleEquipmentUIDelegate);
 
 // This class does not need to be modified.
 UINTERFACE()
@@ -33,4 +35,6 @@ public:
 	virtual FOnUseQuickSlotItemDelegate& GetOnUseQuickSlotItem() = 0;
 	virtual FOnTraceItemChangedDelegate& GetOnTraceItemChanged() = 0;
 	virtual FOnSwitchQuickSlotItemDelegate& GetSwitchQuickSlotItem() = 0;
+	virtual FOnSetupQuickSlotButtonTextDelegate& GetSetupQuickSlotButtonText() = 0;
+	virtual FOnToggleEquipmentUIDelegate& GetToggleEquipmentUI() = 0;
 };

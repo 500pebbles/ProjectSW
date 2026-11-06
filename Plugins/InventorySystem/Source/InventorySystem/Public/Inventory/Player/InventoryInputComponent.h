@@ -7,6 +7,7 @@
 #include "Runtime/Engine/Classes/Components/ActorComponent.h"
 #include "InventoryInputComponent.generated.h"
 
+class UEnhancedInputLocalPlayerSubsystem;
 DECLARE_LOG_CATEGORY_EXTERN(LogInventoryInputComponent, Log, All);
 
 class UInputMappingContext;
@@ -23,6 +24,8 @@ public:
 	FOnUseQuickSlotItemDelegate OnUseQuickSlotItem;
 	FOnTraceItemChangedDelegate OnTraceItemChanged;
 	FOnSwitchQuickSlotItemDelegate OnSwitchQuickSlotItem;
+	FOnSetupQuickSlotButtonTextDelegate OnSetupQuickSlotButtonText;
+	FOnToggleEquipmentUIDelegate OnToggleEquipmentUI;
 
 public:
 	// Sets default values for this component's properties
@@ -33,6 +36,9 @@ public:
 	
 	// 이 함수를 플레이어 컨트롤러의 SetupInputComponent()에서 호출할 것
 	void SetupInventoryInputComponent();
+	
+	// HUD의 퀵슬롯 단축키 버튼 텍스트 할당을 위한 함수
+	void SetupQuickSlotButtonText(UEnhancedInputLocalPlayerSubsystem* Subsystem);
 
 public:
 	// Called every frame
@@ -45,6 +51,8 @@ public:
 	virtual FOnUseQuickSlotItemDelegate& GetOnUseQuickSlotItem() override {return OnUseQuickSlotItem;}
 	virtual FOnTraceItemChangedDelegate& GetOnTraceItemChanged() override {return OnTraceItemChanged;}
 	virtual FOnSwitchQuickSlotItemDelegate& GetSwitchQuickSlotItem() override {return OnSwitchQuickSlotItem;}
+	virtual FOnSetupQuickSlotButtonTextDelegate& GetSetupQuickSlotButtonText() override {return OnSetupQuickSlotButtonText;}
+	virtual FOnToggleEquipmentUIDelegate& GetToggleEquipmentUI() override {return OnToggleEquipmentUI;}
 	
 	// 입력 관련 함수
 private:
@@ -55,6 +63,8 @@ private:
 	void UseQuickSlotItem();
 	
 	void SwitchQuickSlotItem(bool bIsHeadingNext);
+	
+	void ToggleEquipUI();
 	
 private:
 	// 아이템을 바라보고 있을 때 범위 내에 있다면 상호작용이 가능함을 표시하기 위한 함수
@@ -83,6 +93,9 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
 	TObjectPtr<UInputAction> SwitchPrevQuickSlotItemAction;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory")
+	TObjectPtr<UInputAction> ToggleEquipUIAction;
 	
 	// 아이템 상호작용 검사 섹션
 private:

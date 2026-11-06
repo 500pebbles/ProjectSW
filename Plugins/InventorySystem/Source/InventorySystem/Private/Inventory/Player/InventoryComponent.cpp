@@ -16,8 +16,43 @@
 UInventoryComponent::UInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	bWantsInitializeComponent = true;
 
 	InventoryUIClass = UGridInventoryWidget::StaticClass();
+	
+	ItemActorClass = AItemActorBase::StaticClass();
+}
+
+void UInventoryComponent::InitializeComponent()
+{
+	Super::InitializeComponent();
+	
+	if (AActor* Owner = GetOwner())
+	{
+		EquipmentComponent = Owner->GetComponentByClass<UEquipmentComponent>();
+		if (!IsValid(EquipmentComponent))
+		{
+			EquipmentComponent = NewObject<UEquipmentComponent>(Owner);
+			EquipmentComponent->RegisterComponent();
+		}
+	}
+	
+	// 인터페이스를 통해 의존성 분리
+	// InputComponent에서 인터페이스를 상속해 델리게이트의 정의를 반환하고, 여기서 반환받은 정의에 이벤트 구독
+	TArray<UActorComponent*> InventoryInputComponent = GetOwner()->GetComponentsByInterface(UInventoryInputInterface::StaticClass());
+	for (UActorComponent* InventoryInput : InventoryInputComponent)
+	{
+		if (IInventoryInputInterface* InputInterface = Cast<IInventoryInputInterface>(InventoryInput))
+		{
+			InputInterface->GetOnToggleInventoryUI().AddDynamic(this, &UInventoryComponent::ToggleInventoryUI);
+			InputInterface->GetOnCollectItem().AddDynamic(this, &UInventoryComponent::CollectItem);
+			InputInterface->GetOnUseQuickSlotItem().AddDynamic(this, &UInventoryComponent::UseQuickSlotItem);
+			InputInterface->GetOnTraceItemChanged().AddDynamic(this, &UInventoryComponent::HandleTraceItemChanged);
+			InputInterface->GetSwitchQuickSlotItem().AddDynamic(this, &UInventoryComponent::CycleQuickSlot);
+			InputInterface->GetToggleEquipmentUI().AddDynamic(this, &UInventoryComponent::ToggleEquipmentUI);
+			InputInterface->GetSetupQuickSlotButtonText().AddDynamic(this, &UInventoryComponent::SetupQuickSlotButtonText);
+		}
+	}
 }
 
 
@@ -33,25 +68,16 @@ void UInventoryComponent::BeginPlay()
 		
 		CreateInventoryUIWidget();
 		CreateInventoryHUDWidget();
-	}
-	
-	// 인터페이스를 통해 의존성 분리
-	// InputComponent에서 인터페이스를 상속해 델리게이트의 정의를 반환하고, 여기서 반환받은 정의에 이벤트 구독
-	TArray<UActorComponent*> InventoryInputComponent = GetOwner()->GetComponentsByInterface(UInventoryInputInterface::StaticClass());
-	for (UActorComponent* InventoryInput : InventoryInputComponent)
-	{
-		if (IInventoryInputInterface* InputInterface = Cast<IInventoryInputInterface>(InventoryInput))
-		{
-			InputInterface->GetOnToggleInventoryUI().AddDynamic(this, &UInventoryComponent::ToggleInventoryUI);
-			InputInterface->GetOnCollectItem().AddDynamic(this, &UInventoryComponent::CollectItem);
-			InputInterface->GetOnUseQuickSlotItem().AddDynamic(this, &UInventoryComponent::UseQuickSlotItem);
-			InputInterface->GetOnTraceItemChanged().AddDynamic(this, &UInventoryComponent::HandleTraceItemChanged);
-			InputInterface->GetSwitchQuickSlotItem().AddDynamic(this, &UInventoryComponent::CycleQuickSlot);
-		}
+		CreateEquipmentUIWidget();
 	}
 	
 	// 인벤토리 데이터 초기화
 	//InventoryData.InitializeArray();
+	
+	if (CachedUseKey.IsValid() && CachedPrevKey.IsValid() && CachedNextKey.IsValid())
+	{
+		InventoryHUDWidget->SetQuickSlotButtonText(CachedUseKey, CachedPrevKey, CachedNextKey);
+	}
 	
 	RefreshQuickSlot();
 	HandleTraceItemChanged(false, TEXT("None"), nullptr);
@@ -69,18 +95,19 @@ void UInventoryComponent::CollectItem(AActor* TargetItem)
 	
 	// 아이템이 추가될 떄 UI에 반영하도록 조건 추가
 	const int32 PrevItemCount = InventoryData.ItemDataArray.Num();
-	InventoryData.AddItemData(TargetItemComponent);
-	
-	if(InventoryData.ItemDataArray.Num() > PrevItemCount)
+	if(InventoryData.AddItemData(TargetItemComponent))
 	{
-		// 가장 마지막에 추가된 아이템을 전달
-		OnInventoryItemAdded.Broadcast(&InventoryData.ItemDataArray.Last());
+		// 월드 상에서 아이템 제거
+		TargetItem->Destroy();
+		
+		if(InventoryData.ItemDataArray.Num() > PrevItemCount)
+		{
+			// 가장 마지막에 추가된 아이템을 전달
+			OnInventoryItemAdded.Broadcast(&InventoryData.ItemDataArray.Last());
+		}
+	
+		RefreshQuickSlot();
 	}
-	
-	// 월드 상에서 아이템 제거
-	TargetItem->Destroy();
-	
-	RefreshQuickSlot();
 }
 
 // Testcode
@@ -242,6 +269,18 @@ void UInventoryComponent::HandleTraceItemChanged(bool bHasTarget, FKey InputKey,
 	InventoryHUDWidget->ShowInteractionMessage(InputKey, ItemName);
 }
 
+void UInventoryComponent::SetupQuickSlotButtonText(FKey UseKey, FKey SwitchPrevKey, FKey SwitchNextKey)
+{
+	CachedUseKey = UseKey;
+	CachedPrevKey = SwitchPrevKey;
+	CachedNextKey = SwitchNextKey;
+	
+	if (UseKey.IsValid() && SwitchPrevKey.IsValid() && SwitchNextKey.IsValid() && IsValid(InventoryHUDWidget))
+	{
+		InventoryHUDWidget->SetQuickSlotButtonText(UseKey, SwitchPrevKey, SwitchNextKey);
+	}
+}
+
 void UInventoryComponent::CreateInventoryUIWidget()
 {
 	InventoryUI = CreateWidget<UInventoryBase>(LocalGameController, InventoryUIClass);
@@ -256,22 +295,58 @@ void UInventoryComponent::ToggleInventoryUI()
 {
 	InventoryUI->ToggleInventoryUI();
 
-	const FInputModeGameAndUI InventoryInputMode;
-	const FInputModeGameOnly GameInputMode;
-	
-	// 인벤토리 UI 닫기
-	if (bIsInventoryUIOpen)
+	bIsInventoryUIOpen = !bIsInventoryUIOpen;
+	UpdateUIInputMode();
+}
+
+void UInventoryComponent::CreateEquipmentUIWidget()
+{
+	if (!EquipUIClass)
 	{
-		LocalGameController->SetInputMode(GameInputMode);
-		LocalGameController->SetShowMouseCursor(false);
-		bIsInventoryUIOpen = false;
+		return;
 	}
-	// 인벤토리 UI 오픈
+	
+	EquipUI = CreateWidget<UUserWidget>(LocalGameController, EquipUIClass);
+	if (IsValid(EquipUI))
+	{
+		EquipUI->AddToViewport(6);
+		EquipUI->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void UInventoryComponent::ToggleEquipmentUI()
+{
+	if (!IsValid(EquipUI))
+	{
+		return;
+	}
+	
+	bIsEquipUIOpen = !bIsEquipUIOpen;
+	EquipUI->SetVisibility(bIsEquipUIOpen ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+	
+	UpdateUIInputMode();
+}
+
+void UInventoryComponent::UpdateUIInputMode()
+{
+	if (!IsValid(LocalGameController))
+	{
+		return;
+	}
+	
+	// 둘 중 하나라도 열려 있으면 마우스를 쓸 수 있는 모드 유지
+	if (bIsInventoryUIOpen || bIsEquipUIOpen)
+	{
+		FInputModeGameAndUI InputMode;
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		InputMode.SetHideCursorDuringCapture(false);
+		LocalGameController->SetInputMode(InputMode);
+		LocalGameController->SetShowMouseCursor(true);
+	}
 	else
 	{
-		LocalGameController->SetInputMode(InventoryInputMode);
-		LocalGameController->SetShowMouseCursor(true);
-		bIsInventoryUIOpen = true;
+		LocalGameController->SetInputMode(FInputModeGameOnly());
+		LocalGameController->SetShowMouseCursor(false);
 	}
 }
 
@@ -377,7 +452,135 @@ bool UInventoryComponent::CheckSlotAvailable(const FGuid& SlotID, FIntPoint Targ
 	return InventoryData.CheckSlotAvailable(TargetPosition, CurrentItem->GetOccupiedSize(), SlotID);
 }
 
+bool UInventoryComponent::CheckSlotAvailableEquipment(const UItemData* Item, FIntPoint TargetPosition) const
+{
+	if (!IsValid(Item))
+	{
+		return false;
+	}
+	
+	return InventoryData.CheckSlotAvailable(TargetPosition, Item->GetItemSize(), FGuid());
+}
+
 const FInventoryDataEntry* UInventoryComponent::FindItemWithID(const FGuid& ItemID) const
 {
 	return InventoryData.FindItemWithID(ItemID);
+}
+
+bool UInventoryComponent::EquipItem(const FGuid& ItemID)
+{
+	if (!IsValid(EquipmentComponent))
+	{
+		return false;
+	}
+	
+	const FInventoryDataEntry* ItemEntry = FindItemWithID(ItemID);
+	if (nullptr == ItemEntry)
+	{
+		return false;
+	}
+	
+	UItemData* ItemData = ItemEntry->GetItem();
+	if (nullptr == ItemData)
+	{
+		return false;
+	}
+	
+	const FIntPoint ItemPosition = ItemEntry->GetGridPosition();
+	
+	UItemData* PrevItem = EquipmentComponent->GetEquippedItem(ItemData->GetEquipmentType());
+	FIntPoint PrevPosition = FIntPoint::NoneValue;
+	
+	if (PrevItem)
+	{
+		if (InventoryData.CheckSlotAvailable(ItemPosition, PrevItem->GetItemSize(), ItemID))
+		{
+			PrevPosition = ItemPosition;
+		}
+		else
+		{
+			PrevPosition = InventoryData.FindAvailablePosition(PrevItem, ItemID);
+		}
+		
+		if (PrevPosition.X < 0 || PrevPosition.Y < 0)
+		{
+			return false;
+		}
+	}
+	
+	// 원래 끼고있던 장비를 저장할 지역 변수
+	UItemData* ReplacedItem = nullptr;
+	if (!EquipmentComponent->Equip(ItemData, ReplacedItem))
+	{
+		return false;
+	}
+	
+	RemoveItem(ItemID);
+	
+	if (ReplacedItem)
+	{
+		AddUnequipedItem(ReplacedItem, PrevPosition);
+	}
+	
+	return true;
+}
+
+bool UInventoryComponent::UnequipItem(const FGameplayTag& EquipmentTag, FIntPoint Position)
+{
+	if (nullptr == EquipmentComponent)
+	{
+		return false;
+	}
+	
+	UItemData* CurrentEquipment = EquipmentComponent->GetEquippedItem(EquipmentTag);
+	if (nullptr == CurrentEquipment)
+	{
+		return false;
+	}
+	
+	if (!InventoryData.CheckSlotAvailable(Position, CurrentEquipment->GetItemSize(), FGuid()))
+	{
+		return false;
+	}
+	
+	EquipmentComponent->Unequip(EquipmentTag);
+	return AddUnequipedItem(CurrentEquipment, Position);
+}
+
+bool UInventoryComponent::DropEquippedItem(const FGameplayTag& EquipmentTag)
+{
+	if (!IsValid(EquipmentComponent))
+	{
+		return false;
+	}
+	
+	// 장착된 아이템 없으면 실패
+	UItemData* CurrentEquippedItem = EquipmentComponent->GetEquippedItem(EquipmentTag);
+	if (!CurrentEquippedItem)
+	{
+		return false;
+	}
+	
+	if (!SpawnDroppedItem(CurrentEquippedItem->GetRowHandle()))
+	{
+		return false;
+	}
+	
+	EquipmentComponent->Unequip(EquipmentTag);
+	return true;
+}
+
+bool UInventoryComponent::AddUnequipedItem(UItemData* Item, FIntPoint Position)
+{
+	const FInventoryDataEntry* ItemEntry = InventoryData.AddItemDataToPosition(Item, Position);
+	if(nullptr == ItemEntry)
+	{
+		return false;
+	}
+	
+	OnInventoryItemAdded.Broadcast(ItemEntry);
+	
+	RefreshQuickSlot();
+	
+	return true;
 }

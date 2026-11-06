@@ -4,10 +4,10 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Item/Interface/HighlightMaterialInterface.h"
-#include "Item/ItemComponent.h"
-#include "Item/Data/ItemData.h"
+
 
 #include "Kismet/GameplayStatics.h"
+#include "InputMappingContext.h"
 
 DEFINE_LOG_CATEGORY(LogInventoryInputComponent);
 
@@ -17,8 +17,59 @@ DEFINE_LOG_CATEGORY(LogInventoryInputComponent);
 UInventoryInputComponent::UInventoryInputComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-
+	
+	static ConstructorHelpers::FObjectFinder<UInputMappingContext> MappingContextRef(
+		TEXT("/InventorySystem/Input/IMC_Inventory.IMC_Inventory"));
+	if (MappingContextRef.Succeeded())
+	{
+		IMC_Inventory.Add(MappingContextRef.Object);
+	}
+	
+	static ConstructorHelpers::FObjectFinder<UInputAction> InteractionRef(
+		TEXT("/InventorySystem/Input/Actions/IA_CollectItem.IA_CollectItem"));
+	if (InteractionRef.Succeeded())
+	{
+		InventoryInteractAction = InteractionRef.Object;
+	}
+	
+	static ConstructorHelpers::FObjectFinder<UInputAction> ToggleUIRef(
+		TEXT("/InventorySystem/Input/Actions/IA_ToggleInventory.IA_ToggleInventory"));
+	if (ToggleUIRef.Succeeded())
+	{
+		InventoryUIToggleAction = ToggleUIRef.Object;
+	}
+	
+	static ConstructorHelpers::FObjectFinder<UInputAction> UseItemRef(
+		TEXT("/InventorySystem/Input/Actions/IA_UseConsumableItem.IA_UseConsumableItem"));
+	if (UseItemRef.Succeeded())
+	{
+		UseQuickSlotItemAction = UseItemRef.Object;
+	}
+	
+	static ConstructorHelpers::FObjectFinder<UInputAction> SwitchNextSlotRef(
+		TEXT("/InventorySystem/Input/Actions/IA_SwitchQuickSlotNext.IA_SwitchQuickSlotNext"));
+	if (SwitchNextSlotRef.Succeeded())
+	{
+		SwitchNextQuickSlotItemAction = SwitchNextSlotRef.Object;
+	}
+	
+	static ConstructorHelpers::FObjectFinder<UInputAction> SwitchPrevSlotRef(
+		TEXT("/InventorySystem/Input/Actions/IA_SwitchQuickSlotPrev.IA_SwitchQuickSlotPrev"));
+	if (SwitchPrevSlotRef.Succeeded())
+	{
+		SwitchPrevQuickSlotItemAction = SwitchPrevSlotRef.Object;
+	}
+	
+	static ConstructorHelpers::FObjectFinder<UInputAction> ToggleEquipmentUIRef(
+		TEXT("/InventorySystem/Input/Actions/IA_ToggleEquipmentUI.IA_ToggleEquipmentUI"));
+	if (ToggleEquipmentUIRef.Succeeded())
+	{
+		ToggleEquipUIAction = ToggleEquipmentUIRef.Object;
+	}
+	
 	TraceLength = 600.0f;
+	
+	TraceRadius = 50.0f;
 	
 	LastTracedItem = nullptr;
 	CurrentTraceItem = nullptr;
@@ -43,13 +94,18 @@ void UInventoryInputComponent::BeginPlay()
 
 			if (nullptr != Subsystem)
 			{
+				// 원래 인풋 액션이 맵핑되기까지 다음 입력 틱을 기다려야 하지만 버튼 텍스트 설정을 위해 강제로 즉시 리빌드 하도록 함
+				FModifyContextOptions Options;
+				Options.bForceImmediately = true;
+				
 				for (auto Context : IMC_Inventory)
 				{
-					Subsystem->AddMappingContext(Context, 0);
+					Subsystem->AddMappingContext(Context, 0, Options);
 				}
 			}
 
 			SetupInventoryInputComponent();
+			SetupQuickSlotButtonText(Subsystem);
 		}
 	}
 }
@@ -74,8 +130,41 @@ void UInventoryInputComponent::SetupInventoryInputComponent()
 	EnhancedInputComponent->BindAction(InventoryInteractAction, ETriggerEvent::Started, this, &UInventoryInputComponent::InventoryInteract);
 	EnhancedInputComponent->BindAction(InventoryUIToggleAction, ETriggerEvent::Started, this, &UInventoryInputComponent::ToggleInventoryUI);
 	EnhancedInputComponent->BindAction(UseQuickSlotItemAction, ETriggerEvent::Started, this, &UInventoryInputComponent::UseQuickSlotItem);
-	EnhancedInputComponent->BindAction(SwitchNextQuickSlotItemAction, ETriggerEvent::Started, this, &UInventoryInputComponent::SwitchQuickSlotItem, true);
 	EnhancedInputComponent->BindAction(SwitchPrevQuickSlotItemAction, ETriggerEvent::Started, this, &UInventoryInputComponent::SwitchQuickSlotItem, false);
+	EnhancedInputComponent->BindAction(SwitchNextQuickSlotItemAction, ETriggerEvent::Started, this, &UInventoryInputComponent::SwitchQuickSlotItem, true);
+	EnhancedInputComponent->BindAction(ToggleEquipUIAction, ETriggerEvent::Started, this, &UInventoryInputComponent::ToggleEquipUI);
+}
+
+void UInventoryInputComponent::SetupQuickSlotButtonText(UEnhancedInputLocalPlayerSubsystem* Subsystem)
+{
+	if (!IsValid(Subsystem))
+	{
+		return;
+	}
+	
+	FKey UseKey;
+	FKey SwitchPrevKey;
+	FKey SwitchNextKey;
+	
+	TArray<FKey> TempKeyArray = Subsystem->QueryKeysMappedToAction(UseQuickSlotItemAction);
+	if (!TempKeyArray.IsEmpty())
+	{
+		UseKey = TempKeyArray[0];	
+	}
+	
+	TempKeyArray = Subsystem->QueryKeysMappedToAction(SwitchPrevQuickSlotItemAction);
+	if (!TempKeyArray.IsEmpty())
+	{
+		SwitchPrevKey = TempKeyArray[0];
+	}
+	
+	TempKeyArray = Subsystem->QueryKeysMappedToAction(SwitchNextQuickSlotItemAction);
+	if (!TempKeyArray.IsEmpty())
+	{
+		SwitchNextKey = TempKeyArray[0];
+	}
+	
+	OnSetupQuickSlotButtonText.Broadcast(UseKey, SwitchPrevKey, SwitchNextKey);
 }
 
 void UInventoryInputComponent::InventoryInteract()
@@ -103,6 +192,11 @@ void UInventoryInputComponent::UseQuickSlotItem()
 void UInventoryInputComponent::SwitchQuickSlotItem(bool bIsHeadingNext)
 {
 	OnSwitchQuickSlotItem.Broadcast(bIsHeadingNext);
+}
+
+void UInventoryInputComponent::ToggleEquipUI()
+{
+	OnToggleEquipmentUI.Broadcast();
 }
 
 void UInventoryInputComponent::TraceItem()

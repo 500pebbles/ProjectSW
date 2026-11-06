@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "ItemCollectedUI.generated.h"
 
+class UItemTooltip;
 class USizeBox;
 class UItemData;
 class UImage;
@@ -25,7 +26,9 @@ protected:
 	UFUNCTION()
 	void HandleDragEnded(UDragDropOperation* Operation);
 	
-	
+	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
+
 public:
 	UImage* GetImageIcon() {return ItemIcon;}
 	
@@ -66,4 +69,10 @@ private:
 	FGuid ItemID;
 	// 아이템 위젯 블루프린트 UI 좌표계에서 마우스가 눌린 위치
 	FVector2D MousePressedLocalPosition = FVector2D::ZeroVector;
+	
+	UPROPERTY(EditDefaultsOnly, Category="ItemUI")
+	TSubclassOf<UItemTooltip> ItemTooltipClass;
+	
+	UPROPERTY()
+	TObjectPtr<UItemTooltip> ItemTooltip;
 };
