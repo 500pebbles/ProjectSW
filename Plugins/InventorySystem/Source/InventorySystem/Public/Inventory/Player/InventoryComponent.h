@@ -60,6 +60,16 @@ public:
 	// 아이템 버리는 함수
 	int32 DropItem(const FGuid& InID, int32 Count = 1);
 	
+	// 인벤토리의 RowName에 해당하는 아이템 보유 개수 반환 -> 이후 UI에 보유 개수를 띄우기 위해 사용
+	UFUNCTION(BlueprintPure, Category = "Inventory")
+	int32 CountItems(FName RowName) const;
+	
+	// 아이템을 제거한 후 아이템을 추가하는 변경이 가능한지 검사 -> 인벤토리에서 아이템이 제거되고 빈 공간이 생기는 것을 고려
+	// 아이템 교환 혹은 제출 시 가능한지 UI등에 반영하기 위해 검사만 진행
+	bool CanApplyChange(const TArray<FInventoryItemRequirement>& Remove, const TArray<UItemData*>& Add) const;
+	
+	// 실제 아이템 교환을 시도하는 함수 -> 제거 후 빈 공간이 생기는 것을 고려하여 아이템이 들어갈 수 있으면 true 반환
+	bool TryApplyChange(const TArray<FInventoryItemRequirement>& Remove, const TArray<UItemData*>& Add);
 	
 private:
 	// 아이템 버렸을 때 월드에 생성하는 함수
@@ -67,12 +77,20 @@ private:
 	
 	FTransform CalculateDropPosition(const AActor& OwnerActor) const;
 	
+	// CanApplyChange 와 TryApplyChange에서 제거 후 빈 공간에 들어갈 수 있는지 판정할 때 공통으로 사용할 함수
+	// True인 경우 제거할 엔트리 ID와 추가할 아이템의 위치를 반환
+	bool CheckChangeAvailable(const TArray<FInventoryItemRequirement>& Remove, const TArray<UItemData*>& Add,
+					TArray<FGuid>& OutRemoveIDs, TArray<FIntPoint>& OutAddPositions) const;
+	
 private:
 	UPROPERTY(EditAnywhere, Category = "Item")
 	TSubclassOf<AItemActorBase> ItemActorClass;
 
 	UPROPERTY(EditAnywhere, Category = "Item")
 	float DropDistance = 100.f;
+	
+	// 현재 상호작용 가능한 아이템 액터를 저장해둘 변수 -> 실제 생명주기에는 영향을 미치지 않도록 WeakObjectPtr 이용
+	TWeakObjectPtr<AActor> FocusedItem;
 	
 	
 	//UI
