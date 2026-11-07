@@ -27,7 +27,7 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> Image_CostItemIcon;
 	
-	UPROPERTY()
+	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> Text_Cost;
 	
 	// 아이템 교환 포멧 : 0 -> 교환에 필요한 아이템 이름, {1} -> 교환에 필요한 수량
