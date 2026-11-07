@@ -62,7 +62,7 @@ void USoulMapWidget::NativeConstruct()
 		RoomSlot->SetSize(FVector2D(View.CellBounds.Width(), View.CellBounds.Height()) * CellPx - RoomGapPx * 2.0);
 
 		RoomWidget->SetWidgetController(WidgetController);
-		RoomWidget->ApplyRoomView(View);
+		RoomWidget->InitRoomView(View);
 	}
 
 	if (DoorWidgetClass)
