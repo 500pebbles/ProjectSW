@@ -4,6 +4,7 @@
 #include "Run/Core/SoulRunConfig.h"
 #include "Run/Core/SoulRunGameComponent.h"
 #include "Run/Core/SoulRunSubsystem.h"
+#include "Run/Save/SoulScoreRules.h"
 #include "Utility/SoulLog.h"
 
 #include "Engine/GameInstance.h"
@@ -280,18 +281,40 @@ void USoulHallOfFameSubsystem::AddTestEntries(int32 Count)
 	static const TCHAR* Names[] = { TEXT("치이"), TEXT("Haru"), TEXT("에르나"), TEXT("Lily"), TEXT("스텔라"), TEXT("Jin") };
 	static const TCHAR* Costumes[] = { TEXT("DA_Costume_Default"), TEXT("DA_Costume_DesireWalker"), TEXT("DA_Costume_Fenrir"), TEXT("DA_Costume_ShadowWhisper") };
 	static const TCHAR* Weapons[] = { TEXT("DA_Weapon_012"), TEXT("DA_Weapon_029"), TEXT("DA_Weapon_015") };
+	// 점수 범위는 DA_ScoreRules 문턱에서 정한다: 가장 낮은 0 초과 문턱 - 간격 ~ 가장 높은 문턱 + 간격 (S, A, B, C가 고루 나온다)
+	const USoulRunConfig* Config = USoulRunGameComponent::GetRunConfig(GetGameInstance() ? GetGameInstance()->GetWorld() : nullptr);
+	const USoulScoreRules* ScoreRules = Config ? Config->ScoreRules.Get() : nullptr;
+	int32 Lowest = TNumericLimits<int32>::Max();
+	int32 Highest = 0;
+	if (ScoreRules)
+	{
+		for (const FSoulRankRow& Row : ScoreRules->Ranks)
+		{
+			if (Row.MinScore > 0)
+			{
+				Lowest = FMath::Min(Lowest, Row.MinScore);
+				Highest = FMath::Max(Highest, Row.MinScore);
+			}
+		}
+	}
+	if (Highest <= 0)
+	{
+		Lowest = 230000;
+		Highest = 260000;
+	}
+	const int32 Pad = FMath::Max((Highest - Lowest) / 3, 5000);
 	for (int32 i = 0; i < Count; ++i)
 	{
 		FSoulHallOfFameEntry& Entry = Profile->HallOfFame.AddDefaulted_GetRef();
 		Entry.EntryId = FGuid::NewGuid();
 		Entry.PlayerName = Names[FMath::RandRange(0, UE_ARRAY_COUNT(Names) - 1)];
-		Entry.Score = FMath::RandRange(230000, 275000);
+		Entry.Score = FMath::RandRange(Lowest - Pad, Highest + Pad);
 		Entry.ClearSeconds = FMath::FRandRange(900.f, 1500.f);
 		Entry.FinalLevel = FMath::RandRange(12, 15);
 		Entry.CostumeId = Costumes[FMath::RandRange(0, UE_ARRAY_COUNT(Costumes) - 1)];
 		Entry.WeaponId = Weapons[FMath::RandRange(0, UE_ARRAY_COUNT(Weapons) - 1)];
 		Entry.DateUtc = FDateTime::UtcNow();
-		Entry.RankId = Entry.Score >= 263000 ? FName(TEXT("S")) : Entry.Score >= 253000 ? FName(TEXT("A")) : Entry.Score >= 233000 ? FName(TEXT("B")) : FName(TEXT("C"));
+		Entry.RankId = ScoreRules ? ScoreRules->FindRank(Entry.Score) : NAME_None;
 	}
 	SortAndTrim();
 	Save();
