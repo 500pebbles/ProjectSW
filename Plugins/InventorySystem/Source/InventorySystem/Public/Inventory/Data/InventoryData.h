@@ -88,11 +88,21 @@ public:
 	
 	// 목록에서 아이템 고유 ID를 이용해 아이템 제거
 	FRemoveResult RemoveItemData(const FGuid& InID, int32 RemoveCount = 1);
+	// 아이디를 받아서 해당 아이디에 해당하는 아이템 제거 (엔트리 자체를 제거)
+	bool RemoveByID(const FGuid& InID);
 	
 	FIntPoint FindAvailablePosition(const UItemData* InItemData, const FGuid& InIgnoreID) const;
+	
+	// 행 이름을 받아서 해당 행에 해당하는 아이템의 개수를 반환(엔트리의 스택 개수)
+	int32 CountByRowName(FName RowName) const;
+	
+	// 행 이름에 해당하는 아이템을 Count만큼 모아서 해당 아이템 엔트리들의 ID를 반환
+	// 요구 수량보다 모자라면 false 반환
+	bool CollectEntryIDsByRowName(FName RowName, int32 Count, TArray<FGuid>& OutIDs) const;
 
 	// 아이템 목록 가져오기
 	TArray<UItemData*> GetAllItems() const;
+
 	
 private:
 	// ID를 받아 ID에 해당하는 아이템 데이터를 받은 위치로 이동시키는 함수
@@ -122,4 +132,24 @@ private:
 	// 인벤토리 컴포넌트가 해당 아이템 리스트를 갖도록 지정한다.
 	UPROPERTY()
 	TObjectPtr<UActorComponent> OwnerComponent;
+};
+
+// 교환 등 데이터 테이블의 RowName 아이템을 찾아서 Count가 몇개인지 셀 수 있도록 함
+USTRUCT(BlueprintType)
+struct INVENTORYSYSTEM_API FInventoryItemRequirement
+{
+	GENERATED_BODY()
+	
+public:
+	FInventoryItemRequirement() = default;
+	FInventoryItemRequirement(FName InRowName, int32 InCount) : RowName(InRowName), Count(InCount) {};
+	
+public:
+	// 찾을 아이템의 행 이름을 저장할 변수
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory")
+	FName RowName = NAME_None;
+	
+	// 교환에 필요한 아이템 수
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Inventory", meta = (ClampMin = "1"))
+	int32 Count = 1;
 };

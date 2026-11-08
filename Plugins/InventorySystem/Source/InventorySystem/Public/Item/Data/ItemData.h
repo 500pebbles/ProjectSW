@@ -17,7 +17,7 @@ enum class EItemType : uint8
 };
 
 USTRUCT(BlueprintType)
-struct FItemDataTable : public FTableRowBase
+struct INVENTORYSYSTEM_API FItemDataTable : public FTableRowBase
 {
 	GENERATED_USTRUCT_BODY()
 	
@@ -62,7 +62,7 @@ public:
 };
 
 UCLASS(BlueprintType, Blueprintable)
-class UItemData : public UObject
+class INVENTORYSYSTEM_API UItemData : public UObject
 {
 	GENERATED_BODY()
 	
