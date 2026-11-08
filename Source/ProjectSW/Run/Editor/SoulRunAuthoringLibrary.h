@@ -35,6 +35,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Soul|Authoring")
 	static bool TrimMontage(UAnimMontage* Montage, float StartTime, float EndTime);
 
+	/** 클래스 칸(TSubclassOf)을 이름으로 쓴다. 인스턴스 편집이 막힌 칸(EQS 테스트의 Context 등)용 */
+	UFUNCTION(BlueprintCallable, Category = "Soul|Authoring")
+	static bool SetClassProperty(UObject* Object, FName PropertyName, UClass* Value);
+
 	/** ABP의 부모 노드 에셋 덮어쓰기 수 (확인용) */
 	UFUNCTION(BlueprintCallable, Category = "Soul|Authoring")
 	static int32 GetParentAssetOverrideCount(const UAnimBlueprint* AnimBlueprint);

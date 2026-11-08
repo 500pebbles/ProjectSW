@@ -107,3 +107,22 @@ bool USoulRunAuthoringLibrary::TrimMontage(UAnimMontage* Montage, float StartTim
 	return false;
 #endif
 }
+
+bool USoulRunAuthoringLibrary::SetClassProperty(UObject* Object, FName PropertyName, UClass* Value)
+{
+#if WITH_EDITOR
+	if (!Object)
+		return false;
+
+	FClassProperty* Property = FindFProperty<FClassProperty>(Object->GetClass(), PropertyName);
+	if (!Property || (Value && !Value->IsChildOf(Property->MetaClass)))
+		return false;
+
+	Object->Modify();
+	Property->SetObjectPropertyValue_InContainer(Object, Value);
+	Object->MarkPackageDirty();
+	return true;
+#else
+	return false;
+#endif
+}

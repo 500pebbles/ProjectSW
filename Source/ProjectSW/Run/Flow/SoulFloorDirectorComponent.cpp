@@ -25,6 +25,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Build/PMGMapBuilder.h"
 #include "Camera/PlayerCameraManager.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Data/PMGSettings.h"
 #include "Engine/World.h"
@@ -626,6 +627,15 @@ void USoulFloorDirectorComponent::FinishDeath()
 void USoulFloorDirectorComponent::RestartDungeonMap()
 {
 	SW_LOG("[FLOOR] Restart dungeon map (임시)");
+#if !UE_BUILD_SHIPPING
+	if (bSelfTest)
+	{
+		// 셀프 테스트는 재시작 요청까지만 확인하고 끝낸다 (다시 열면 테스트가 처음부터 돈다)
+		SW_LOG("[SELFTEST] restart requested");
+		FinishSelfTest();
+		return;
+	}
+#endif
 	PrepareOpenLevel();
 	const USoulRunConfig* Config = USoulRunGameComponent::GetRunConfig(this);
 	if (Config && !Config->DungeonMap.IsNull())
@@ -973,6 +983,18 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 		{
 			RunSelfTestBoss(Step);
 		}
+		else if (SelfTestMode == TEXT("death"))
+		{
+			RunSelfTestDeath(Step);
+		}
+		else if (SelfTestMode == TEXT("garura"))
+		{
+			RunSelfTestSpawn(Step);
+		}
+		else if (SelfTestMode == TEXT("bossfront"))
+		{
+			RunSelfTestBossFront(Step);
+		}
 		else
 		{
 			RunSelfTestFloors();
@@ -1095,6 +1117,131 @@ void USoulFloorDirectorComponent::RunSelfTestBoss(int32 Step)
 #endif
 }
 
+void USoulFloorDirectorComponent::LogPawnPose(const TCHAR* Label) const
+{
+#if !UE_BUILD_SHIPPING
+	const ACharacter* Character = Cast<ACharacter>(PlayerPawn.Get());
+	if (!Character)
+		return;
+	const UAnimInstance* AnimInstance = Character->GetMesh()->GetAnimInstance();
+	const UAnimMontage* Montage = AnimInstance ? AnimInstance->GetCurrentActiveMontage() : nullptr;
+	SW_LOG("[SELFTEST] %s z=%.1f meshZ=%.1f move=%d montage=%s physics=%d", Label, Character->GetActorLocation().Z, Character->GetMesh()->GetComponentLocation().Z,
+		static_cast<int32>(Character->GetCharacterMovement()->MovementMode.GetValue()), Montage ? *Montage->GetName() : TEXT("none"), Character->GetMesh()->IsSimulatingPhysics());
+#endif
+}
+
+void USoulFloorDirectorComponent::RunSelfTestDeath(int32 Step)
+{
+#if !UE_BUILD_SHIPPING
+	switch (Step)
+	{
+	case 0:
+		LogPawnPose(TEXT("death before"));
+		GEngine->Exec(GetWorld(), TEXT("soul.Run.ForceEnd Fail"));
+		ScheduleSelfTest(1, 0.5f);
+		break;
+	case 1:
+		LogPawnPose(TEXT("death +0.5s"));
+		ScheduleSelfTest(2, 2.5f);
+		break;
+	default:
+		// 3.5초에 EndRun(실패)와 재시작 요청이 오면 RestartDungeonMap이 테스트를 끝낸다
+		LogPawnPose(TEXT("death +3.0s"));
+		break;
+	}
+#endif
+}
+
+void USoulFloorDirectorComponent::RunSelfTestSpawn(int32 Step)
+{
+#if !UE_BUILD_SHIPPING
+	switch (Step)
+	{
+	case 0:
+		GEngine->Exec(GetWorld(), TEXT("soul.Mob.Spawn /Game/Blueprints/Character/Enemy/Mob/JunkGarura/BP_Mob_JunkGarura.BP_Mob_JunkGarura_C 900"));
+		ScheduleSelfTest(1, 20.f);
+		break;
+	case 1:
+		LogPlayerHealth(TEXT("garura after"));
+		SoulFloorDirectorDebug::KillAllMobs(GetWorld());
+		ScheduleSelfTest(2, 2.f);
+		break;
+	default:
+		FinishSelfTest();
+		break;
+	}
+#endif
+}
+
+void USoulFloorDirectorComponent::RunSelfTestBossFront(int32 Step)
+{
+#if !UE_BUILD_SHIPPING
+	switch (Step)
+	{
+	case 0:
+		// 층마다 체력을 채워 세 보스를 모두 본다 (디버그 전용)
+		if (UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PlayerPawn.Get()))
+		{
+			ASC->SetNumericAttributeBase(USoulAttributeSet::GetHealthAttribute(), ASC->GetNumericAttribute(USoulAttributeSet::GetMaxHealthAttribute()));
+		}
+		DebugGoToBossRoom();
+		ScheduleSelfTest(1, 3.f);
+		break;
+	case 1:
+	{
+		// 보스 바로 앞에 세우고 30초 버틴다 (보스가 실제로 맞히는지)
+		const ASoulCharacterEnemy* Boss = nullptr;
+		for (TActorIterator<ASoulCharacterEnemy> It(GetWorld()); It; ++It)
+		{
+			const USoulMobComponent* Mob = USoulMobComponent::Find(*It);
+			if (Mob && Mob->GetRole() == ESoulMobRole::Boss)
+			{
+				Boss = *It;
+			}
+		}
+		if (Boss && PlayerPawn.IsValid())
+		{
+			const float Gap = Boss->GetCapsuleComponent()->GetScaledCapsuleRadius() + 150.f;
+			const FVector Front = Boss->GetActorLocation() + Boss->GetActorForwardVector() * Gap;
+			PlayerPawn->TeleportTo(FVector(Front.X, Front.Y, Front.Z + 50.f), (Boss->GetActorLocation() - Front).Rotation(), false, true);
+			SW_LOG("[SELFTEST] bossfront %s gap=%.0f", *Boss->GetName(), Gap);
+		}
+		else
+		{
+			SW_LOG_ERROR("[SELFTEST] bossfront: 보스 없음");
+		}
+		LogPlayerHealth(TEXT("bossfront start"));
+		// 레벨 1 폰은 2, 3층 보스를 30초 못 버티므로 2초마다 체력을 채운다 (맞는지만 본다)
+		GetWorld()->GetTimerManager().SetTimer(SelfTestHealTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			if (UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PlayerPawn.Get()))
+			{
+				ASC->SetNumericAttributeBase(USoulAttributeSet::GetHealthAttribute(), ASC->GetNumericAttribute(USoulAttributeSet::GetMaxHealthAttribute()));
+			}
+		}), 2.f, true);
+		ScheduleSelfTest(2, 30.f);
+		break;
+	}
+	case 2:
+		GetWorld()->GetTimerManager().ClearTimer(SelfTestHealTimer);
+		LogPlayerHealth(TEXT("bossfront after 30s"));
+		SoulFloorDirectorDebug::KillAllMobs(GetWorld());
+		ScheduleSelfTest(3, IsLastFloor() ? 2.f : PortalDelaySec + 1.5f);
+		break;
+	default:
+		if (IsLastFloor())
+		{
+			FinishSelfTest();
+		}
+		else
+		{
+			DebugGoToPortal();
+		}
+		break;
+	}
+#endif
+}
+
 #if !UE_BUILD_SHIPPING
 static FAutoConsoleCommandWithWorld GSoulFloorNextCommand(
 	TEXT("soul.Floor.Next"),
@@ -1151,5 +1298,26 @@ static FAutoConsoleCommandWithWorld GSoulMobKillAllCommand(
 	FConsoleCommandWithWorldDelegate::CreateLambda([](UWorld* World)
 	{
 		SoulFloorDirectorDebug::KillAllMobs(World);
+	}));
+
+static FAutoConsoleCommandWithWorldAndArgs GSoulMobSpawnCommand(
+	TEXT("soul.Mob.Spawn"),
+	TEXT("soul.Mob.Spawn <클래스 경로> [거리] : 폰 앞에 몹을 스폰한다 (런 GameMode에서만)"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		APawn* Pawn = UGameplayStatics::GetPlayerPawn(World, 0);
+		UClass* Class = Args.Num() > 0 ? LoadClass<ASoulCharacterEnemy>(nullptr, *Args[0]) : nullptr;
+		if (!Pawn || !Class)
+		{
+			SW_LOG_WARNING("soul.Mob.Spawn : 폰 또는 클래스 없음 (%s)", Args.Num() > 0 ? *Args[0] : TEXT(""));
+			return;
+		}
+		const float Distance = Args.Num() > 1 ? FCString::Atof(*Args[1]) : 600.f;
+		const FVector Location = Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * Distance + FVector(0.f, 0.f, 100.f);
+		const FRotator Rotation = (Pawn->GetActorLocation() - Location).Rotation();
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		AActor* Spawned = World->SpawnActor<ASoulCharacterEnemy>(Class, Location, FRotator(0.f, Rotation.Yaw, 0.f), Params);
+		SW_LOG("[MOB] spawn %s", Spawned ? *Spawned->GetName() : TEXT("failed"));
 	}));
 #endif

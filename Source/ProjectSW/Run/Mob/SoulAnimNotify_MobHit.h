@@ -4,6 +4,8 @@
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "SoulAnimNotify_MobHit.generated.h"
 
+class ASoulMobProjectile;
+
 /**
  * 몹 공격 판정 시점. 몽타주 편집기에서 끌어 시각을 맞추고, 프리뷰에 판정 구가 보인다.
  * 팀 AM_MontageEvent와 같은 태그(Events.Montages.Attacks.Melee)를 보내므로 팀 GA와도 호환된다.
@@ -38,4 +40,8 @@ public:
 	/** 이 타격의 피해 배율 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit", meta = (ClampMin = "0"))
 	float DamageScale = 1.f;
+
+	/** 비어 있으면 근접 판정. 있으면 판정 원점에서 대상 쪽으로 이 탄을 쏜다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit")
+	TSubclassOf<ASoulMobProjectile> ProjectileClass;
 };

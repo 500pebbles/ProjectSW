@@ -157,6 +157,10 @@ private:
 	void RunSelfTestFloors();
 	void RunSelfTestMob(int32 Step);
 	void RunSelfTestBoss(int32 Step);
+	void RunSelfTestDeath(int32 Step);
+	void RunSelfTestSpawn(int32 Step);
+	void RunSelfTestBossFront(int32 Step);
+	void LogPawnPose(const TCHAR* Label) const;
 	void ScheduleSelfTest(int32 Step, float Delay);
 	void LogPlayerHealth(const TCHAR* Label) const;
 	void FinishSelfTest();
@@ -195,4 +199,5 @@ private:
 	FTimerHandle RestartTimer;
 	FTimerHandle SelfTestTimer;
 	FTimerHandle SelfTestWatchdog;
+	FTimerHandle SelfTestHealTimer;
 };

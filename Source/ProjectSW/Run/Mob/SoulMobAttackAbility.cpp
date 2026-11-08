@@ -1,6 +1,7 @@
 #include "Run/Mob/SoulMobAttackAbility.h"
 #include "Run/Mob/SoulAnimNotify_MobHit.h"
 #include "Run/Mob/SoulMobComponent.h"
+#include "Run/Mob/SoulMobProjectile.h"
 #include "Character/SoulCharacterEnemy.h"
 #include "GAS/Utility/SoulAbilitySystemLibrary.h"
 #include "Interface/SoulCombatInterface.h"
@@ -124,6 +125,25 @@ void USoulMobAttackAbility::HandleHitEvent(FGameplayEventData Payload)
 	const USoulMobComponent* Mob = USoulMobComponent::Find(Enemy);
 	const float Multiplier = NotifyScale * (Mob ? Mob->GetDamageMultiplier(ActiveMontage) : 1.f);
 
+	const USoulMobComponent* MobForScale = USoulMobComponent::Find(Enemy);
+	const float ShotMultiplier = NotifyScale * (MobForScale ? MobForScale->GetDamageMultiplier(ActiveMontage) : 1.f);
+
+	// 원거리: 판정 원점에서 대상의 지금 위치로 쏜다 (선행 없음)
+	if (HitNotify && HitNotify->ProjectileClass)
+	{
+		const AActor* Aim = ActiveTarget.Get();
+		const FVector Direction = Aim ? (Aim->GetActorLocation() - Origin).GetSafeNormal() : Enemy->GetActorForwardVector();
+		const FTransform SpawnTransform(Direction.Rotation(), Origin);
+		ASoulMobProjectile* Projectile = Enemy->GetWorld()->SpawnActorDeferred<ASoulMobProjectile>(HitNotify->ProjectileClass, SpawnTransform, Enemy, Enemy, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		if (Projectile)
+		{
+			Projectile->DamageEffectSpecHandle = MakeDamageSpec(ShotMultiplier);
+			Projectile->FinishSpawning(SpawnTransform);
+			SW_LOG("[MOB] shot %s x%.2f", *Enemy->GetName(), ShotMultiplier);
+		}
+		return;
+	}
+
 	const AActor* CombatTarget = ActiveTarget.Get();
 	SW_LOG("[MOB] hit-event %s notify=%d radius=%.0f overlaps=%d targetDist=%.0f", *Enemy->GetName(), HitNotify != nullptr, Radius, Overlapping.Num(),
 		CombatTarget ? FVector::Dist(Origin, CombatTarget->GetActorLocation()) : -1.f);
@@ -140,6 +160,27 @@ void USoulMobAttackAbility::HandleHitEvent(FGameplayEventData Payload)
 		ApplyMeleeDamage(Target, Multiplier);
 		SW_LOG("[MOB] hit %s -> %s x%.2f", *Enemy->GetName(), *Target->GetName(), Multiplier);
 	}
+}
+
+FGameplayEffectSpecHandle USoulMobAttackAbility::MakeDamageSpec(float Multiplier) const
+{
+	// ApplyMeleeDamage와 같은 곱으로 Spec만 만든다 (탄이 맞을 때 적용)
+	AActor* Avatar = GetAvatarActorFromActorInfo();
+	UAbilitySystemComponent* SourceASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Avatar);
+	if (!SourceASC || !DamageEffectClass)
+		return FGameplayEffectSpecHandle();
+
+	FGameplayEffectContextHandle Context = SourceASC->MakeEffectContext();
+	Context.AddSourceObject(Avatar);
+	FGameplayEffectSpecHandle Spec = SourceASC->MakeOutgoingSpec(DamageEffectClass, GetAbilityLevel(), Context);
+	if (Spec.IsValid())
+	{
+		for (const TTuple<FGameplayTag, FScalableFloat>& Pair : DamageTypes)
+		{
+			UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(Spec, Pair.Key, Pair.Value.GetValueAtLevel(GetAbilityLevel()) * Multiplier);
+		}
+	}
+	return Spec;
 }
 
 void USoulMobAttackAbility::HandleMontageEnded()

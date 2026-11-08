@@ -40,6 +40,9 @@ private:
 	UFUNCTION()
 	void HandleMontageEnded();
 
+	/** 근접과 같은 피해 Spec (탄에 넘긴다) */
+	FGameplayEffectSpecHandle MakeDamageSpec(float Multiplier) const;
+
 	UFUNCTION()
 	void HandleHitEvent(FGameplayEventData Payload);
 
