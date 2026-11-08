@@ -12,7 +12,9 @@ class PROJECTSW_API USoulHallOfFameSave : public USaveGame
 	GENERATED_BODY()
 
 public:
-	static constexpr int32 CurrentVersion = 1;
+	/** 2부터 끝 표식이 있다. 1 이하는 표식 없이 읽는다 */
+	static constexpr int32 CurrentVersion = 2;
+	static constexpr int32 FirstMarkerVersion = 2;
 
 	UPROPERTY(SaveGame)
 	int32 SaveVersion = CurrentVersion;

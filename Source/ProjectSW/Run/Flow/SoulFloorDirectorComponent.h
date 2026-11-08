@@ -165,6 +165,9 @@ private:
 	void LockPlayer();
 	void DisableInputAfterFrame(TWeakObjectPtr<APlayerController> WeakPC, uint64 LockFrame);
 	void AbortFloorStart(const TCHAR* Reason);
+
+	/** 이번 층 보스 인트로를 이미 돌렸다 */
+	bool bBossIntroDone = false;
 	void ArmSelfTestWatchdog(const TCHAR* Step);
 	void UnlockPlayer();
 	void ParkPawn();

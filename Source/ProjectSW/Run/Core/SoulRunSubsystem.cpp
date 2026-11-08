@@ -11,11 +11,44 @@
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Utility/SoulLog.h"
+#include "Containers/Ticker.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 
 USoulRunSubsystem* USoulRunSubsystem::Get(const UObject* WorldContextObject)
 {
 	const UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(WorldContextObject);
 	return GameInstance ? GameInstance->GetSubsystem<USoulRunSubsystem>() : nullptr;
+}
+
+void USoulRunSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+#if !UE_BUILD_SHIPPING
+	const TCHAR* Cmd = FCommandLine::Get();
+	if (FParse::Param(Cmd, TEXT("SoulTownSelfTest")) || FParse::Param(Cmd, TEXT("SoulFloorSelfTest")))
+	{
+		// 층 워치독은 마을로 넘어가며 사라지므로, 게임 인스턴스와 함께 사는 실시간 워치독을 따로 둔다
+		static bool bArmed = false;
+		if (!bArmed)
+		{
+			bArmed = true;
+			float TimeoutSec = 300.f;
+			FParse::Value(Cmd, TEXT("SoulSelfTestTimeout="), TimeoutSec);
+			const double Deadline = FPlatformTime::Seconds() + TimeoutSec;
+			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Deadline, TimeoutSec](float)
+			{
+				if (FPlatformTime::Seconds() < Deadline)
+					return true;
+				SW_LOG_ERROR("[SELFTEST] FAIL watchdog total %.0fs", TimeoutSec);
+				GLog->Flush();
+				FPlatformMisc::RequestExitWithStatus(true, 3);
+				return false;
+			}), 1.f);
+			SW_LOG("[SELFTEST] total watchdog %.0fs", TimeoutSec);
+		}
+	}
+#endif
 }
 
 void USoulRunSubsystem::BeginRun()
@@ -30,6 +63,7 @@ void USoulRunSubsystem::BeginRun()
 	State.bActive = true;
 	State.bRunEnded = false;
 	ForcedScore = -1;
+	bSkipSubmit = false;
 
 	SW_LOG("[RUN] BeginRun seed=%d", State.RunSeed);
 }
@@ -105,7 +139,7 @@ void USoulRunSubsystem::EndRun(bool bSuccess)
 		*LastSummary.RankId.ToString(), *LastSummary.CostumeId.ToString(), *LastSummary.WeaponId.ToString(), LastSummary.Stats.Kills, LastSummary.Stats.Events, LastSummary.Stats.DamageTaken);
 
 	// 치트로 덮은 점수는 실제 명예의 전당에 넣지 않는다
-	if (USoulHallOfFameSubsystem* HoF = GetGameInstance() ? GetGameInstance()->GetSubsystem<USoulHallOfFameSubsystem>() : nullptr; HoF && ForcedScore < 0)
+	if (USoulHallOfFameSubsystem* HoF = GetGameInstance() ? GetGameInstance()->GetSubsystem<USoulHallOfFameSubsystem>() : nullptr; HoF && ForcedScore < 0 && !bSkipSubmit)
 	{
 		HoF->SubmitRun(LastSummary);
 	}

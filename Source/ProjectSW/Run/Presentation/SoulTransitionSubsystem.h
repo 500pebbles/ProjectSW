@@ -34,7 +34,8 @@ public:
 	void ShowLoading(FName EntryId);
 
 	/** 최소 표시 시간을 채운 뒤 사라진다 */
-	void HideLoading();
+	/** bImmediate면 최소 표시와 페이드 없이 바로 내린다 (실패 경로) */
+	void HideLoading(bool bImmediate = false);
 
 	bool IsLoadingVisible() const { return LoadingWidget != nullptr; }
 

@@ -296,9 +296,11 @@ void ASoulChampionStatue::RefreshChampion()
 	}
 	// 기록이 없으면 숨는다
 	SetActorHiddenInGame(!TopCostume);
+	// 숨긴 받침대가 보이지 않는 벽이 되지 않게
+	SetActorEnableCollision(TopCostume != nullptr);
 	if (!TopCostume)
 	{
-		SW_LOG("[TOWN] champion hidden (no record)");
+		SW_LOG("[TOWN] champion hidden (no record) collision=%d", GetActorEnableCollision());
 		return;
 	}
 	const FSoulHallOfFameEntry& Entry = Top[0];

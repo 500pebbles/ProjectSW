@@ -59,9 +59,15 @@ void USoulHallOfFameSubsystem::Load()
 	auto LoadChecked = [](const TCHAR* Slot) -> USoulHallOfFameSave*
 	{
 		USoulHallOfFameSave* Loaded = Cast<USoulHallOfFameSave>(UGameplayStatics::LoadGameFromSlot(Slot, 0));
-		return Loaded && Loaded->EndMarker == USoulHallOfFameSave::EndMarkerValue ? Loaded : nullptr;
+		if (!Loaded)
+			return nullptr;
+		// 표식 이전 버전(1)은 표식 없이 받는다. 2부터는 표식이 맞아야 한다
+		if (Loaded->SaveVersion < USoulHallOfFameSave::FirstMarkerVersion)
+			return Loaded;
+		return Loaded->EndMarker == USoulHallOfFameSave::EndMarkerValue ? Loaded : nullptr;
 	};
 	Profile = bMainExists ? LoadChecked(SlotName) : nullptr;
+	bMainValid = Profile != nullptr;
 	if (!Profile && bMainExists)
 	{
 		// 깨진 본 파일은 .corrupt.sav로 남기고 백업을 읽는다
@@ -90,11 +96,13 @@ void USoulHallOfFameSubsystem::Save()
 	const FString Dir = FPaths::ProjectSavedDir() / TEXT("SaveGames");
 	const FString MainFile = Dir / FString(SlotName) + TEXT(".sav");
 	bool bBackup = false;
-	if (IFileManager::Get().FileExists(*MainFile))
+	// 본이 정상일 때만 백업으로 돌린다 (백업으로 복구한 직후 깨진 본이 정상 백업을 덮지 않게)
+	if (bMainValid && IFileManager::Get().FileExists(*MainFile))
 	{
 		bBackup = IFileManager::Get().Copy(*(Dir / FString(BackupSlotName) + TEXT(".sav")), *MainFile) == COPY_OK;
 	}
 	const bool bMain = UGameplayStatics::SaveGameToSlot(Profile, SlotName, 0);
+	bMainValid = bMain;
 	if (!bBackup && bMain)
 	{
 		bBackup = UGameplayStatics::SaveGameToSlot(Profile, BackupSlotName, 0);
@@ -207,8 +215,12 @@ void USoulHallOfFameSubsystem::ResetRecords()
 	if (!Profile)
 		return;
 	Profile->HallOfFame.Reset();
+	LastSubmittedId.Invalidate();
 	SW_LOG("[HOF] 기록 초기화");
 	Save();
+	// 백업에 옛 기록이 남지 않게 백업도 빈 기록으로 쓴다
+	const bool bBackup = UGameplayStatics::SaveGameToSlot(Profile, BackupSlotName, 0);
+	SW_LOG("[HOF] 초기화 백업도 씀=%d", bBackup);
 }
 
 TArray<FSoulHallOfFameEntry> USoulHallOfFameSubsystem::GetTopEntries(int32 Count) const

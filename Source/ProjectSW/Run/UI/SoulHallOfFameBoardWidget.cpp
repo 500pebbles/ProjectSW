@@ -83,6 +83,11 @@ void USoulHallOfFameBoardWidget::Refresh()
 			UImage* Image = WidgetTree->ConstructWidget<UImage>();
 			Image->SetDesiredSizeOverride(FVector2D(IconSize, IconSize));
 			USoulEquipmentCatalog::SetIcon(Image, Icon);
+			if (!Icon)
+			{
+				// 열 정렬: 아이콘이 없어도 칸은 남긴다
+				Image->SetVisibility(ESlateVisibility::Hidden);
+			}
 			UHorizontalBoxSlot* IconSlot = Row->AddChildToHorizontalBox(Image);
 			IconSlot->SetPadding(FMargin(0.f, 0.f, 8.f, 0.f));
 			IconSlot->SetVerticalAlignment(VAlign_Center);

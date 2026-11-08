@@ -41,6 +41,12 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "EnhancedInputSubsystems.h"
+#include "Input/SoulInputConfig.h"
+#include "InputKeyEventArgs.h"
+#include "Run/Combat/SoulCombatFeelSubsystem.h"
+#include "Run/UI/SoulPresentationWidgets.h"
 #include "Build/PMGMapBuilder.h"
 #include "AIController.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
@@ -242,6 +248,7 @@ void USoulFloorDirectorComponent::BeginFloor(int32 FloorIndex)
 
 	CurrentFloorIndex = FloorIndex;
 	GenerateAttempt = 0;
+	bBossIntroDone = false;
 
 	if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this))
 	{
@@ -583,6 +590,10 @@ void USoulFloorDirectorComponent::UnloadFloor()
 void USoulFloorDirectorComponent::DestroyFloorActors()
 {
 	// 빌더가 지우지 않는 것: 적과 시체, 투사체, 등록한 액터 (포탈 등). 방이 지워지기 전에 지워야 방의 정리 콜백이 안전하다
+	if (USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this))
+	{
+		Pres->ClearBoss();
+	}
 	TArray<AActor*> ToDestroy;
 	for (TActorIterator<ASoulCharacterEnemy> It(GetWorld()); It; ++It)
 	{
@@ -630,17 +641,22 @@ void USoulFloorDirectorComponent::RegisterFloorActor(AActor* Actor)
 
 void USoulFloorDirectorComponent::HandleExitEntered(ASoulPackedLevelActor* Room)
 {
-	if (bTransitioning || bPlayerDead || Room != ExitRoom.Get())
+	// 인트로는 층마다 한 번 (문 쪽으로 물러났다 다시 들어와도 다시 돌지 않는다)
+	if (bTransitioning || bPlayerDead || bBossIntroDone || Room != ExitRoom.Get())
 		return;
 	// 보스 스폰은 같은 입장에서 일어나므로 조금 뒤에 찾는다
 	FTimerHandle Handle;
 	GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]()
 	{
+		if (bBossIntroDone || bPlayerDead)
+			return;
 		for (TActorIterator<ASoulCharacterEnemy> It(GetWorld()); It; ++It)
 		{
 			const USoulMobComponent* Mob = USoulMobComponent::Find(*It);
 			if (Mob && Mob->GetRole() == ESoulMobRole::Boss && !ISoulCombatInterface::Execute_IsDead(*It))
 			{
+				bBossIntroDone = true;
+				SW_LOG("[FLOOR] boss intro floor=%d boss=%s", CurrentFloorIndex + 1, *It->GetName());
 				if (USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this))
 				{
 					Pres->PlayBossIntro(*It);
@@ -660,7 +676,7 @@ void USoulFloorDirectorComponent::HandleExitCombatFinished(ASoulPackedLevelActor
 
 	if (const USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this); Pres && Pres->GetData())
 	{
-		Pres->ShowBanner(IsLastFloor() ? Pres->GetData()->DungeonClearText : Pres->GetData()->FloorClearText, FText::GetEmpty(), FLinearColor(1.f, 0.85f, 0.4f));
+		Pres->ShowBanner(IsLastFloor() ? Pres->GetData()->DungeonClearText : Pres->GetData()->FloorClearText, FText::GetEmpty(), Pres->GetData()->ClearBannerColor);
 		Pres->PlaySound2D(Pres->GetData()->FloorClearSound);
 	}
 	if (IsLastFloor())
@@ -836,6 +852,11 @@ void USoulFloorDirectorComponent::HandlePawnDied(AActor* DeadActor)
 	GetWorld()->GetTimerManager().ClearTimer(PortalTimer);
 	GetWorld()->GetTimerManager().ClearTimer(CurtainTimer);
 	GetWorld()->GetTimerManager().ClearTimer(UnloadTimer);
+	// 보스 인트로 중이면 멈춘다 (입력은 사망 잠금 그대로)
+	if (USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this))
+	{
+		Pres->AbortIntroForDeath();
+	}
 	LockPlayer();
 
 	if (ACharacter* Character = Cast<ACharacter>(DeadActor))
@@ -857,7 +878,7 @@ void USoulFloorDirectorComponent::HandlePawnDied(AActor* DeadActor)
 	{
 		if (const USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this); Pres && Pres->GetData())
 		{
-			Pres->ShowBanner(Pres->GetData()->FailedText, FText::GetEmpty(), FLinearColor(0.9f, 0.2f, 0.2f));
+			Pres->ShowBanner(Pres->GetData()->FailedText, FText::GetEmpty(), Pres->GetData()->FailedBannerColor);
 		}
 	}), FMath::Max(USoulPresentationSubsystem::Get(this) && USoulPresentationSubsystem::Get(this)->GetData() ? USoulPresentationSubsystem::Get(this)->GetData()->FailedBannerDelaySec : 0.f, 0.01f), false);
 }
@@ -886,6 +907,11 @@ void USoulFloorDirectorComponent::HandlePlayerHealthChanged(const FOnAttributeCh
 void USoulFloorDirectorComponent::ShowRunResult()
 {
 	SW_LOG("[FLOOR] Run result floor=%d", CurrentFloorIndex + 1);
+	// 생성 실패 경로에서 로딩 화면이 남지 않게 최소 표시 시간을 무시하고 내린다
+	if (USoulTransitionSubsystem* Transition = USoulTransitionSubsystem::Get(this))
+	{
+		Transition->HideLoading(true);
+	}
 #if !UE_BUILD_SHIPPING
 	if (bSelfTest && SelfTestMode != TEXT("result"))
 	{
@@ -1002,6 +1028,10 @@ void USoulFloorDirectorComponent::AbortFloorStart(const TCHAR* Reason)
 	// 설정이 빠져 층을 못 열면 커튼과 입력을 풀어 화면이 검은 채로 멈추지 않게 한다
 	SW_LOG_ERROR("[FLOOR] 층 시작 중단: %s", Reason);
 	bTransitioning = false;
+	if (USoulTransitionSubsystem* Transition = USoulTransitionSubsystem::Get(this))
+	{
+		Transition->HideLoading(true);
+	}
 	UnparkPawn();
 	CurtainIn(0.f);
 	UnlockPlayer();
@@ -1709,6 +1739,83 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 			else
 			{
 				SW_LOG("[SELFTEST] pickupscore after re-pickup ledger=%d", Ledger());
+				FinishSelfTest();
+			}
+		}
+		else if (SelfTestMode == TEXT("reenter"))
+		{
+			// F 리뷰 1, 2, 3: 대시 키를 누른 채 보스방 → 인트로 → 스킵 → 질주 풀림 확인 → 같은 방 재진입 2번 → 인트로와 HP 바 1개 → 보스 경직
+			APlayerController* PC = GetPlayerController();
+			ASoulPlayerController* SoulPC = Cast<ASoulPlayerController>(PC);
+			const UCharacterMovementComponent* Move = PC && PC->GetPawn() ? PC->GetPawn()->FindComponentByClass<UCharacterMovementComponent>() : nullptr;
+			if (Step == 0)
+			{
+				// 팀 PC의 InputConfig(비공개)에서 대시 액션을 찾아 그 키를 실제 키 입력으로 누른다 (FlushPressedKeys가 떼기를 만든다)
+				FKey DashKey;
+				const FObjectProperty* ConfigProp = SoulPC ? FindFProperty<FObjectProperty>(SoulPC->GetClass(), TEXT("InputConfig")) : nullptr;
+				const USoulInputConfig* Config = ConfigProp ? Cast<USoulInputConfig>(ConfigProp->GetObjectPropertyValue_InContainer(SoulPC)) : nullptr;
+				const UInputAction* DashAction = Config ? Config->FindAbilityInputActionForTag(SoulTags::InputTags::Dash) : nullptr;
+				if (const UEnhancedInputLocalPlayerSubsystem* Input = PC ? ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()) : nullptr; Input && DashAction)
+				{
+					const TArray<FKey> Keys = Input->QueryKeysMappedToAction(DashAction);
+					DashKey = Keys.IsEmpty() ? FKey() : Keys[0];
+				}
+				if (PC && DashKey.IsValid())
+				{
+					PC->InputKey(FInputKeyEventArgs::CreateSimulated(DashKey, IE_Pressed, 1.f));
+				}
+				FTimerHandle Handle;
+				GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, DashKey]()
+				{
+					const APlayerController* LPC = GetPlayerController();
+					const UCharacterMovementComponent* LMove = LPC && LPC->GetPawn() ? LPC->GetPawn()->FindComponentByClass<UCharacterMovementComponent>() : nullptr;
+					SW_LOG("[SELFTEST] reenter dashKey=%s speedHeld=%.0f", *DashKey.ToString(), LMove ? LMove->MaxWalkSpeed : -1.f);
+					DebugGoToBossRoom();
+				}), 0.3f, false);
+				ScheduleSelfTest(1, 1.8f);
+			}
+			else if (Step == 1)
+			{
+				USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this);
+				SW_LOG("[SELFTEST] reenter intro playing=%d", Pres && Pres->IsIntroPlaying());
+				GEngine->Exec(GetWorld(), TEXT("soul.Pres.SkipIntro"));
+				ScheduleSelfTest(2, 1.5f);
+			}
+			else if (Step == 2)
+			{
+				SW_LOG("[SELFTEST] reenter after intro input=%d speed=%.0f", PC && PC->InputEnabled(), Move ? Move->MaxWalkSpeed : -1.f);
+				HandleExitEntered(ExitRoom.Get());
+				HandleExitEntered(ExitRoom.Get());
+				ScheduleSelfTest(3, 1.f);
+			}
+			else
+			{
+				const USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this);
+				TArray<UUserWidget*> Widgets;
+				UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, Widgets, USoulBossIntroWidget::StaticClass(), false);
+				SW_LOG("[SELFTEST] reenter after re-entry playing=%d bossWidgets=%d input=%d", Pres && Pres->IsIntroPlaying(), Widgets.Num(), PC && PC->InputEnabled());
+				// 보스 경직: 포이즈 경로로 타격을 넣고 HitReact를 시도한다
+				for (TActorIterator<ASoulCharacterEnemy> It(GetWorld()); It; ++It)
+				{
+					const USoulMobComponent* Mob = USoulMobComponent::Find(*It);
+					UAbilitySystemComponent* ASC = It->GetAbilitySystemComponent();
+					if (!Mob || Mob->GetRole() != ESoulMobRole::Boss || !ASC)
+						continue;
+					const FGameplayTagContainer HitReact(SoulTags::Combats::HitReact);
+					const bool bBlockedAtStart = ASC->AreAbilityTagsBlocked(HitReact);
+					int32 StaggerHit = -1;
+					for (int32 Hit = 1; Hit <= 60 && StaggerHit < 0; ++Hit)
+					{
+						USoulCombatFeelSubsystem::NotifyDamage(PC ? PC->GetPawn() : nullptr, *It, 1.f, false, false, FGameplayEffectContextHandle());
+						ASC->TryActivateAbilitiesByTag(HitReact);
+						if (ASC->HasMatchingGameplayTag(SoulTags::Combats::HitReact))
+						{
+							StaggerHit = Hit;
+						}
+					}
+					SW_LOG("[SELFTEST] reenter stagger boss=%s blockedAtStart=%d staggerAtHit=%d", *It->GetName(), bBlockedAtStart, StaggerHit);
+					break;
+				}
 				FinishSelfTest();
 			}
 		}

@@ -62,7 +62,13 @@ void USoulTransitionSubsystem::ShowLoading(FName EntryId)
 	const FSoulLoadingEntry* Entry = Data ? Data->FindLoading(EntryId) : nullptr;
 	UGameViewportClient* Viewport = GetGameInstance()->GetGameViewportClient();
 	if (!Entry || !Data->LoadingWidgetClass || !Viewport)
+	{
+		if (!EntryId.IsNone())
+		{
+			SW_LOG_WARNING("[LOADING] 로딩 항목을 띄우지 못함 id=%s data=%d entry=%d widget=%d", *EntryId.ToString(), Data != nullptr, Entry != nullptr, Data && Data->LoadingWidgetClass);
+		}
 		return;
+	}
 	if (!LoadingWidget)
 	{
 		LoadingWidget = CreateWidget<USoulRunLoadingScreenWidget>(GetGameInstance(), Data->LoadingWidgetClass);
@@ -86,11 +92,17 @@ void USoulTransitionSubsystem::ShowLoading(FName EntryId)
 	SW_LOG("[LOADING] show %s", *EntryId.ToString());
 }
 
-void USoulTransitionSubsystem::HideLoading()
+void USoulTransitionSubsystem::HideLoading(bool bImmediate)
 {
-	if (!LoadingWidget || bLoadingHiding)
+	if (!LoadingWidget || (bLoadingHiding && !bImmediate))
 		return;
 	bLoadingHiding = true;
+	if (bImmediate)
+	{
+		LoadingHideAt = FPlatformTime::Seconds();
+		LoadingFadeOut = 0.f;
+		return;
+	}
 	// 최소 표시 시간을 채운 뒤 사라진다
 	LoadingHideAt = FMath::Max(FPlatformTime::Seconds(), LoadingShownAt + LoadingMinShow);
 }

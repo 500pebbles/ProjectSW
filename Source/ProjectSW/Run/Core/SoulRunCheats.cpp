@@ -1,6 +1,7 @@
 // 런 치트 (개발 빌드 전용)
 #include "Run/Core/SoulRunSubsystem.h"
 #include "Run/Flow/SoulFloorDirectorComponent.h"
+#include "Run/Save/SoulHallOfFameSubsystem.h"
 #include "GAS/Core/SoulAttributeSet.h"
 #include "Interface/SoulCombatInterface.h"
 #include "Utility/SoulLog.h"
@@ -61,6 +62,12 @@ static FAutoConsoleCommandWithWorldAndArgs GSoulRunForceEndCommand(
 		if (Args.Num() > 1)
 		{
 			Run->SetForcedScore(FCString::Atoi(*Args[1]));
+		}
+		// 점수 인자와 상관없이 기록을 내지 않고, 결과창이 직전 실제 기록을 고치지 않게 한다
+		Run->SetSkipSubmit(true);
+		if (USoulHallOfFameSubsystem* HoF = USoulHallOfFameSubsystem::Get(World))
+		{
+			HoF->ClearLastSubmitted();
 		}
 		SW_LOG("[RUN] ForceEnd Clear score=%s", Args.Num() > 1 ? *Args[1] : TEXT("(계산)"));
 		// 던전이면 정상 클리어 경로(결과창), 아니면 바로 EndRun

@@ -66,6 +66,9 @@ public:
 
 	/** 바로 앞 런이 기록에 들어갔으면 그 행 ID (결과창 이름 입력, 마을 강조) */
 	FGuid GetLastSubmittedId() const { return LastSubmittedId; }
+
+	/** 치트 강제 종료: 기록을 내지 않았으니 결과창이 직전 기록을 고치지 않게 비운다 */
+	void ClearLastSubmitted() { LastSubmittedId.Invalidate(); bLastSubmittedBest = false; }
 	bool WasLastSubmittedNewBest() const { return bLastSubmittedBest; }
 
 	UPROPERTY(BlueprintAssignable, Category = "HallOfFame")
@@ -93,5 +96,8 @@ private:
 
 	FString LoadNotice;
 	FGuid LastSubmittedId;
+
+	/** 디스크의 본 세이브가 정상인가 (백업 회전 조건) */
+	bool bMainValid = false;
 	bool bLastSubmittedBest = false;
 };

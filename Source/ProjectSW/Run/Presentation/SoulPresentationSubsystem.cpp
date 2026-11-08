@@ -5,6 +5,8 @@
 #include "Run/Core/SoulRunGameComponent.h"
 #include "Run/UI/SoulPresentationWidgets.h"
 #include "Character/SoulCharacterEnemy.h"
+#include "Player/SoulPlayerController.h"
+#include "Components/AudioComponent.h"
 #include "Utility/SoulLog.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
@@ -91,13 +93,32 @@ void USoulPresentationSubsystem::PlayBossIntro(ASoulCharacterEnemy* Boss)
 {
 	const USoulPresentationData* Data = GetData();
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (!Data || !Boss || !PC || bIntroPlaying)
+	// 같은 보스로 다시 들어오면(문 쪽으로 물러났다 재진입) 무시한다
+	if (!Data || !Boss || !PC || bIntroPlaying || IntroBoss.Get() == Boss)
 		return;
 
 	IntroBoss = Boss;
-	Boss->OnDied.AddUObject(this, &ThisClass::HandleBossDied);
+	if (!Boss->OnDied.IsBoundToObject(this))
+	{
+		Boss->OnDied.AddUObject(this, &ThisClass::HandleBossDied);
+	}
 	const FSoulBossIntro* Intro = Data->FindBossIntro(Boss);
+	if (!Intro)
+	{
+		SW_LOG_WARNING("[PRES] %s 보스 인트로 값이 없음 (DA_Presentation BossIntros). 체력 바만 띄운다", *Boss->GetClass()->GetName());
+	}
+	if (!bWarnedSkipKeys && (Data->BossIntroSkipKeys.IsEmpty() || Data->BossIntroSkipHoldSec <= 0.f))
+	{
+		bWarnedSkipKeys = true;
+		SW_LOG_WARNING("[PRES] 인트로 스킵 키나 누르는 시간이 비어 스킵이 꺼져 있음 (DA_Presentation)");
+	}
 
+	// 이전 보스 HP 바가 남아 있으면 지운다
+	if (BossWidget)
+	{
+		BossWidget->RemoveFromParent();
+		BossWidget = nullptr;
+	}
 	if (Data->BossIntroWidgetClass)
 	{
 		BossWidget = CreateWidget<USoulBossIntroWidget>(PC, Data->BossIntroWidgetClass);
@@ -120,11 +141,12 @@ void USoulPresentationSubsystem::PlayBossIntro(ASoulCharacterEnemy* Boss)
 	bIntroPlaying = true;
 	bReturning = false;
 	bSkipped = false;
+	IntroSounds.Reset();
 	USoulTransitionSubsystem::PrepareForTravel(PC);
-	PC->DisableInput(PC);
+	// FlushPressedKeys가 만든 Released(질주 해제 등)가 돈 다음 프레임에 입력을 끈다 (Director::DisableInputAfterFrame과 같은 방식)
+	DisableInputAfterFrame(PC, GFrameCounter);
 	if (APawn* Pawn = PC->GetPawn())
 	{
-		Pawn->DisableInput(PC);
 		// 보스를 플레이어 쪽으로
 		const FVector ToPlayer = (Pawn->GetActorLocation() - Boss->GetActorLocation()).GetSafeNormal2D();
 		Boss->SetActorRotation(ToPlayer.Rotation());
@@ -137,10 +159,42 @@ void USoulPresentationSubsystem::PlayBossIntro(ASoulCharacterEnemy* Boss)
 	{
 		BossWidget->ShowIntro(Data->WarningText, Data->BossIntroSkipHoldSec > 0.f && !Data->BossIntroSkipKeys.IsEmpty() ? Data->BossIntroSkipHint : FText::GetEmpty());
 	}
-	PlaySound2D(Data->BossDoorSound);
-	PlaySound2D(Data->WarningSound);
+	PlayIntroSound2D(Data->BossDoorSound);
+	PlayIntroSound2D(Data->WarningSound);
 	SetIntroStage(ESoulBossIntroStage::Start);
 	GetWorld()->GetTimerManager().SetTimer(IntroTimer, this, &ThisClass::IntroCameraStage, FMath::Max(Data->BossIntroLeadSec, 0.01f), false);
+}
+
+void USoulPresentationSubsystem::PlayIntroSound2D(USoundBase* Sound)
+{
+	if (Sound)
+	{
+		if (UAudioComponent* Audio = UGameplayStatics::SpawnSound2D(GetWorld(), Sound))
+		{
+			IntroSounds.Add(Audio);
+		}
+	}
+}
+
+void USoulPresentationSubsystem::DisableInputAfterFrame(TWeakObjectPtr<APlayerController> WeakPC, uint64 LockFrame)
+{
+	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this, WeakPC, LockFrame]()
+	{
+		APlayerController* LockedPC = WeakPC.Get();
+		// 그새 인트로가 끝났거나 스킵 복귀 중이면 끄지 않는다
+		if (!LockedPC || !bIntroPlaying || bReturning)
+			return;
+		if (GFrameCounter <= LockFrame + 1)
+		{
+			DisableInputAfterFrame(WeakPC, LockFrame);
+			return;
+		}
+		LockedPC->DisableInput(LockedPC);
+		if (APawn* Pawn = LockedPC->GetPawn())
+		{
+			Pawn->DisableInput(LockedPC);
+		}
+	}));
 }
 
 void USoulPresentationSubsystem::IntroCameraStage()
@@ -166,7 +220,22 @@ void USoulPresentationSubsystem::IntroCameraStage()
 	}
 	if (BossWidget)
 	{
-		BossWidget->ShowNameCard(Intro->Name, Intro->Title);
+		const FText Name = Intro->Name;
+		const FText Title = Intro->Title;
+		if (Data->BossIntroNameCardDelaySec > 0.f)
+		{
+			GetWorld()->GetTimerManager().SetTimer(NameCardTimer, FTimerDelegate::CreateWeakLambda(this, [this, Name, Title]()
+			{
+				if (BossWidget && bIntroPlaying)
+				{
+					BossWidget->ShowNameCard(Name, Title);
+				}
+			}), Data->BossIntroNameCardDelaySec, false);
+		}
+		else
+		{
+			BossWidget->ShowNameCard(Name, Title);
+		}
 	}
 	SetIntroStage(ESoulBossIntroStage::Camera);
 	GetWorld()->GetTimerManager().SetTimer(IntroTimer, this, &ThisClass::IntroClip, FMath::Max(Data->BossIntroBlendSec, 0.01f), false);
@@ -189,7 +258,7 @@ void USoulPresentationSubsystem::IntroClip()
 		Length = FMath::Max(End - Intro->ClipStart, 0.1f);
 		if (UAnimInstance* Anim = Boss->GetMesh() ? Boss->GetMesh()->GetAnimInstance() : nullptr)
 		{
-			Anim->PlaySlotAnimationAsDynamicMontage(Intro->Clip, TEXT("DefaultSlot"), 0.15f, 0.2f, 1.f, 1, -1.f, Intro->ClipStart);
+			Anim->PlaySlotAnimationAsDynamicMontage(Intro->Clip, TEXT("DefaultSlot"), Data->BossIntroClipBlendIn, Data->BossIntroClipBlendOut, 1.f, 1, -1.f, Intro->ClipStart);
 			TWeakObjectPtr<UAnimInstance> WeakAnim = Anim;
 			GetWorld()->GetTimerManager().SetTimer(ClipStopTimer, FTimerDelegate::CreateWeakLambda(this, [WeakAnim]()
 			{
@@ -200,7 +269,14 @@ void USoulPresentationSubsystem::IntroClip()
 			}), Length, false);
 		}
 	}
-	PlayAt(Intro->Sound, Intro->FX, Boss->GetActorLocation());
+	if (Intro->Sound)
+	{
+		if (UAudioComponent* Audio = UGameplayStatics::SpawnSoundAtLocation(GetWorld(), Intro->Sound, Boss->GetActorLocation()))
+		{
+			IntroSounds.Add(Audio);
+		}
+	}
+	PlayAt(nullptr, Intro->FX, Boss->GetActorLocation());
 	SetIntroStage(ESoulBossIntroStage::Clip);
 	GetWorld()->GetTimerManager().SetTimer(IntroTimer, this, &ThisClass::IntroReturn, FMath::Max(Length + Data->BossIntroHoldSec, 0.01f), false);
 }
@@ -219,7 +295,7 @@ void USoulPresentationSubsystem::IntroReturn()
 	{
 		SetIntroStage(ESoulBossIntroStage::Return);
 	}
-	GetWorld()->GetTimerManager().SetTimer(IntroTimer, this, &ThisClass::FinishIntro, FMath::Max(Blend, 0.01f), false);
+	GetWorld()->GetTimerManager().SetTimer(IntroTimer, FTimerDelegate::CreateWeakLambda(this, [this]() { FinishIntro(true); }), FMath::Max(Blend, 0.01f), false);
 }
 
 void USoulPresentationSubsystem::SkipIntro()
@@ -229,7 +305,17 @@ void USoulPresentationSubsystem::SkipIntro()
 	bSkipped = true;
 	GetWorld()->GetTimerManager().ClearTimer(IntroTimer);
 	GetWorld()->GetTimerManager().ClearTimer(ClipStopTimer);
+	GetWorld()->GetTimerManager().ClearTimer(NameCardTimer);
 	const USoulPresentationData* Data = GetData();
+	// 인트로 소리를 줄인다
+	for (UAudioComponent* Audio : IntroSounds)
+	{
+		if (IsValid(Audio) && Audio->IsPlaying())
+		{
+			Audio->FadeOut(Data ? Data->BossIntroSkipSoundFadeSec : 0.3f, 0.f);
+		}
+	}
+	IntroSounds.Reset();
 	if (ASoulCharacterEnemy* Boss = IntroBoss.Get())
 	{
 		if (UAnimInstance* Anim = Boss->GetMesh() ? Boss->GetMesh()->GetAnimInstance() : nullptr)
@@ -241,15 +327,22 @@ void USoulPresentationSubsystem::SkipIntro()
 	IntroReturn();
 }
 
-void USoulPresentationSubsystem::FinishIntro()
+void USoulPresentationSubsystem::FinishIntro(bool bRestoreInput)
 {
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (PC)
+	GetWorld()->GetTimerManager().ClearTimer(NameCardTimer);
+	IntroSounds.Reset();
+	if (PC && bRestoreInput)
 	{
 		PC->EnableInput(PC);
 		if (APawn* Pawn = PC->GetPawn())
 		{
 			Pawn->EnableInput(PC);
+		}
+		// 잠금 중 버려진 대시 해제를 다시 맞춘다
+		if (ASoulPlayerController* SoulPC = Cast<ASoulPlayerController>(PC))
+		{
+			SoulPC->RefreshMoveSpeed();
 		}
 	}
 	if (const ASoulCharacterEnemy* Boss = IntroBoss.Get())
@@ -272,6 +365,35 @@ void USoulPresentationSubsystem::FinishIntro()
 	bReturning = false;
 	SetIntroStage(ESoulBossIntroStage::Finished);
 	SW_LOG("[PRES] boss intro done skipped=%d input=%d", bSkipped, PC && PC->InputEnabled());
+}
+
+void USoulPresentationSubsystem::AbortIntroForDeath()
+{
+	if (!bIntroPlaying)
+		return;
+	GetWorld()->GetTimerManager().ClearTimer(IntroTimer);
+	GetWorld()->GetTimerManager().ClearTimer(ClipStopTimer);
+	if (APlayerController* PC = GetWorld()->GetFirstPlayerController(); PC && PC->GetPawn())
+	{
+		PC->SetViewTarget(PC->GetPawn());
+	}
+	SW_LOG("[PRES] boss intro aborted (player died)");
+	FinishIntro(false);
+}
+
+void USoulPresentationSubsystem::ClearBoss()
+{
+	if (bIntroPlaying)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(IntroTimer);
+		FinishIntro(false);
+	}
+	if (BossWidget)
+	{
+		BossWidget->RemoveFromParent();
+		BossWidget = nullptr;
+	}
+	IntroBoss.Reset();
 }
 
 void USoulPresentationSubsystem::HandleBossDied(AActor* Boss)

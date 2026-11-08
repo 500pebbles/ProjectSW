@@ -123,6 +123,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Banner")
 	FText WarningText;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Banner")
+	FLinearColor ClearBannerColor = FLinearColor(1.f, 0.85f, 0.4f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Banner")
+	FLinearColor FailedBannerColor = FLinearColor(0.9f, 0.2f, 0.2f);
+
 	/** 게이트 F (입장) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
 	TObjectPtr<USoundBase> EntrySound;
@@ -199,4 +205,19 @@ public:
 	/** 클립 뒤 머무는 시간 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss", meta = (ClampMin = "0", Units = "s"))
 	float BossIntroHoldSec = 0.f;
+
+	/** 등장 클립 블렌드 인, 아웃 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss", meta = (ClampMin = "0", Units = "s"))
+	float BossIntroClipBlendIn = 0.15f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss", meta = (ClampMin = "0", Units = "s"))
+	float BossIntroClipBlendOut = 0.2f;
+
+	/** 카메라가 움직이기 시작하고 네임카드가 뜨기까지 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss", meta = (ClampMin = "0", Units = "s"))
+	float BossIntroNameCardDelaySec = 0.f;
+
+	/** 스킵 때 인트로 소리(경고, 문, 보스 소리)를 줄이는 시간 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss", meta = (ClampMin = "0", Units = "s"))
+	float BossIntroSkipSoundFadeSec = 0.3f;
 };

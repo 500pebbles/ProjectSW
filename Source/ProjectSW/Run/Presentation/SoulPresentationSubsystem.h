@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
+class UAudioComponent;
+
 #include "SoulPresentationSubsystem.generated.h"
 
 class ACameraActor;
@@ -50,6 +52,12 @@ public:
 	/** 디버그와 자체 확인: 지금 인트로를 스킵한다 */
 	void SkipIntro();
 
+	/** 플레이어 사망: 인트로를 멈추되 입력은 켜지 않는다 */
+	void AbortIntroForDeath();
+
+	/** 층을 지울 때: 보스 HP 바와 보스 참조를 정리한다 */
+	void ClearBoss();
+
 	UPROPERTY(BlueprintAssignable, Category = "Presentation")
 	FSoulBossIntroStageSignature OnIntroStage;
 
@@ -61,7 +69,9 @@ private:
 	void IntroCameraStage();
 	void IntroClip();
 	void IntroReturn();
-	void FinishIntro();
+	void FinishIntro(bool bRestoreInput = true);
+	void PlayIntroSound2D(USoundBase* Sound);
+	void DisableInputAfterFrame(TWeakObjectPtr<APlayerController> WeakPC, uint64 LockFrame);
 	void SetIntroStage(ESoulBossIntroStage Stage);
 	void HandleBossDied(AActor* Boss);
 
@@ -78,4 +88,11 @@ private:
 	bool bSkipped = false;
 	FTimerHandle IntroTimer;
 	FTimerHandle ClipStopTimer;
+	FTimerHandle NameCardTimer;
+
+	/** 스킵 때 줄일 인트로 소리 */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UAudioComponent>> IntroSounds;
+
+	bool bWarnedSkipKeys = false;
 };

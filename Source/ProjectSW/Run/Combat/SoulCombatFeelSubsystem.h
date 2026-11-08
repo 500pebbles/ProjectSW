@@ -53,6 +53,9 @@ private:
 	TMap<TWeakObjectPtr<AActor>, double> FrozenUntil;
 	TMap<TWeakObjectPtr<AActor>, double> InvincibleUntil;
 	TMap<TWeakObjectPtr<AActor>, FPoiseState> Poise;
+
+	/** 행 없음 경고를 이미 남긴 행 */
+	mutable TSet<FName> WarnedRows;
 	double LastAttackerStop = 0.0;
 	double LastShake = 0.0;
 	double SlomoUntil = 0.0;

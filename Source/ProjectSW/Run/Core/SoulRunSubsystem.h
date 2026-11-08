@@ -19,6 +19,9 @@ class PROJECTSW_API USoulRunSubsystem : public UGameInstanceSubsystem
 public:
 	static USoulRunSubsystem* Get(const UObject* WorldContextObject);
 
+	/** 자체 확인(-SoulTownSelfTest, -SoulFloorSelfTest)이면 맵 이동을 넘는 전체 워치독을 건다. 패키지에서도 끝나지 않으면 강제 종료 */
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+
 	/** 층 1, Level 1, Exp 0, 새 RunSeed, 시작 시각 = 지금(실시간) */
 	UFUNCTION(BlueprintCallable, Category = "Run")
 	void BeginRun();
@@ -77,6 +80,9 @@ public:
 
 	/** 치트 soul.Run.ForceEnd Clear [Score]: 다음 정산 점수를 이 값으로 덮는다 (-1이면 계산) */
 	void SetForcedScore(int32 InScore) { ForcedScore = InScore; }
+
+	/** 치트 강제 종료: 기록(SubmitRun)을 내지 않는다 */
+	void SetSkipSubmit(bool bInSkip) { bSkipSubmit = bInSkip; }
 	int32 GetForcedScore() const { return ForcedScore; }
 
 private:
@@ -84,6 +90,7 @@ private:
 	FSoulRunState State;
 
 	int32 ForcedScore = -1;
+	bool bSkipSubmit = false;
 
 	UPROPERTY()
 	FSoulRunSummary LastSummary;

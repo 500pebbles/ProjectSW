@@ -116,9 +116,10 @@ const FSoulHitFeelRow* USoulCombatFeelSubsystem::FindRow(AActor* Source, AActor*
 	}
 	if (const FSoulHitFeelRow* Row = Data->HitFeelTable->FindRow<FSoulHitFeelRow>(OutRowName, TEXT(""), false))
 		return Row;
-	if (CVarSoulFeelLog.GetValueOnGameThread() > 0)
+	if (!WarnedRows.Contains(OutRowName))
 	{
-		SW_LOG_WARNING("[FEEL] 행 없음 %s → Default", *OutRowName.ToString());
+		WarnedRows.Add(OutRowName);
+		SW_LOG_WARNING("[FEEL] DT_HitFeel 행 없음 %s → Default (행마다 1회)", *OutRowName.ToString());
 	}
 	OutRowName = TEXT("Default");
 	return Data->HitFeelTable->FindRow<FSoulHitFeelRow>(OutRowName, TEXT(""), false);
