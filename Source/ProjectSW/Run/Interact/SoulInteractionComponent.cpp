@@ -4,6 +4,7 @@
 #include "Run/Equipment/SoulEquipmentCatalog.h"
 #include "Run/Core/SoulRunSubsystem.h"
 #include "Run/Interact/SoulItemLibrary.h"
+#include "Run/UI/SoulKeyHintWidget.h"
 #include "Utility/SoulLog.h"
 
 #include "Components/Widget.h"
@@ -162,23 +163,54 @@ void USoulInteractionComponent::HandleTraceChanged(bool bHasTarget, FKey InputKe
 	{
 		// #40: 플러그인이 바라보던 상점 아이템(IInventoryInteractInterface)의 포커스를 먼저 끝낸다. 상점 아이템에서 런 오브젝트로 바로 넘어가는 경우
 		ForwardTraceToInventory(false, InputKey, nullptr);
-		UInventoryHUDWidget* HUD = SoulInteraction::ReadObjectProperty<UInventoryHUDWidget>(Inventory, TEXT("InventoryHUDWidget"));
-		if (HUD)
+		// 팀 줍기 문구("F to Pickup ...") 대신 우리 문구 위젯 ("F 석상에 기도")
+		if (Interactable->bEnabled)
 		{
-			if (Interactable->bEnabled)
-			{
-				HUD->ShowInteractionMessage(InputKey, Interactable->PromptText);
-			}
-			else
-			{
-				HUD->HideInteractionMessage();
-			}
+			ShowPrompt(InputKey, Interactable->PromptText);
+		}
+		else
+		{
+			HidePrompt();
 		}
 		return;
 	}
 
 	// 아이템이나 대상 없음은 플러그인 처리 그대로 (상점 아이템 포커스와 정보창 포함)
+	HidePrompt();
 	ForwardTraceToInventory(bHasTarget, InputKey, TargetActor);
+}
+
+void USoulInteractionComponent::ShowPrompt(FKey InputKey, const FText& Action)
+{
+	const APawn* Pawn = Cast<APawn>(GetOwner());
+	APlayerController* PC = Pawn ? Cast<APlayerController>(Pawn->GetController()) : nullptr;
+	if (!PC || !PC->IsLocalController())
+		return;
+	if (!PromptWidget)
+	{
+		PromptWidget = CreateWidget<USoulKeyHintWidget>(PC, PromptWidgetClass ? PromptWidgetClass : TSubclassOf<USoulKeyHintWidget>(USoulKeyHintWidget::StaticClass()));
+		if (!PromptWidget)
+			return;
+		PromptWidget->SetFontSize(PromptFontSize);
+		PromptWidget->AddToViewport(PromptZOrder);
+		// SetPositionInViewport가 앵커를 되돌리므로 자리 다음에 앵커와 정렬
+		PromptWidget->SetPositionInViewport(PromptOffset, false);
+		PromptWidget->SetAnchorsInViewport(FAnchors(PromptAnchor.X, PromptAnchor.Y));
+		PromptWidget->SetAlignmentInViewport(PromptAlignment);
+	}
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Key"), InputKey.IsValid() ? InputKey.GetDisplayName(false) : INVTEXT("F"));
+	Args.Add(TEXT("Action"), Action);
+	PromptWidget->SetHint(FText::Format(PromptFormat, Args), PromptColor);
+	PromptWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void USoulInteractionComponent::HidePrompt()
+{
+	if (PromptWidget)
+	{
+		PromptWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
 
 void USoulInteractionComponent::ForwardTraceToInventory(bool bHasTarget, FKey InputKey, AActor* TargetActor)

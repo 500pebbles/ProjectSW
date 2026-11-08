@@ -10,6 +10,7 @@ class APawn;
 class UInventoryComponent;
 class UInventoryInputComponent;
 class UInputAction;
+class USoulKeyHintWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSoulItemCollectedSignature, AActor*, ItemActor);
 
@@ -66,6 +67,38 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interact")
 	TSubclassOf<UInventoryInputComponent> InventoryInputClass;
 
+	/**
+	 * 런 상호작용 물체(석상, 게이트, 이벤트, 상자, 포탈, 명예의 전당)의 문구 위젯. 팀 줍기 문구는 "to Pickup"이 붙어 쓰지 않는다.
+	 * 비우면 코드 기본 위젯 USoulKeyHintWidget. 팀 아이템 줍기 문구는 그대로 팀 HUD가 띄운다
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interact|Prompt")
+	TSubclassOf<USoulKeyHintWidget> PromptWidgetClass;
+
+	/** {Key}는 상호작용 키, {Action}은 물체의 PromptText */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interact|Prompt")
+	FText PromptFormat = NSLOCTEXT("SoulRun", "InteractPrompt", "{Key}  {Action}");
+
+	/** 화면 기준 앵커 (0.5, 0.5 = 가운데) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interact|Prompt")
+	FVector2D PromptAnchor = FVector2D(0.5f, 0.5f);
+
+	/** 앵커 기준 위젯 정렬 (0, 0.5 = 왼쪽 가운데가 앵커에) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interact|Prompt")
+	FVector2D PromptAlignment = FVector2D(0.f, 0.5f);
+
+	/** 앵커에서 떨어진 자리 (px) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interact|Prompt")
+	FVector2D PromptOffset = FVector2D(50.f, 0.f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interact|Prompt", meta = (ClampMin = "8"))
+	int32 PromptFontSize = 20;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interact|Prompt")
+	FLinearColor PromptColor = FLinearColor(1.f, 0.95f, 0.85f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interact|Prompt")
+	int32 PromptZOrder = 15;
+
 private:
 	UFUNCTION()
 	void HandleControllerChanged(APawn* Pawn, AController* OldController, AController* NewController);
@@ -76,6 +109,11 @@ private:
 	UFUNCTION()
 	void HandleTraceChanged(bool bHasTarget, FKey InputKey, AActor* TargetActor);
 	void ForwardTraceToInventory(bool bHasTarget, FKey InputKey, AActor* TargetActor);
+	void ShowPrompt(FKey InputKey, const FText& Action);
+	void HidePrompt();
+
+	UPROPERTY(Transient)
+	TObjectPtr<USoulKeyHintWidget> PromptWidget;
 
 	UFUNCTION()
 	void HandleEquipmentToggled();
