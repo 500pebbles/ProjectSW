@@ -4,6 +4,7 @@
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimSequence.h"
 #include "Animation/BlendSpace.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "UObject/UnrealType.h"
 
 bool USoulRunAuthoringLibrary::SetBlendSpaceAxis(UBlendSpace* BlendSpace, int32 AxisIndex, const FString& DisplayName, float Min, float Max, int32 GridNum)
@@ -106,6 +107,71 @@ bool USoulRunAuthoringLibrary::TrimMontage(UAnimMontage* Montage, float StartTim
 #else
 	return false;
 #endif
+}
+
+float USoulRunAuthoringLibrary::SetMontageSegments(UAnimMontage* Montage, const TArray<UAnimSequenceBase*>& Clips)
+{
+#if WITH_EDITOR
+	if (!Montage || Montage->SlotAnimTracks.IsEmpty() || Clips.IsEmpty() || Clips.Contains(nullptr))
+		return -1.f;
+
+	Montage->Modify();
+	TArray<FAnimSegment>& Segments = Montage->SlotAnimTracks[0].AnimTrack.AnimSegments;
+	Segments.Reset();
+	float Position = 0.f;
+	for (UAnimSequenceBase* Clip : Clips)
+	{
+		FAnimSegment& Segment = Segments.AddDefaulted_GetRef();
+		Segment.SetAnimReference(Clip, true);
+		Segment.AnimStartTime = 0.f;
+		Segment.AnimEndTime = Clip->GetPlayLength();
+		Segment.AnimPlayRate = 1.f;
+		Segment.LoopingCount = 1;
+		Segment.StartPos = Position;
+		Position += Segment.GetLength();
+	}
+	Montage->SetCompositeLength(Montage->CalculateSequenceLength());
+	// 섹션은 Default 하나로 0에서 시작
+	if (Montage->CompositeSections.IsEmpty())
+	{
+		Montage->AddAnimCompositeSection(TEXT("Default"), 0.f);
+	}
+	for (int32 i = Montage->CompositeSections.Num() - 1; i > 0; --i)
+	{
+		Montage->CompositeSections.RemoveAt(i);
+	}
+	Montage->CompositeSections[0].SetTime(0.f);
+	Montage->CompositeSections[0].NextSectionName = NAME_None;
+	Montage->UpdateLinkableElements();
+	Montage->PostEditChange();
+	Montage->MarkPackageDirty();
+	return Montage->GetPlayLength();
+#else
+	return -1.f;
+#endif
+}
+
+bool USoulRunAuthoringLibrary::EvaluatePose(USkeletalMeshComponent* Component, UAnimSequenceBase* Animation, float Time)
+{
+	if (!Component || !Animation || !Component->GetSkeletalMeshAsset())
+		return false;
+
+	Component->SetUpdateAnimationInEditor(true);
+	Component->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+	Component->PlayAnimation(Animation, true);
+	Component->SetPosition(Time, false);
+	Component->SetPlayRate(0.f);
+	// 몇 번 틱해 포즈와 본 변환을 확정한다
+	for (int32 i = 0; i < 3; ++i)
+	{
+		Component->TickAnimation(1.f / 30.f, false);
+		Component->RefreshBoneTransforms();
+	}
+	Component->FinalizeBoneTransform();
+	Component->UpdateBounds();
+	Component->MarkRenderTransformDirty();
+	Component->MarkRenderDynamicDataDirty();
+	return true;
 }
 
 bool USoulRunAuthoringLibrary::SetClassProperty(UObject* Object, FName PropertyName, UClass* Value)

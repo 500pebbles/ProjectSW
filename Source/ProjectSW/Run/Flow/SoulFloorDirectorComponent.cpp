@@ -1892,6 +1892,60 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 				FinishSelfTest();
 			}
 		}
+		else if (SelfTestMode == TEXT("sabreak"))
+		{
+			// 보스 SABreak 경직(D23): 1, 2층 보스방 → 인트로 스킵 → 포이즈 돌파까지 때림 → 재생 중인 몽타주와 길이 → 1.5초 뒤 아직 재생 중인지 → 1층은 포탈
+			ASoulCharacterEnemy* Boss = nullptr;
+			for (TActorIterator<ASoulCharacterEnemy> It(GetWorld()); It; ++It)
+			{
+				const USoulMobComponent* Mob = USoulMobComponent::Find(*It);
+				if (Mob && Mob->GetRole() == ESoulMobRole::Boss && !ISoulCombatInterface::Execute_IsDead(*It))
+				{
+					Boss = *It;
+					break;
+				}
+			}
+			const UAnimInstance* Anim = Boss && Boss->GetMesh() ? Boss->GetMesh()->GetAnimInstance() : nullptr;
+			const UAnimMontage* Montage = Anim ? Anim->GetCurrentActiveMontage() : nullptr;
+			if (Step == 0)
+			{
+				DebugGoToBossRoom();
+				ScheduleSelfTest(1, 2.f);
+			}
+			else if (Step == 1)
+			{
+				GEngine->Exec(GetWorld(), TEXT("soul.Pres.SkipIntro"));
+				ScheduleSelfTest(2, 1.5f);
+			}
+			else if (Step == 2)
+			{
+				UAbilitySystemComponent* ASC = Boss ? Boss->GetAbilitySystemComponent() : nullptr;
+				int32 StaggerHit = -1;
+				const FGameplayTagContainer HitReact(SoulTags::Combats::HitReact);
+				for (int32 Hit = 1; ASC && Hit <= 80 && StaggerHit < 0; ++Hit)
+				{
+					USoulCombatFeelSubsystem::NotifyDamage(PlayerPawn.Get(), Boss, 1.f, false, false, FGameplayEffectContextHandle());
+					ASC->TryActivateAbilitiesByTag(HitReact);
+					StaggerHit = ASC->HasMatchingGameplayTag(SoulTags::Combats::HitReact) ? Hit : -1;
+				}
+				const UAnimMontage* Now = Anim ? Anim->GetCurrentActiveMontage() : nullptr;
+				SW_LOG("[SELFTEST] sabreak floor=%d boss=%s staggerAtHit=%d montage=%s len=%.2f segments=%d", CurrentFloorIndex + 1, Boss ? *Boss->GetName() : TEXT("none"), StaggerHit,
+					Now ? *Now->GetName() : TEXT("none"), Now ? Now->GetPlayLength() : -1.f, Now && !Now->SlotAnimTracks.IsEmpty() ? Now->SlotAnimTracks[0].AnimTrack.AnimSegments.Num() : -1);
+				ScheduleSelfTest(3, 1.5f);
+			}
+			else
+			{
+				SW_LOG("[SELFTEST] sabreak after1.5s montage=%s pos=%.2f", Montage ? *Montage->GetName() : TEXT("none"), Anim && Montage ? Anim->Montage_GetPosition(Montage) : -1.f);
+				if (CurrentFloorIndex == 0)
+				{
+					DebugGoToPortal();
+				}
+				else
+				{
+					FinishSelfTest();
+				}
+			}
+		}
 		else if (SelfTestMode == TEXT("map"))
 		{
 			// 사용자 피드백 2, 3: 지도 키로 지도가 열리고 현재 층 방이 나오는지 → 닫기 → 1층은 포탈을 F로 들어가 2층에서 반복
