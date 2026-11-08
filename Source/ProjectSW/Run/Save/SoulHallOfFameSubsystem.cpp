@@ -284,23 +284,25 @@ void USoulHallOfFameSubsystem::AddTestEntries(int32 Count)
 	// 점수 범위는 DA_ScoreRules 문턱에서 정한다: 가장 낮은 0 초과 문턱 - 간격 ~ 가장 높은 문턱 + 간격 (S, A, B, C가 고루 나온다)
 	const USoulRunConfig* Config = USoulRunGameComponent::GetRunConfig(GetGameInstance() ? GetGameInstance()->GetWorld() : nullptr);
 	const USoulScoreRules* ScoreRules = Config ? Config->ScoreRules.Get() : nullptr;
+	if (!ScoreRules)
+	{
+		SW_LOG_WARNING("[HOF] AddTest: DA_RunConfig.ScoreRules를 못 찾아 시험 기록을 쓰지 않음. 런 GameMode가 있는 L_Town이나 L_Title에서 실행할 것");
+		return;
+	}
 	int32 Lowest = TNumericLimits<int32>::Max();
 	int32 Highest = 0;
-	if (ScoreRules)
+	for (const FSoulRankRow& Row : ScoreRules->Ranks)
 	{
-		for (const FSoulRankRow& Row : ScoreRules->Ranks)
+		if (Row.MinScore > 0)
 		{
-			if (Row.MinScore > 0)
-			{
-				Lowest = FMath::Min(Lowest, Row.MinScore);
-				Highest = FMath::Max(Highest, Row.MinScore);
-			}
+			Lowest = FMath::Min(Lowest, Row.MinScore);
+			Highest = FMath::Max(Highest, Row.MinScore);
 		}
 	}
 	if (Highest <= 0)
 	{
-		Lowest = 230000;
-		Highest = 260000;
+		SW_LOG_WARNING("[HOF] AddTest: DA_ScoreRules에 0보다 큰 랭크 문턱이 없어 시험 기록을 쓰지 않음");
+		return;
 	}
 	const int32 Pad = FMath::Max((Highest - Lowest) / 3, 5000);
 	for (int32 i = 0; i < Count; ++i)
@@ -314,7 +316,7 @@ void USoulHallOfFameSubsystem::AddTestEntries(int32 Count)
 		Entry.CostumeId = Costumes[FMath::RandRange(0, UE_ARRAY_COUNT(Costumes) - 1)];
 		Entry.WeaponId = Weapons[FMath::RandRange(0, UE_ARRAY_COUNT(Weapons) - 1)];
 		Entry.DateUtc = FDateTime::UtcNow();
-		Entry.RankId = ScoreRules ? ScoreRules->FindRank(Entry.Score) : NAME_None;
+		Entry.RankId = ScoreRules->FindRank(Entry.Score);
 	}
 	SortAndTrim();
 	Save();
