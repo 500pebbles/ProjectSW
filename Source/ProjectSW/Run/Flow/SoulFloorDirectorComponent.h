@@ -9,6 +9,7 @@ class APMGMapBuilder;
 class APawn;
 class APlayerController;
 class ASoulFloorPortal;
+class ASoulRoomEventObject;
 class ASoulPackedLevelActor;
 class UAnimMontage;
 class USoulDungeonFlowData;
@@ -182,16 +183,26 @@ private:
 	void SpawnFloorObjects(const FPMGResult& Result);
 	void SpawnFloorMines(const FPMGResult& Result);
 	void ApplyDescendHeal();
+
+public:
+	/** 이벤트 오브젝트가 효과를 낸 뒤 부른다 (세트 보너스) */
+	void NotifyRoomEventUsed(ASoulRoomEventObject* Object);
+
+protected:
 	void RunSelfTestEvents(int32 Step);
 	void RunSelfTestItems(int32 Step);
 	void RunSelfTestWeapon(int32 Step);
 	void RunSelfTestSummon(int32 Step);
+	void RunSelfTestFPath(int32 Step);
+	void DebugFace(const AActor* Target, float Distance, const FVector& FromDirection);
 
 	TWeakObjectPtr<APMGMapBuilder> Builder;
 	TWeakObjectPtr<APawn> PlayerPawn;
 	TWeakObjectPtr<ASoulPackedLevelActor> ExitRoom;
 	TWeakObjectPtr<ASoulFloorPortal> Portal;
 	TArray<TWeakObjectPtr<AActor>> FloorActors;
+	TArray<TWeakObjectPtr<ASoulRoomEventObject>> FloorEventObjects;
+	bool bEventSetBonusGiven = false;
 
 	int32 CurrentFloorIndex = INDEX_NONE;
 	int32 GenerateAttempt = 0;
@@ -223,4 +234,5 @@ private:
 	FTimerHandle SelfTestHealTimer;
 	TWeakObjectPtr<AActor> SelfTestPickup;
 	FTimerHandle SelfTestInputTimer;
+	int32 SelfTestRepeat = 0;
 };

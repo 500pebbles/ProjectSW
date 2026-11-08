@@ -51,7 +51,7 @@ public:
 	void SetElementDamageScale(float Scale) { ElementDamageScale = Scale; }
 
 	/** 무기 슬롯이 비어 있으면 인벤토리의 무기를 장착한다 (줍기 직후 자동 장착) */
-	bool TryAutoEquipFromInventory(UInventoryComponent* Inventory) const;
+	bool TryAutoEquipFromInventory(UInventoryComponent* Inventory, FName ItemRow) const;
 
 	UPROPERTY(BlueprintAssignable, Category = "Equipment")
 	FSoulWeaponChangedSignature OnWeaponChanged;

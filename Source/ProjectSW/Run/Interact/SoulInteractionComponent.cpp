@@ -11,6 +11,10 @@
 #include "Inventory/UI/InventoryHUDWidget.h"
 #include "Item/ItemComponent.h"
 #include "TimerManager.h"
+#include "EnhancedInputSubsystems.h"
+#include "Engine/LocalPlayer.h"
+#include "GameFramework/PlayerController.h"
+#include "InputAction.h"
 
 namespace SoulInteraction
 {
@@ -97,8 +101,11 @@ void USoulInteractionComponent::HandleCollect(AActor* Target)
 		return;
 	}
 
-	if (Target->FindComponentByClass<UItemComponent>() && Inventory)
+	if (const UItemComponent* ItemComp = Target->FindComponentByClass<UItemComponent>(); ItemComp && Inventory)
 	{
+		// 주운 행 (플러그인 ItemRow는 반사로 읽는다)
+		const FStructProperty* RowProp = FindFProperty<FStructProperty>(ItemComp->GetClass(), TEXT("ItemRow"));
+		const FName ItemRow = RowProp ? RowProp->ContainerPtrToValuePtr<FDataTableRowHandle>(ItemComp)->RowName : NAME_None;
 		Inventory->CollectItem(Target);
 		// 추가에 성공하면 플러그인이 액터를 지운다
 		if (!IsValid(Target) || Target->IsActorBeingDestroyed())
@@ -109,15 +116,28 @@ void USoulInteractionComponent::HandleCollect(AActor* Target)
 			{
 				if (const USoulEquipmentComponent* Equipment = USoulEquipmentComponent::Find(GetOwner()))
 				{
-					Equipment->TryAutoEquipFromInventory(Inventory);
+					Equipment->TryAutoEquipFromInventory(Inventory, ItemRow);
 				}
 			}
 		}
 	}
 }
 
+bool USoulInteractionComponent::DebugPressInteract()
+{
+	const APawn* Pawn = Cast<APawn>(GetOwner());
+	const APlayerController* PC = Pawn ? Cast<APlayerController>(Pawn->GetController()) : nullptr;
+	UEnhancedInputLocalPlayerSubsystem* Input = PC && PC->GetLocalPlayer() ? PC->GetLocalPlayer()->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>() : nullptr;
+	UInputAction* Action = SoulInteraction::ReadObjectProperty<UInputAction>(InventoryInput, TEXT("InventoryInteractAction"));
+	if (!Input || !Action)
+		return false;
+	Input->InjectInputForAction(Action, FInputActionValue(true), {}, {});
+	return true;
+}
+
 void USoulInteractionComponent::HandleTraceChanged(bool bHasTarget, FKey InputKey, AActor* TargetActor)
 {
+	TraceTarget = bHasTarget ? TargetActor : nullptr;
 	if (!Inventory)
 		return;
 

@@ -11,7 +11,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 
-AActor* USoulItemLibrary::SpawnPickup(UObject* WorldContextObject, TSubclassOf<AItemActorBase> PickupClass, const FDataTableRowHandle& ItemRow, const FVector& Location)
+AActor* USoulItemLibrary::SpawnPickup(UObject* WorldContextObject, TSubclassOf<AItemActorBase> PickupClass, const FDataTableRowHandle& ItemRow, const FVector& Location, const FVector& NavExtent, float FallbackForward)
 {
 	UWorld* World = GEngine ? GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull) : nullptr;
 	if (!World || !PickupClass || ItemRow.IsNull())
@@ -19,12 +19,23 @@ AActor* USoulItemLibrary::SpawnPickup(UObject* WorldContextObject, TSubclassOf<A
 
 	// 몹 위치는 캡슐 절반만큼 떠 있으므로 바닥에 투영한다
 	FVector Ground = Location;
-	if (const UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World))
+	bool bProjected = false;
+	if (const UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World); NavSys && !NavExtent.IsNearlyZero())
 	{
 		FNavLocation NavLocation;
-		if (NavSys->ProjectPointToNavigation(Location, NavLocation, FVector(400.f, 400.f, 600.f)))
+		if (NavSys->ProjectPointToNavigation(Location, NavLocation, NavExtent))
 		{
 			Ground = NavLocation.Location;
+			bProjected = true;
+		}
+	}
+	if (!bProjected && FallbackForward > 0.f)
+	{
+		// 투영이 실패하면 플레이어 앞 (플랜 #11)
+		if (const APawn* Pawn = UGameplayStatics::GetPlayerPawn(World, 0))
+		{
+			Ground = Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * FallbackForward - FVector(0.f, 0.f, Pawn->GetDefaultHalfHeight());
+			SW_LOG_WARNING("[ITEM] 바닥 투영 실패, 플레이어 앞에 놓음 row=%s", *ItemRow.RowName.ToString());
 		}
 	}
 
@@ -60,6 +71,6 @@ static FAutoConsoleCommandWithWorldAndArgs GSoulItemSpawn(
 		Row.DataTable = Config->ItemTable;
 		Row.RowName = FName(*Args[0]);
 		const TSubclassOf<AItemActorBase> PickupClass = Args.Num() > 1 && Args[1].Equals(TEXT("Weapon"), ESearchCase::IgnoreCase) ? Config->WeaponPickupClass : Config->ItemPickupClass;
-		USoulItemLibrary::SpawnPickup(World, PickupClass, Row, Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * 150.f);
+		USoulItemLibrary::SpawnPickup(World, PickupClass, Row, Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * 150.f, FVector(400.f, 400.f, 600.f), 0.f);
 	}));
 #endif

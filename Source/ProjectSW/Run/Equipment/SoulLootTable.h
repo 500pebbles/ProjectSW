@@ -7,6 +7,15 @@
 
 class AItemActorBase;
 
+/** 드랍 배치 값 (USoulLootDropComponent에서 넘어온다) */
+struct FSoulDropPlacement
+{
+	float ScatterRadius = 0.f;
+	float Spacing = 0.f;
+	FVector NavExtent = FVector::ZeroVector;
+	float FallbackForward = 0.f;
+};
+
 /** 드랍 후보 하나 */
 USTRUCT(BlueprintType)
 struct PROJECTSW_API FSoulLootEntry
@@ -56,5 +65,5 @@ public:
 	TArray<FSoulLootRoll> Rolls;
 
 	/** 판정해 위치 주변에 픽업을 스폰한다. 스폰한 액터는 Director에 층 액터로 등록한다 */
-	TArray<AActor*> SpawnLoot(UWorld* World, const FVector& Origin, int32 Floor, float ScatterRadius) const;
+	TArray<AActor*> SpawnLoot(UWorld* World, const FVector& Origin, int32 Floor, const FSoulDropPlacement& Placement) const;
 };

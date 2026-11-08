@@ -2,6 +2,7 @@
 #include "Run/Flow/SoulFloorDirectorComponent.h"
 #include "Character/SoulCharacterPlayer.h"
 #include "Components/SphereComponent.h"
+#include "Run/Interact/SoulInteractableComponent.h"
 #include "Utility/SoulLog.h"
 
 ASoulFloorPortal::ASoulFloorPortal()
@@ -12,6 +13,15 @@ ASoulFloorPortal::ASoulFloorPortal()
 	Trigger->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
 	Trigger->SetGenerateOverlapEvents(true);
 	SetRootComponent(Trigger);
+
+	Interactable = CreateDefaultSubobject<USoulInteractableComponent>(TEXT("Interactable"));
+	Interactable->SetupAttachment(Trigger);
+	Interactable->bOneShot = true;
+}
+
+void ASoulFloorPortal::HandleInteracted(APawn* User)
+{
+	EnterPortal();
 }
 
 void ASoulFloorPortal::BeginPlay()
@@ -19,6 +29,7 @@ void ASoulFloorPortal::BeginPlay()
 	Super::BeginPlay();
 
 	Trigger->OnComponentBeginOverlap.AddDynamic(this, &ThisClass::HandleTriggerBeginOverlap);
+	Interactable->OnInteracted.AddDynamic(this, &ThisClass::HandleInteracted);
 }
 
 void ASoulFloorPortal::EnterPortal()

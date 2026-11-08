@@ -11,6 +11,7 @@
 #include "Run/Interact/SoulItemLibrary.h"
 #include "Run/Equipment/SoulEquipmentComponent.h"
 #include "Run/Equipment/SoulEquipmentDefinition.h"
+#include "Run/Equipment/SoulEquipmentCatalog.h"
 #include "Run/Event/SoulRoomEventObject.h"
 #include "Run/Event/SoulRoomEvent_Effect.h"
 #include "Run/Event/SoulFloorMine.h"
@@ -549,14 +550,21 @@ void USoulFloorDirectorComponent::DestroyFloorActors()
 	{
 		ToDestroy.Add(*It);
 	}
+	// 인벤토리에서 끌어 버린 아이템은 등록되지 않으므로 따로 (Director는 런 맵에만 있다)
+	for (TActorIterator<AItemActorBase> It(GetWorld()); It; ++It)
+	{
+		ToDestroy.AddUnique(*It);
+	}
 	for (const TWeakObjectPtr<AActor>& Actor : FloorActors)
 	{
 		if (Actor.IsValid())
 		{
-			ToDestroy.Add(Actor.Get());
+			ToDestroy.AddUnique(Actor.Get());
 		}
 	}
 	FloorActors.Reset();
+	FloorEventObjects.Reset();
+	bEventSetBonusGiven = false;
 	Portal.Reset();
 
 	for (AActor* Actor : ToDestroy)
@@ -644,14 +652,47 @@ ASoulFloorPortal* USoulFloorDirectorComponent::SpawnPortal()
 		return nullptr;
 	}
 
-	FVector Location = ExitRoom->GetActorLocation();
+	// Exit 방 중심에서 시작해 바닥 드랍과 PortalDropClearance 이상 떨어진 Nav 점 (보스 드랍을 주우러 가다 포탈에 닿지 않게)
+	TArray<FVector> Drops;
+	for (TActorIterator<AItemActorBase> It(GetWorld()); It; ++It)
+	{
+		Drops.Add(It->GetActorLocation());
+	}
+	const float Clearance = FlowData ? FlowData->PortalDropClearance : 0.f;
+	const FVector Center = ExitRoom->GetActorLocation();
+	FVector Location = Center;
+	bool bFound = false;
 	if (const UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld()))
 	{
-		FNavLocation NavLocation;
-		if (NavSys->ProjectPointToNavigation(Location, NavLocation))
+		const float Step = FMath::Max(Clearance, 100.f);
+		for (int32 Ring = 0; Ring <= 4 && !bFound; ++Ring)
 		{
-			Location = NavLocation.Location;
+			const int32 Count = Ring == 0 ? 1 : 8;
+			for (int32 i = 0; i < Count && !bFound; ++i)
+			{
+				const float Angle = 2.f * PI * i / Count;
+				const FVector Probe = Center + FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0.f) * Step * Ring;
+				FNavLocation NavLocation;
+				if (!NavSys->ProjectPointToNavigation(Probe, NavLocation))
+					continue;
+				const bool bNearDrop = Drops.ContainsByPredicate([&](const FVector& Drop) { return FVector::Dist2D(Drop, NavLocation.Location) < Clearance; });
+				if (!bNearDrop)
+				{
+					Location = NavLocation.Location;
+					bFound = true;
+				}
+			}
 		}
+	}
+	if (!bFound)
+	{
+		SW_LOG_WARNING("[FLOOR] 포탈 자리: 드랍과 %.0fcm 떨어진 Nav 점이 없어 방 중심에 세움 drops=%d", Clearance, Drops.Num());
+	}
+	float Nearest = -1.f;
+	for (const FVector& Drop : Drops)
+	{
+		const float Distance = FVector::Dist2D(Drop, Location);
+		Nearest = Nearest < 0.f ? Distance : FMath::Min(Nearest, Distance);
 	}
 
 	FActorSpawnParameters Params;
@@ -665,7 +706,7 @@ ASoulFloorPortal* USoulFloorDirectorComponent::SpawnPortal()
 
 	Portal = NewPortal;
 	RegisterFloorActor(NewPortal);
-	SW_LOG("[FLOOR] Portal spawned floor=%d at %s", CurrentFloorIndex + 1, *Location.ToCompactString());
+	SW_LOG("[FLOOR] Portal spawned floor=%d at %s nearestDrop=%.0f drops=%d", CurrentFloorIndex + 1, *Location.ToCompactString(), Nearest, Drops.Num());
 	return NewPortal;
 }
 
@@ -1035,20 +1076,29 @@ void USoulFloorDirectorComponent::SpawnFloorObjects(const FPMGResult& Result)
 	{
 		const FSoulEventRow* Row = Picks[i];
 		if (!Row->ObjectClass)
+		{
+			SW_LOG_WARNING("[EVENT] floor=%d room=%d ObjectClass가 빈 행", CurrentFloorIndex + 1, EventRooms[i]);
 			continue;
+		}
 		const FTransform RoomTransform = PMG::GetRoomSpawnTransform(Result.Rooms[EventRooms[i]], GetCellSize(), GetBuilderOrigin());
 		ASoulRoomEventObject* Object = GetWorld()->SpawnActor<ASoulRoomEventObject>(Row->ObjectClass, RoomTransform, Params);
 		if (Object)
 		{
 			Object->Configure(Row->Magnitude, Row->ExpReward, Row->ScoreReward);
 			RegisterFloorActor(Object);
+			FloorEventObjects.Add(Object);
 			++Spawned;
 			SW_LOG("[EVENT] floor=%d room=%d %s", CurrentFloorIndex + 1, EventRooms[i], *Object->GetClass()->GetName());
 		}
 	}
 
 	// 상자: Treasure 방, 중앙의 화로를 피해 로컬 오프셋
-	if (Floor.TreasureChestClass && !FlowData->TreasureRoomType.IsNone())
+	int32 Chests = 0;
+	if (!Floor.TreasureChestClass || FlowData->TreasureRoomType.IsNone())
+	{
+		SW_LOG_WARNING("[CHEST] floor=%d TreasureChestClass나 TreasureRoomType이 비어 상자 없음", CurrentFloorIndex + 1);
+	}
+	else
 	{
 		for (const FPMGResultRoom& Room : Result.Rooms)
 		{
@@ -1060,10 +1110,12 @@ void USoulFloorDirectorComponent::SpawnFloorObjects(const FPMGResult& Result)
 			{
 				Chest->SetScoreValue(Floor.ChestScore);
 				RegisterFloorActor(Chest);
+				++Chests;
 				SW_LOG("[CHEST] floor=%d room=%d", CurrentFloorIndex + 1, Room.Id);
 			}
 		}
 	}
+	SW_LOG("[CHEST] floor=%d chests=%d", CurrentFloorIndex + 1, Chests);
 	SW_LOG("[EVENT] floor=%d events=%d/%d", CurrentFloorIndex + 1, Spawned, EventRooms.Num());
 }
 
@@ -1100,6 +1152,12 @@ void USoulFloorDirectorComponent::SpawnFloorMines(const FPMGResult& Result)
 	for (const FSoulMineRow& Row : Floor.MineRows)
 	{
 		int32 Done = 0;
+		int32 Rejected[4] = { 0, 0, 0, 0 };
+		if (!Row.MineClass)
+		{
+			SW_LOG_WARNING("[MINE] floor=%d MineClass가 빈 행", CurrentFloorIndex + 1);
+			continue;
+		}
 		for (int32 i = Tickets.Num() - 1; i > 0; --i)
 		{
 			Tickets.Swap(i, Stream.RandRange(0, i));
@@ -1126,7 +1184,8 @@ void USoulFloorDirectorComponent::SpawnFloorMines(const FPMGResult& Result)
 				const bool bNearDoor = Openings.ContainsByPredicate([&](const FTransform& O) { return FVector::Dist2D(O.GetLocation(), World) < FlowData->MineDoorClearance; });
 				const bool bNearObject = Objects.ContainsByPredicate([&](const FVector& O) { return FVector::Dist2D(O, World) < FlowData->MineObjectClearance; });
 				const bool bNearMine = Placed.ContainsByPredicate([&](const FVector& O) { return FVector::Dist2D(O, World) < FlowData->MineSpacing; });
-				const bool bBlocked = GetWorld()->OverlapBlockingTestByChannel(World + FVector(0.f, 0.f, 130.f), FQuat::Identity, ECC_Pawn, FCollisionShape::MakeSphere(120.f));
+				const bool bBlocked = FlowData->MineProbeRadius > 0.f && GetWorld()->OverlapBlockingTestByChannel(World + FVector(0.f, 0.f, FlowData->MineProbeHeight), FQuat::Identity, ECC_Pawn, FCollisionShape::MakeSphere(FlowData->MineProbeRadius));
+				Rejected[0] += bNearDoor; Rejected[1] += bNearObject; Rejected[2] += bNearMine; Rejected[3] += bBlocked;
 				if (bNearDoor || bNearObject || bNearMine || bBlocked)
 					continue;
 
@@ -1140,8 +1199,30 @@ void USoulFloorDirectorComponent::SpawnFloorMines(const FPMGResult& Result)
 				break;
 			}
 		}
-		SW_LOG("[MINE] floor=%d placed=%d/%d", CurrentFloorIndex + 1, Done, Row.Count);
+		SW_LOG("[MINE] floor=%d placed=%d/%d rooms=%d rejected door=%d object=%d mine=%d blocked=%d", CurrentFloorIndex + 1, Done, Row.Count, Tickets.Num(), Rejected[0], Rejected[1], Rejected[2], Rejected[3]);
+		if (Done < Row.Count)
+		{
+			SW_LOG_WARNING("[MINE] floor=%d 자리가 모자람 %d/%d", CurrentFloorIndex + 1, Done, Row.Count);
+		}
 	}
+}
+
+void USoulFloorDirectorComponent::NotifyRoomEventUsed(ASoulRoomEventObject* Object)
+{
+	// 그 층 이벤트 오브젝트를 모두 쓰면 1회 보너스 경험치 (EventSetBonusExp, D16)
+	if (bEventSetBonusGiven || !FlowData || FlowData->EventSetBonusExp <= 0 || FloorEventObjects.IsEmpty())
+		return;
+	for (const TWeakObjectPtr<ASoulRoomEventObject>& Event : FloorEventObjects)
+	{
+		if (Event.IsValid() && !Event->IsSpent())
+			return;
+	}
+	bEventSetBonusGiven = true;
+	if (USoulProgressionComponent* Progression = USoulProgressionComponent::Find(PlayerPawn.Get()))
+	{
+		Progression->AddExp(FlowData->EventSetBonusExp, TEXT("EventSet"));
+	}
+	SW_LOG("[EVENT] floor=%d 이벤트 전부 완료 보너스 exp=%d", CurrentFloorIndex + 1, FlowData->EventSetBonusExp);
 }
 
 void USoulFloorDirectorComponent::ApplyDescendHeal()
@@ -1281,7 +1362,17 @@ void USoulFloorDirectorComponent::DebugGoToPortal()
 		return;
 
 	SW_LOG("[FLOOR] DebugGoToPortal floor=%d", CurrentFloorIndex + 1);
-	PlayerPawn->TeleportTo(TargetPortal->GetActorLocation() + FVector(0.f, 0.f, 100.f), PlayerPawn->GetActorRotation(), false, true);
+	DebugFace(TargetPortal, 250.f, PlayerPawn->GetActorLocation() - TargetPortal->GetActorLocation());
+	// 다음 틱에 트레이스가 포탈을 잡은 뒤 F
+	GetWorld()->GetTimerManager().SetTimer(SelfTestHealTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		if (USoulInteractionComponent* Interaction = USoulInteractionComponent::Find(PlayerPawn.Get()))
+		{
+			const AActor* Target = Interaction->GetTraceTarget();
+			SW_LOG("[FLOOR] DebugGoToPortal trace=%s", Target ? *Target->GetName() : TEXT("none"));
+			Interaction->DebugPressInteract();
+		}
+	}), 0.5f, false);
 }
 
 void USoulFloorDirectorComponent::DebugGoToBossRoom()
@@ -1408,6 +1499,10 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 		else if (SelfTestMode == TEXT("summon"))
 		{
 			RunSelfTestSummon(Step);
+		}
+		else if (SelfTestMode == TEXT("fpath"))
+		{
+			RunSelfTestFPath(Step);
 		}
 		else
 		{
@@ -1731,7 +1826,7 @@ void USoulFloorDirectorComponent::RunSelfTestItems(int32 Step)
 			FDataTableRowHandle Row;
 			Row.DataTable = Config->ItemTable;
 			Row.RowName = TEXT("HealSmall");
-			SelfTestPickup = USoulItemLibrary::SpawnPickup(this, Config->ItemPickupClass, Row, Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * 150.f);
+			SelfTestPickup = USoulItemLibrary::SpawnPickup(this, Config->ItemPickupClass, Row, Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * 150.f, FVector(400.f, 400.f, 600.f), 0.f);
 		}
 		SW_LOG("[SELFTEST] items spawn pickup=%s inventory=%s", SelfTestPickup.IsValid() ? *SelfTestPickup->GetName() : TEXT("none"), Inventory ? *Inventory->GetName() : TEXT("none"));
 		ScheduleSelfTest(1, 0.5f);
@@ -1808,7 +1903,7 @@ void USoulFloorDirectorComponent::RunSelfTestWeapon(int32 Step)
 			FDataTableRowHandle Row;
 			Row.DataTable = Config->ItemTable;
 			Row.RowName = TEXT("Weapon_012");
-			SelfTestPickup = USoulItemLibrary::SpawnPickup(this, Config->WeaponPickupClass, Row, Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * 150.f);
+			SelfTestPickup = USoulItemLibrary::SpawnPickup(this, Config->WeaponPickupClass, Row, Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * 150.f, FVector(400.f, 400.f, 600.f), 0.f);
 		}
 		ScheduleSelfTest(1, 0.5f);
 		break;
@@ -1895,6 +1990,133 @@ void USoulFloorDirectorComponent::RunSelfTestWeapon(int32 Step)
 	default:
 		SoulFloorDirectorDebug::KillAllMobs(GetWorld());
 		FinishSelfTest();
+		break;
+	}
+#endif
+}
+
+void USoulFloorDirectorComponent::DebugFace(const AActor* Target, float Distance, const FVector& FromDirection)
+{
+	APawn* Pawn = PlayerPawn.Get();
+	if (!Pawn || !Target)
+		return;
+	const FVector Dir = FromDirection.GetSafeNormal2D();
+	FVector Stand = Target->GetActorLocation() + Dir * Distance;
+	if (const UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld()))
+	{
+		FNavLocation Nav;
+		if (NavSys->ProjectPointToNavigation(Stand, Nav, FVector(200.f, 200.f, 500.f)))
+		{
+			Stand = Nav.Location;
+		}
+	}
+	Stand.Z += Pawn->GetDefaultHalfHeight() + 5.f;
+	const FRotator Look = (Target->GetActorLocation() - Stand).GetSafeNormal2D().Rotation();
+	Pawn->TeleportTo(Stand, Look, false, true);
+	if (APlayerController* PC = GetPlayerController())
+	{
+		PC->SetControlRotation(FRotator(-15.f, Look.Yaw, 0.f));
+	}
+}
+
+void USoulFloorDirectorComponent::RunSelfTestFPath(int32 Step)
+{
+#if !UE_BUILD_SHIPPING
+	// 실제 아이템 트레이스와 F 입력 주입으로 상자 열기 → 상자 무기 줍기 → 보스 처치 → 포탈 진입
+	USoulInteractionComponent* Interaction = USoulInteractionComponent::Find(PlayerPawn.Get());
+	auto TraceName = [Interaction]() { const AActor* T = Interaction ? Interaction->GetTraceTarget() : nullptr; return T ? T->GetName() : FString(TEXT("none")); };
+	auto CountPickupsNear = [this](const FVector& At, float Radius)
+	{
+		int32 Count = 0;
+		for (TActorIterator<AItemActorBase> It(GetWorld()); It; ++It)
+		{
+			Count += FVector::Dist2D(It->GetActorLocation(), At) < Radius ? 1 : 0;
+		}
+		return Count;
+	};
+	ASoulTreasureChest* Chest = nullptr;
+	for (TActorIterator<ASoulTreasureChest> It(GetWorld()); It; ++It)
+	{
+		Chest = *It;
+	}
+	switch (Step)
+	{
+	case 0:
+		if (CurrentFloorIndex > 0)
+		{
+			SW_LOG("[SELFTEST] fpath portal F ok floor=%d", CurrentFloorIndex + 1);
+			FinishSelfTest();
+			return;
+		}
+		if (UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PlayerPawn.Get()))
+		{
+			ASC->AddLooseGameplayTag(SoulTags::States::Invincible);
+		}
+		// 드랍이 나오는 쪽(+X) 반대에서 상자를 본다 → 열린 상자 너머의 드랍을 트레이스가 잡아야 한다
+		DebugFace(Chest, 260.f, Chest ? -Chest->GetActorForwardVector() : FVector::ForwardVector);
+		ScheduleSelfTest(1, 0.8f);
+		break;
+	case 1:
+		SW_LOG("[SELFTEST] fpath chest=%s trace=%s", Chest ? *Chest->GetName() : TEXT("none"), *TraceName());
+		if (Interaction)
+		{
+			Interaction->DebugPressInteract();
+		}
+		ScheduleSelfTest(2, 1.5f);
+		break;
+	case 2:
+		SW_LOG("[SELFTEST] fpath press F: pickupsNearChest=%d trace=%s", Chest ? CountPickupsNear(Chest->GetActorLocation(), 400.f) : -1, *TraceName());
+		if (Interaction)
+		{
+			Interaction->DebugPressInteract();
+		}
+		ScheduleSelfTest(3, 1.f);
+		break;
+	case 3:
+	{
+		const USoulEquipmentComponent* Equipment = USoulEquipmentComponent::Find(PlayerPawn.Get());
+		const bool bDefault = !Equipment || !Equipment->GetCurrentWeapon() || (Equipment->GetCatalog() && Equipment->GetCurrentWeapon() == Equipment->GetCatalog()->DefaultWeapon);
+		SW_LOG("[SELFTEST] fpath after pickup F: weapon=%s pickupsNearChest=%d trace=%s", Equipment && Equipment->GetCurrentWeapon() ? *Equipment->GetCurrentWeapon()->GetName() : TEXT("none"),
+			Chest ? CountPickupsNear(Chest->GetActorLocation(), 400.f) : -1, *TraceName());
+		// 무기를 아직 못 주웠으면 남은 드랍 중 가장 가까운 것을 보고 다시 F (최대 3번)
+		if (bDefault && Chest && SelfTestRepeat < 3)
+		{
+			const AActor* Nearest = nullptr;
+			for (TActorIterator<AItemActorBase> It(GetWorld()); It; ++It)
+			{
+				if (FVector::Dist2D(It->GetActorLocation(), Chest->GetActorLocation()) < 400.f && (!Nearest || FVector::Dist(It->GetActorLocation(), PlayerPawn->GetActorLocation()) < FVector::Dist(Nearest->GetActorLocation(), PlayerPawn->GetActorLocation())))
+				{
+					Nearest = *It;
+				}
+			}
+			if (Nearest)
+			{
+				++SelfTestRepeat;
+				DebugFace(Nearest, 200.f, PlayerPawn->GetActorLocation() - Nearest->GetActorLocation());
+				ScheduleSelfTest(2, 0.8f);
+				break;
+			}
+		}
+		DebugGoToBossRoom();
+		ScheduleSelfTest(4, 3.f);
+		break;
+	}
+	case 4:
+		SoulFloorDirectorDebug::KillAllMobs(GetWorld());
+		ScheduleSelfTest(5, PortalDelaySec + 1.f);
+		break;
+	case 5:
+		DebugFace(Portal.Get(), 250.f, Portal.IsValid() ? (PlayerPawn.IsValid() ? PlayerPawn->GetActorLocation() - Portal->GetActorLocation() : FVector::ForwardVector) : FVector::ForwardVector);
+		ScheduleSelfTest(6, 0.8f);
+		break;
+	default:
+		SW_LOG("[SELFTEST] fpath portal=%s trace=%s", Portal.IsValid() ? *Portal->GetName() : TEXT("none"), *TraceName());
+		if (Interaction)
+		{
+			Interaction->DebugPressInteract();
+		}
+		// 다음 층이 준비되면 0단계가 성공을 남긴다. 안 넘어가면 워치독이 FAIL
+		ArmSelfTestWatchdog(TEXT("fpath/portal"));
 		break;
 	}
 #endif

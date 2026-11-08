@@ -13,6 +13,18 @@ USoulInteractableComponent::USoulInteractableComponent()
 	bHiddenInGame = true;
 }
 
+void USoulInteractableComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	SetInteractEnabled(bEnabled);
+}
+
+void USoulInteractableComponent::SetInteractEnabled(bool bInEnabled)
+{
+	bEnabled = bInEnabled;
+	SetCollisionResponseToChannel(ECC_GameTraceChannel2, bEnabled ? ECR_Block : ECR_Ignore);
+}
+
 bool USoulInteractableComponent::Interact(APawn* Instigator)
 {
 	if (!bEnabled)
@@ -20,7 +32,7 @@ bool USoulInteractableComponent::Interact(APawn* Instigator)
 
 	if (bOneShot)
 	{
-		bEnabled = false;
+		SetInteractEnabled(false);
 	}
 	SW_LOG("[INTERACT] %s by %s", *GetOwner()->GetName(), Instigator ? *Instigator->GetName() : TEXT("null"));
 	OnInteracted.Broadcast(Instigator);

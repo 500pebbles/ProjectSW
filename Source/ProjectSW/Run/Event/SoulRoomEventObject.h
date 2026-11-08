@@ -42,8 +42,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Event")
 	void ForceActivate(APawn* User);
 
+	bool IsSpent() const { return State == ESoulRoomEventState::Spent; }
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	/** 효과. 자식이 덮는다 */
 	UFUNCTION(BlueprintNativeEvent, Category = "Event")
@@ -104,6 +107,9 @@ private:
 
 	void FinishCharge();
 	void Recover();
+	void LockUser(APawn* User);
+	void UnlockUser();
+	bool bUserLocked = false;
 
 	ESoulRoomEventState State = ESoulRoomEventState::Idle;
 	TWeakObjectPtr<APawn> ActiveInstigator;

@@ -45,7 +45,7 @@ void ASoulTreasureChest::Open(APawn* User)
 		GetWorldTimerManager().SetTimer(PulseTimer, this, &ThisClass::EndPulse, PulseTime, false);
 	}
 
-	LootDrop->DropLoot();
+	LootDrop->DropLootAt(GetActorTransform().TransformPosition(DropOffset));
 	if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this); Run && ScoreValue > 0)
 	{
 		Run->AddScore(TEXT("Chest"), ScoreValue);

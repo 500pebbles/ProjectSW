@@ -24,6 +24,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Interact")
 	bool Interact(APawn* Instigator);
 
+	/** 켜고 끈다. 꺼지면 아이템 트레이스(ItemTrace)에서 빠져 뒤의 아이템이 잡히고 프롬프트도 사라진다 */
+	UFUNCTION(BlueprintCallable, Category = "Interact")
+	void SetInteractEnabled(bool bInEnabled);
+
 	/** F 다음에 보일 문구 (예: 석상에 기도) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interact")
 	FText PromptText;
@@ -38,4 +42,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Interact")
 	FSoulInteractedSignature OnInteracted;
+
+protected:
+	virtual void BeginPlay() override;
 };

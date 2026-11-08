@@ -5,6 +5,8 @@
 #include "SoulFloorPortal.generated.h"
 
 class USphereComponent;
+class USoulInteractableComponent;
+class APawn;
 
 /**
  * 다음 층으로 내려가는 포탈 (BP_FloorPortal). Director가 Exit 방 전투가 끝난 뒤 스폰하고 층을 바꿀 때 지운다.
@@ -32,11 +34,18 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
 	TObjectPtr<USphereComponent> Trigger;
 
-	/** 켜져 있으면 플레이어가 닿는 순간 들어간다 (단계 B 임시. 단계 D에서 끄고 F로 바꾼다) */
+	/** F로 들어간다 (프롬프트, 반경은 BP) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
+	TObjectPtr<USoulInteractableComponent> Interactable;
+
+	/** 켜져 있으면 플레이어가 닿는 순간 들어간다 (단계 B 임시. 지금은 끄고 F로 들어간다) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Portal")
 	bool bEnterOnOverlap = false;
 
 private:
+	UFUNCTION()
+	void HandleInteracted(APawn* User);
+
 	UFUNCTION()
 	void HandleTriggerBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

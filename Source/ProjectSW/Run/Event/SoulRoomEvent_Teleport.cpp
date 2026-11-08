@@ -70,7 +70,7 @@ void ASoulRoomEvent_Teleport::ApplyEvent_Implementation(APawn* User)
 		const FTransform& Opening = Openings[FMath::RandRange(0, Openings.Num() - 1)];
 		Landing = Opening.GetLocation() - Opening.GetRotation().GetForwardVector() * LandingDepth;
 	}
-	Landing.Z = RoomTransform.GetLocation().Z + User->GetDefaultHalfHeight() + 20.f;
+	Landing.Z = RoomTransform.GetLocation().Z + User->GetDefaultHalfHeight() + LandingLift;
 	SW_LOG("[EVENT] teleport room %d -> %d (%s)", CurrentRoom, Target, *TargetRoom.RoomType.ToString());
 
 	APlayerController* PC = Cast<APlayerController>(User->GetController());

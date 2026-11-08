@@ -7,7 +7,7 @@
 #include "Item/ItemActorBase.h"
 #include "NavigationSystem.h"
 
-TArray<AActor*> USoulLootTable::SpawnLoot(UWorld* World, const FVector& Origin, int32 Floor, float ScatterRadius) const
+TArray<AActor*> USoulLootTable::SpawnLoot(UWorld* World, const FVector& Origin, int32 Floor, const FSoulDropPlacement& Placement) const
 {
 	TArray<AActor*> Spawned;
 	if (!World)
@@ -47,8 +47,8 @@ TArray<AActor*> USoulLootTable::SpawnLoot(UWorld* World, const FVector& Origin, 
 
 		// 여러 개면 서로 띄운다 (플랜 #11 드랍 위치)
 		const float Angle = FMath::FRandRange(0.f, 2.f * PI);
-		const FVector Offset = FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0.f) * (ScatterRadius > 0.f ? FMath::FRandRange(0.f, ScatterRadius) : 0.f) + FVector(80.f * Index, 0.f, 0.f);
-		if (AActor* Pickup = USoulItemLibrary::SpawnPickup(World, Chosen->PickupClass, Chosen->ItemRow, Origin + Offset))
+		const FVector Offset = FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0.f) * (Placement.ScatterRadius > 0.f ? FMath::FRandRange(0.f, Placement.ScatterRadius) : 0.f) + FVector(Placement.Spacing * Index, 0.f, 0.f);
+		if (AActor* Pickup = USoulItemLibrary::SpawnPickup(World, Chosen->PickupClass, Chosen->ItemRow, Origin + Offset, Placement.NavExtent, Placement.FallbackForward))
 		{
 			Spawned.Add(Pickup);
 			++Index;

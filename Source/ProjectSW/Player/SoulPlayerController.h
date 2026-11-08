@@ -117,15 +117,19 @@ protected:
 /* UI : DamageText */	
 public:
 	UFUNCTION(Client, Reliable)
-	void ShowDamageText(float DamageAmount, ACharacter* TargetCharacter, bool bIsCriticalHit, int32 DamageType);
+	void ShowDamageText(float DamageAmount, ACharacter* TargetCharacter, bool bIsCriticalHit, int32 DamageType, bool bStackAbove = false);
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TSubclassOf<USoulDamageTextComponent> DamageTextComponentClass;
 
-	/** 속성 숫자(DamageType != 0)를 물리 숫자 위로 띄우는 거리. 치명타는 2배 */
+	/** 숫자를 둘로 나눌 때 두 번째(속성) 숫자를 위로 띄우는 거리 */
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	FVector ElementTextOffset = FVector(0.f, 0.f, 45.f);
+
+	/** 치명타일 때 위 거리 배율 (글자가 커짐) */
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	float ElementTextCritScale = 2.f;
 
 /* UI : Map */
 public:

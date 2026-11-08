@@ -150,8 +150,10 @@ void USoulEquipmentComponent::AppendWeaponDamage(const FGameplayEffectSpecHandle
 	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, Weapon->ElementTag, Existing + Physical * Weapon->ElementRatio * ElementDamageScale);
 }
 
-bool USoulEquipmentComponent::TryAutoEquipFromInventory(UInventoryComponent* Inventory) const
+bool USoulEquipmentComponent::TryAutoEquipFromInventory(UInventoryComponent* Inventory, FName ItemRow) const
 {
+	if (!Catalog || !Catalog->FindWeaponByRow(ItemRow))
+		return false;
 	const UEquipmentComponent* Slots = Inventory ? Inventory->GetEquippedItemComponent() : nullptr;
 	if (!Slots || !Catalog || const_cast<UEquipmentComponent*>(Slots)->GetEquippedItem(SoulEquipmentTags::Slot_Weapon))
 		return false;
@@ -172,7 +174,7 @@ bool USoulEquipmentComponent::TryAutoEquipFromInventory(UInventoryComponent* Inv
 		const UObject* Item = ItemProp->GetObjectPropertyValue_InContainer(Entry);
 		const FStructProperty* RowProp = Item ? FindFProperty<FStructProperty>(Item->GetClass(), TEXT("ItemRowHandle")) : nullptr;
 		const FDataTableRowHandle* Row = RowProp ? RowProp->ContainerPtrToValuePtr<FDataTableRowHandle>(Item) : nullptr;
-		if (Row && Catalog->FindWeaponByRow(Row->RowName))
+		if (Row && Row->RowName == ItemRow)
 		{
 			const FGuid Id = *IdProp->ContainerPtrToValuePtr<FGuid>(Entry);
 			SW_LOG("[WEAPON] auto equip row=%s", *Row->RowName.ToString());

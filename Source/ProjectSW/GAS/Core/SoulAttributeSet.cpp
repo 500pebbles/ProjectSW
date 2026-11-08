@@ -121,20 +121,34 @@ void USoulAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectMo
 			const bool bIsCriticalHit = USoulAbilitySystemLibrary::IsCriticalHit(Props.EffectContextHandle); 
 			const int32 DamageType =USoulAbilitySystemLibrary::GetDamageType(Props.EffectContextHandle); 
 			// 런 무기: 물리와 속성이 둘 다 있으면 저항 전 비율로 나눠 숫자 2개 (합은 실제 피해)
+			// 각 몫에 피격자 저항 100/(100+R)을 곱한 가중치로 나눈다
 			float PhysicalPart = 0.f, ElementPart = 0.f;
 			int32 ElementIndex = 0, TypeIndex = 0;
 			for (const TTuple<FGameplayTag, FGameplayTag>& Pair : SoulTags::DamageTypes::GetDamageTypes())
 			{
-				const float Part = Data.EffectSpec.GetSetByCallerMagnitude(Pair.Key, false, 0.f);
+				float Part = Data.EffectSpec.GetSetByCallerMagnitude(Pair.Key, false, 0.f);
+				if (Part > 0.f)
+				{
+					const FGameplayAttribute Resist = Pair.Value == SoulTags::Attributes::PhysicalResistance ? GetPhysicalResistanceAttribute()
+						: Pair.Value == SoulTags::Attributes::FireResistance ? GetFireResistanceAttribute()
+						: Pair.Value == SoulTags::Attributes::FrostResistance ? GetFrostResistanceAttribute()
+						: Pair.Value == SoulTags::Attributes::LightningResistance ? GetLightningResistanceAttribute()
+						: Pair.Value == SoulTags::Attributes::WindResistance ? GetWindResistanceAttribute()
+						: Pair.Value == SoulTags::Attributes::HolyResistance ? GetHolyResistanceAttribute()
+						: GetDarkResistanceAttribute();
+					const float R = Props.TargetASC ? FMath::Clamp(Props.TargetASC->GetNumericAttribute(Resist), 0.f, 100.f) : 0.f;
+					Part *= 100.f / (100.f + R);
+				}
 				if (Pair.Key == SoulTags::DamageTypes::Physical) PhysicalPart = Part;
 				else if (Part > 0.f) { ElementPart += Part; ElementIndex = TypeIndex; }
 				++TypeIndex;
 			}
-			if (PhysicalPart > 0.f && ElementPart > 0.f)
+			ASoulPlayerController* SourcePC = Props.SourceCharacter && Props.SourceCharacter != Props.TargetCharacter ? Cast<ASoulPlayerController>(Props.SourceCharacter->Controller) : nullptr;
+			if (PhysicalPart > 0.f && ElementPart > 0.f && SourcePC)
 			{
 				const float PhysicalShown = LocalIncomingDamage * PhysicalPart / (PhysicalPart + ElementPart);
-				ShowDamageText(Props, PhysicalShown, bIsCriticalHit, 0);
-				ShowDamageText(Props, LocalIncomingDamage - PhysicalShown, bIsCriticalHit, ElementIndex);
+				SourcePC->ShowDamageText(PhysicalShown, Props.TargetCharacter, bIsCriticalHit, 0, false);
+				SourcePC->ShowDamageText(LocalIncomingDamage - PhysicalShown, Props.TargetCharacter, bIsCriticalHit, ElementIndex, true);
 			}
 			else ShowDamageText(Props, LocalIncomingDamage, bIsCriticalHit, DamageType);
 		}

@@ -28,9 +28,19 @@ void USoulLootDropComponent::HandleDied(AActor* DeadActor)
 
 void USoulLootDropComponent::DropLoot()
 {
+	DropLootAt(GetOwner()->GetActorLocation());
+}
+
+void USoulLootDropComponent::DropLootAt(const FVector& Location)
+{
 	// 던전 밖(팀 맵)에서는 드랍하지 않는다
 	const USoulFloorDirectorComponent* Director = USoulFloorDirectorComponent::Get(this);
 	if (!LootTable || !Director)
 		return;
-	LootTable->SpawnLoot(GetWorld(), GetOwner()->GetActorLocation(), Director->GetCurrentFloor(), ScatterRadius);
+	FSoulDropPlacement Placement;
+	Placement.ScatterRadius = ScatterRadius;
+	Placement.Spacing = DropSpacing;
+	Placement.NavExtent = DropNavExtent;
+	Placement.FallbackForward = DropFallbackForward;
+	LootTable->SpawnLoot(GetWorld(), Location, Director->GetCurrentFloor(), Placement);
 }

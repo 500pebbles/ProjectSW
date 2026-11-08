@@ -35,6 +35,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Teleport", meta = (ClampMin = "0", Units = "s"))
 	float FadeTime = 0.f;
 
+	/** 착지 높이 여유 (바닥 위) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Teleport", meta = (ClampMin = "0", Units = "cm"))
+	float LandingLift = 0.f;
+
 	/** 착지 뒤 무적 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Teleport", meta = (ClampMin = "0", Units = "s"))
 	float LandingInvincibleTime = 0.f;

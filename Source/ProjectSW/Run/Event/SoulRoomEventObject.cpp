@@ -1,5 +1,9 @@
 #include "Run/Event/SoulRoomEventObject.h"
 #include "Run/Core/SoulRunSubsystem.h"
+#include "Run/Core/SoulRunTags.h"
+#include "Run/Flow/SoulFloorDirectorComponent.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "Run/Interact/SoulInteractableComponent.h"
 #include "Run/Progression/SoulProgressionComponent.h"
 #include "Utility/SoulLog.h"
@@ -63,10 +67,7 @@ void ASoulRoomEventObject::HandleInteracted(APawn* User)
 	State = ESoulRoomEventState::Charging;
 	ActiveInstigator = User;
 
-	if (APlayerController* PC = Cast<APlayerController>(User->GetController()))
-	{
-		User->DisableInput(PC);
-	}
+	LockUser(User);
 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, IgniteFX, GetActorLocation());
 	UGameplayStatics::PlaySoundAtLocation(this, IgniteSound, GetActorLocation());
 
@@ -96,21 +97,59 @@ void ASoulRoomEventObject::FinishCharge()
 		Run->AddScore(TEXT("Event"), ScoreReward);
 	}
 	SW_LOG("[EVENT] %s applied magnitude=%.2f exp=%d score=%d", *GetClass()->GetName(), Magnitude, ExpReward, ScoreReward);
+	if (USoulFloorDirectorComponent* Director = USoulFloorDirectorComponent::Get(this))
+	{
+		Director->NotifyRoomEventUsed(this);
+	}
 
 	GetWorldTimerManager().SetTimer(RecoverTimer, this, &ThisClass::Recover, FMath::Max(RecoverDelay, 0.01f), false);
 }
 
 void ASoulRoomEventObject::Recover()
 {
-	APawn* User = ActiveInstigator.Get();
-	if (User)
-	{
-		if (APlayerController* PC = Cast<APlayerController>(User->GetController()))
-		{
-			User->EnableInput(PC);
-		}
-	}
+	UnlockUser();
 	ActiveInstigator.Reset();
+}
+
+void ASoulRoomEventObject::LockUser(APawn* User)
+{
+	APlayerController* PC = User ? Cast<APlayerController>(User->GetController()) : nullptr;
+	if (!PC || bUserLocked)
+		return;
+	// 이동, 시점, 입력을 막고 하던 공격과 스킬을 끊는다
+	PC->SetIgnoreMoveInput(true);
+	PC->SetIgnoreLookInput(true);
+	PC->DisableInput(PC);
+	if (UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(User))
+	{
+		ASC->CancelAllAbilities();
+	}
+	bUserLocked = true;
+}
+
+void ASoulRoomEventObject::UnlockUser()
+{
+	if (!bUserLocked)
+		return;
+	bUserLocked = false;
+	APawn* User = ActiveInstigator.Get();
+	APlayerController* PC = User ? Cast<APlayerController>(User->GetController()) : nullptr;
+	if (!PC)
+		return;
+	PC->SetIgnoreMoveInput(false);
+	PC->SetIgnoreLookInput(false);
+	// Director가 잠근 상태(층 전환, 클리어, 사망)는 Director가 푼다
+	const UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(User);
+	if (!ASC || !ASC->HasMatchingGameplayTag(SoulRunTags::State_Locked))
+	{
+		PC->EnableInput(PC);
+	}
+}
+
+void ASoulRoomEventObject::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	UnlockUser();
+	Super::EndPlay(EndPlayReason);
 }
 
 void ASoulRoomEventObject::ApplyEvent_Implementation(APawn* User)

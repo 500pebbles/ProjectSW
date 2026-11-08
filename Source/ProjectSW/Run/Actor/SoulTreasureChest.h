@@ -41,6 +41,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chest")
 	TObjectPtr<USoulLootDropComponent> LootDrop;
 
+	/** 드랍을 굴리는 자리 (액터 기준). 상자 상호작용 구 밖이어야 트레이스가 드랍을 잡는다 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chest")
+	FVector DropOffset = FVector::ZeroVector;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chest")
 	TObjectPtr<UNiagaraSystem> OpenFX;
 

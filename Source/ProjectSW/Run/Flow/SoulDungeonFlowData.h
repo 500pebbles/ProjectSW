@@ -165,4 +165,15 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mine", meta = (ClampMin = "0", Units = "cm"))
 	float MineSpacing = 0.f;
+
+	/** 지뢰 자리의 소품과 벽 검사: 바닥 위 높이와 구 반경 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mine", meta = (ClampMin = "0", Units = "cm"))
+	float MineProbeHeight = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mine", meta = (ClampMin = "0", Units = "cm"))
+	float MineProbeRadius = 0.f;
+
+	/** 포탈은 바닥의 드랍과 이만큼 떨어진 Nav 점에 선다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal", meta = (ClampMin = "0", Units = "cm"))
+	float PortalDropClearance = 0.f;
 };

@@ -37,6 +37,12 @@ public:
 	/** F를 누른 것과 같은 경로로 대상을 처리한다 (상호작용 물체면 Interact, 아이템이면 줍기) */
 	void CollectTarget(AActor* Target) { HandleCollect(Target); }
 
+	/** 아이템 트레이스가 지금 잡은 대상 */
+	AActor* GetTraceTarget() const { return TraceTarget.Get(); }
+
+	/** 디버그: F 입력 액션을 주입한다 (실제 트레이스와 F 경로를 그대로 탄다) */
+	bool DebugPressInteract();
+
 	/** 아이템을 주웠을 때 (무기 자동 장착이 여기에 붙는다) */
 	UPROPERTY(BlueprintAssignable, Category = "Interact")
 	FSoulItemCollectedSignature OnItemCollected;
@@ -79,4 +85,5 @@ private:
 
 	bool bEquipmentOpen = false;
 	bool bInitScheduled = false;
+	TWeakObjectPtr<AActor> TraceTarget;
 };
