@@ -193,6 +193,8 @@ private:
 	void RunSelfTestDeath(int32 Step);
 	void RunSelfTestSpawn(int32 Step);
 	void RunSelfTestBossFront(int32 Step);
+	void RunSelfTestShots(int32 Step);
+	TArray<TWeakObjectPtr<AActor>> SelfTestShotTargets;
 	void RunSelfTestStats(int32 Step);
 	void LogSkillState(const TCHAR* Label) const;
 	void LogPawnPose(const TCHAR* Label) const;

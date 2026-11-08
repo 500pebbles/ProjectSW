@@ -1,5 +1,6 @@
 #include "Run/Presentation/SoulTitlePlayerController.h"
 #include "Run/Presentation/SoulTransitionSubsystem.h"
+#include "Run/Core/SoulShots.h"
 #include "Run/UI/SoulTitleWidget.h"
 #include "Utility/SoulLog.h"
 
@@ -30,6 +31,7 @@ void ASoulTitlePlayerController::BeginPlay()
 	// 자동 확인: -SoulTitleAutoKey면 잠시 뒤 아무 키를 누른 것으로 친다
 	if (FParse::Param(FCommandLine::Get(), TEXT("SoulTitleAutoKey")))
 	{
+		SoulShots::Take(TEXT("01_title"), MinInputDelay + 0.6f);
 		FTimerHandle Handle;
 		GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]()
 		{

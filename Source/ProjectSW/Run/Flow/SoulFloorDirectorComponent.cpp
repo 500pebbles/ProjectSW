@@ -51,6 +51,8 @@
 #include "Run/Combat/SoulCombatFeelSubsystem.h"
 #include "Run/UI/SoulPresentationWidgets.h"
 #include "Run/UI/SoulKeyHintWidget.h"
+#include "Run/Core/SoulShots.h"
+#include "Run/Actor/SoulTreasureChest.h"
 #include "Build/PMGMapBuilder.h"
 #include "AIController.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
@@ -999,7 +1001,7 @@ void USoulFloorDirectorComponent::ShowRunResult()
 		Transition->HideLoading(true);
 	}
 #if !UE_BUILD_SHIPPING
-	if (bSelfTest && SelfTestMode != TEXT("result"))
+	if (bSelfTest && SelfTestMode != TEXT("result") && SelfTestMode != TEXT("shots"))
 	{
 		// 셀프 테스트는 재시작 요청까지만 확인하고 끝낸다 (다시 열면 테스트가 처음부터 돈다)
 		SW_LOG("[SELFTEST] restart requested");
@@ -1744,6 +1746,10 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 		else if (SelfTestMode == TEXT("bossfront"))
 		{
 			RunSelfTestBossFront(Step);
+		}
+		else if (SelfTestMode == TEXT("shots"))
+		{
+			RunSelfTestShots(Step);
 		}
 		else if (SelfTestMode == TEXT("stats"))
 		{
@@ -2728,6 +2734,127 @@ void USoulFloorDirectorComponent::RunSelfTestSummon(int32 Step)
 	default:
 		GetWorld()->GetTimerManager().ClearTimer(SelfTestHealTimer);
 		SW_LOG("[SELFTEST] summon after boss death=%d clear=%d", SoulFloorDirectorDebug::CountSummons(GetWorld()), bClearPending);
+		FinishSelfTest();
+		break;
+	}
+#endif
+}
+
+void USoulFloorDirectorComponent::RunSelfTestShots(int32 Step)
+{
+#if !UE_BUILD_SHIPPING
+	// 사람 확인용 장면 (-SoulShotDir): 이벤트와 상자 하이라이트, 지도, 보스 인트로, 보스 HP 바, 포탈 배너와 빛기둥, 로딩, 결과
+	const int32 Floor = CurrentFloorIndex + 1;
+	APlayerController* PC = GetPlayerController();
+	auto PressMap = [this, PC]()
+	{
+		FKey MapKey;
+		if (const UEnhancedInputLocalPlayerSubsystem* Input = PC ? ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()) : nullptr; Input && GetMapAction())
+		{
+			const TArray<FKey> Keys = Input->QueryKeysMappedToAction(GetMapAction());
+			MapKey = Keys.IsEmpty() ? FKey() : Keys[0];
+		}
+		if (!PC || !MapKey.IsValid())
+			return;
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(MapKey, IE_Pressed, 1.f));
+		GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [PC, MapKey]()
+		{
+			PC->InputKey(FInputKeyEventArgs::CreateSimulated(MapKey, IE_Released, 0.f));
+		}));
+	};
+	switch (Step)
+	{
+	case 0:
+		SelfTestShotTargets.Reset();
+		for (TActorIterator<ASoulRoomEventObject> It(GetWorld()); It; ++It)
+		{
+			const bool bTrap = It->GetClass()->GetName().Contains(TEXT("Trap"));
+			if ((Floor == 1 && !bTrap) || (Floor == 2 && bTrap))
+			{
+				SelfTestShotTargets.Add(*It);
+			}
+		}
+		for (TActorIterator<ASoulTreasureChest> It(GetWorld()); It && Floor == 1; ++It)
+		{
+			SelfTestShotTargets.Add(*It);
+			break;
+		}
+		ScheduleSelfTest(1, 0.5f);
+		break;
+	case 1:
+		if (!SelfTestShotTargets.IsEmpty())
+		{
+			const AActor* Target = SelfTestShotTargets[0].Get();
+			SelfTestShotTargets.RemoveAt(0);
+			if (Target && PlayerPawn.IsValid())
+			{
+				DebugFace(Target, 380.f, PlayerPawn->GetActorLocation() - Target->GetActorLocation());
+				const FString Class = Target->GetClass()->GetName();
+				const FString Name = Cast<ASoulTreasureChest>(Target) ? FString(TEXT("07_chest"))
+					: FString::Printf(TEXT("06_event_%s"), Class.Contains(TEXT("Heal")) ? TEXT("heal") : Class.Contains(TEXT("Teleport")) ? TEXT("teleport") : TEXT("trap"));
+				SoulShots::Take(Name, 1.0f);
+			}
+			ScheduleSelfTest(1, 1.7f);
+		}
+		else if (Floor == 1)
+		{
+			PressMap();
+			SoulShots::Take(TEXT("10_map"), 0.7f);
+			ScheduleSelfTest(2, 1.3f);
+		}
+		else
+		{
+			ScheduleSelfTest(3, 0.1f);
+		}
+		break;
+	case 2:
+		PressMap();
+		ScheduleSelfTest(3, 0.6f);
+		break;
+	case 3:
+		DebugGoToBossRoom();
+		SoulShots::Take(FString::Printf(TEXT("11_intro_f%d"), Floor), 1.8f);
+		ScheduleSelfTest(4, 3.f);
+		break;
+	case 4:
+		if (USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this); Pres && Pres->IsIntroPlaying())
+		{
+			Pres->SkipIntro();
+		}
+		if (Floor == 1)
+		{
+			SoulShots::Take(TEXT("12_boss_hp"), 1.6f);
+		}
+		ScheduleSelfTest(5, 2.2f);
+		break;
+	case 5:
+		SoulFloorDirectorDebug::KillAllMobs(GetWorld());
+		if (IsLastFloor())
+		{
+			SoulShots::Take(TEXT("18_result"), ClearRestartDelaySec + 3.f);
+			ScheduleSelfTest(8, ClearRestartDelaySec + 4.5f);
+		}
+		else
+		{
+			ScheduleSelfTest(6, PortalDelaySec + 0.6f);
+		}
+		break;
+	case 6:
+		if (Portal.IsValid() && PlayerPawn.IsValid())
+		{
+			DebugFace(Portal.Get(), 700.f, PlayerPawn->GetActorLocation() - Portal->GetActorLocation());
+		}
+		if (Floor == 1)
+		{
+			SoulShots::Take(TEXT("08_portal"), 0.4f);
+		}
+		ScheduleSelfTest(7, 1.f);
+		break;
+	case 7:
+		DebugGoToPortal();
+		SoulShots::Take(FString::Printf(TEXT("%d_loading_f%d"), 15 + Floor, Floor + 1), 2.f);
+		break;
+	default:
 		FinishSelfTest();
 		break;
 	}

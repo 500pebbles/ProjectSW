@@ -14,6 +14,8 @@
 #include "Run/Interact/SoulInteractionComponent.h"
 #include "Animation/AnimSequence.h"
 #include "Utility/SoulLog.h"
+#include "Run/Core/SoulShots.h"
+#include "GameFramework/Character.h"
 
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -449,6 +451,11 @@ void ASoulTownDirector::RunTownSelfTest(ESoulTownArrival Arrival)
 		}), 2.f, false);
 		return;
 	}
+	if (SoulShots::IsEnabled())
+	{
+		RunTownShots();
+		return;
+	}
 	// 첫 도착: 두 번째 석상의 의상을 입고 게이트로
 	FTimerHandle Handle;
 	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]()
@@ -507,6 +514,94 @@ void ASoulTownDirector::RunTownSelfTest(ESoulTownArrival Arrival)
 			}
 		}), 1.5f, false);
 	}), 2.f, false);
+#endif
+}
+
+void ASoulTownDirector::RunTownShots()
+{
+#if !UE_BUILD_SHIPPING
+	// 사람 확인용 장면: 마을 전경, 석상과 카드, 1위 석상, 명예의 전당 패널, 게이트(로딩 F1)
+	auto Face = [this](const AActor* Target, float Distance)
+	{
+		APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+		const ACharacter* Character = Cast<ACharacter>(Pawn);
+		if (!Pawn || !Target)
+			return;
+		const FVector Dir = Target->GetActorForwardVector().GetSafeNormal2D();
+		FVector Stand = Target->GetActorLocation() + Dir * Distance;
+		Stand.Z = Target->GetActorLocation().Z + (Character ? Character->GetDefaultHalfHeight() : 90.f) + 10.f;
+		const FRotator Look = (-Dir).Rotation();
+		Pawn->TeleportTo(Stand, Look, false, true);
+		if (APlayerController* PC = Cast<APlayerController>(Pawn->GetController()))
+		{
+			PC->SetControlRotation(FRotator(-10.f, Look.Yaw, 0.f));
+		}
+	};
+	SoulShots::Take(TEXT("02_town"), 1.5f);
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this, Face]()
+	{
+		TArray<ASoulCostumeStatue*> Statues;
+		for (TActorIterator<ASoulCostumeStatue> It(GetWorld()); It; ++It)
+		{
+			if (!Cast<ASoulChampionStatue>(*It))
+			{
+				Statues.Add(*It);
+			}
+		}
+		Statues.Sort([](const ASoulCostumeStatue& A, const ASoulCostumeStatue& B) { return A.GetActorLocation().X > B.GetActorLocation().X; });
+		if (Statues.Num() > 3)
+		{
+			Face(Statues[3], 320.f);
+			Statues[3]->ShowCard(true);
+		}
+		SoulShots::Take(TEXT("03_statue_card"), 0.9f);
+	}), 2.5f, false);
+	FTimerHandle Handle2;
+	GetWorldTimerManager().SetTimer(Handle2, FTimerDelegate::CreateWeakLambda(this, [this, Face]()
+	{
+		for (TActorIterator<ASoulChampionStatue> It(GetWorld()); It; ++It)
+		{
+			Face(*It, 420.f);
+			break;
+		}
+		SoulShots::Take(TEXT("04_champion"), 0.9f);
+	}), 4.5f, false);
+	FTimerHandle Handle3;
+	GetWorldTimerManager().SetTimer(Handle3, FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+		for (TActorIterator<ASoulHallOfFameBoard> It(GetWorld()); It; ++It)
+		{
+			if (USoulInteractableComponent* BoardInteract = It->FindComponentByClass<USoulInteractableComponent>())
+			{
+				BoardInteract->Interact(Pawn);
+			}
+			break;
+		}
+		SoulShots::Take(TEXT("05_hof_panel"), 0.9f);
+	}), 6.5f, false);
+	FTimerHandle Handle4;
+	GetWorldTimerManager().SetTimer(Handle4, FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		TArray<UUserWidget*> Panels;
+		UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, Panels, USoulHallOfFamePanelWidget::StaticClass(), false);
+		for (UUserWidget* Panel : Panels)
+		{
+			Cast<USoulHallOfFamePanelWidget>(Panel)->Close();
+		}
+		APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+		for (TActorIterator<ASoulDungeonGate> It(GetWorld()); It; ++It)
+		{
+			if (USoulInteractableComponent* Interactable = It->FindComponentByClass<USoulInteractableComponent>())
+			{
+				SW_LOG("[SELFTEST] town gate (shots)");
+				Interactable->Interact(Pawn);
+				SoulShots::Take(TEXT("15_loading_f1"), 1.3f);
+			}
+			break;
+		}
+	}), 8.5f, false);
 #endif
 }
 

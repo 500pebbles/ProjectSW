@@ -256,4 +256,5 @@ protected:
 
 private:
 	void RunTownSelfTest(ESoulTownArrival Arrival);
+	void RunTownShots();
 };
