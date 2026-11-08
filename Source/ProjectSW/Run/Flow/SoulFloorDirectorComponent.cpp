@@ -52,6 +52,7 @@
 #include "Run/UI/SoulPresentationWidgets.h"
 #include "Run/UI/SoulKeyHintWidget.h"
 #include "Run/Core/SoulShots.h"
+#include "UI/Widget/SoulUserWidget.h"
 #include "Run/Actor/SoulTreasureChest.h"
 #include "Build/PMGMapBuilder.h"
 #include "AIController.h"
@@ -1968,6 +1969,40 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 				{
 					FinishSelfTest();
 				}
+			}
+		}
+		else if (SelfTestMode == TEXT("introdeath"))
+		{
+			// 보스 인트로 도중 사망 → HUD가 되돌아오는지 (사망 중단 경로)
+			USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this);
+			auto CountVisibleOverlay = [this]()
+			{
+				TArray<UUserWidget*> Widgets;
+				UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, Widgets, USoulUserWidget::StaticClass(), true);
+				int32 Visible = 0;
+				for (const UUserWidget* Widget : Widgets)
+				{
+					Visible += Widget->IsVisible() ? 1 : 0;
+				}
+				return Visible;
+			};
+			if (Step == 0)
+			{
+				SW_LOG("[SELFTEST] introdeath before overlayVisible=%d", CountVisibleOverlay());
+				DebugGoToBossRoom();
+				ScheduleSelfTest(1, 1.5f);
+			}
+			else if (Step == 1)
+			{
+				SW_LOG("[SELFTEST] introdeath during intro playing=%d hudHidden=%d overlayVisible=%d", Pres && Pres->IsIntroPlaying(), Pres && Pres->IsGameHudHidden(), CountVisibleOverlay());
+				// 사망 셀프 테스트와 같은 치트 (폰 사망 → HandlePawnDied → AbortIntroForDeath)
+				GEngine->Exec(GetWorld(), TEXT("soul.Run.ForceEnd Fail"));
+				ScheduleSelfTest(2, 1.f);
+			}
+			else
+			{
+				SW_LOG("[SELFTEST] introdeath after death playing=%d hudHidden=%d overlayVisible=%d dead=%d", Pres && Pres->IsIntroPlaying(), Pres && Pres->IsGameHudHidden(), CountVisibleOverlay(), bPlayerDead);
+				FinishSelfTest();
 			}
 		}
 		else if (SelfTestMode == TEXT("map"))

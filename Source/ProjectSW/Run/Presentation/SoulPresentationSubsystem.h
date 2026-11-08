@@ -73,6 +73,8 @@ public:
 	 */
 	void SetGameHudHidden(FName Reason, bool bHidden);
 
+	bool IsGameHudHidden() const { return !HudHideReasons.IsEmpty(); }
+
 	UPROPERTY(BlueprintAssignable, Category = "Presentation")
 	FSoulBossIntroStageSignature OnIntroStage;
 
