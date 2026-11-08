@@ -22,7 +22,7 @@ AShopActor::AShopActor()
 		const FName SlotName = *FString::Printf(TEXT("SlotPoint%d"), i);
 		USceneComponent* SlotPoint = CreateDefaultSubobject<USceneComponent>(SlotName);
 		SlotPoint->SetupAttachment(SceneRoot);
-		SlotPoint->SetRelativeLocation(FVector(0.0f, 80.0f * (i-1), 100.0f));
+		SlotPoint->SetRelativeLocation(FVector(0.0f, 80.0f * (i-1), 0.0f));
 		SlotPoints.Add(SlotPoint);
 	}
 }
