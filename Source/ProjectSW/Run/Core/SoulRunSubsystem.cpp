@@ -21,6 +21,7 @@ void USoulRunSubsystem::BeginRun()
 	State.StartRealTime = FPlatformTime::Seconds();
 	State.bActive = true;
 	State.bRunEnded = false;
+	ForcedScore = -1;
 
 	SW_LOG("[RUN] BeginRun seed=%d", State.RunSeed);
 }
@@ -34,6 +35,7 @@ void USoulRunSubsystem::EndRun(bool bSuccess)
 	}
 
 	State.bRunEnded = true;
+	State.EndRealTime = FPlatformTime::Seconds();
 	const double Elapsed = GetElapsedRealSeconds();
 	SW_LOG("[RUN] EndRun success=%d floor=%d level=%d sec=%.1f", bSuccess, State.Floor, State.Level, Elapsed);
 
@@ -50,5 +52,7 @@ void USoulRunSubsystem::SetFloor(int32 NewFloor)
 
 double USoulRunSubsystem::GetElapsedRealSeconds() const
 {
-	return State.bActive ? FPlatformTime::Seconds() - State.StartRealTime : 0.0;
+	if (!State.bActive)
+		return 0.0;
+	return (State.bRunEnded ? State.EndRealTime : FPlatformTime::Seconds()) - State.StartRealTime;
 }

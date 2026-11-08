@@ -30,6 +30,10 @@ struct PROJECTSW_API FSoulRunState
 	UPROPERTY(BlueprintReadOnly, Category = "Run")
 	double StartRealTime = 0.0;
 
+	/** EndRun 시각 (실시간). 끝난 런의 경과 시간을 고정한다 */
+	UPROPERTY(BlueprintReadOnly, Category = "Run")
+	double EndRealTime = 0.0;
+
 	/** BeginRun 이후 true. EndRun 뒤에도 남고 bRunEnded로 끝났음을 본다 */
 	UPROPERTY(BlueprintReadOnly, Category = "Run")
 	bool bActive = false;

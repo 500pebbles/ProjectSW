@@ -79,6 +79,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Floor")
 	TObjectPtr<USoulDungeonFlowData> FlowData;
 
+	/** 팀 BP_WorkerGameMode가 빌더 완료 이벤트에 묶는 함수 이름. 재생성마다 폰을 다시 만들므로 뗀다 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Floor")
+	FName TeamMapReadyFunction = TEXT("OnMapReady");
+
 	/** Exit 방 전투가 끝나면 세우는 포탈 (BP_FloorPortal) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Floor")
 	TSubclassOf<ASoulFloorPortal> PortalClass;
@@ -139,6 +143,9 @@ private:
 	void RestartDungeonMap();
 
 	void LockPlayer();
+	void DisableInputAfterFrame(TWeakObjectPtr<APlayerController> WeakPC, uint64 LockFrame);
+	void AbortFloorStart(const TCHAR* Reason);
+	void ArmSelfTestWatchdog(const TCHAR* Step);
 	void UnlockPlayer();
 	void ParkPawn();
 	void UnparkPawn();
@@ -187,4 +194,5 @@ private:
 	FTimerHandle DeathTimer;
 	FTimerHandle RestartTimer;
 	FTimerHandle SelfTestTimer;
+	FTimerHandle SelfTestWatchdog;
 };

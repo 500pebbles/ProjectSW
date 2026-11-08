@@ -46,7 +46,13 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Run")
 	FSoulRunEndedSignature OnRunEnded;
 
+	/** 치트 soul.Run.ForceEnd Clear [Score]: 다음 정산 점수를 이 값으로 덮는다 (-1이면 계산) */
+	void SetForcedScore(int32 InScore) { ForcedScore = InScore; }
+	int32 GetForcedScore() const { return ForcedScore; }
+
 private:
 	UPROPERTY()
 	FSoulRunState State;
+
+	int32 ForcedScore = -1;
 };
