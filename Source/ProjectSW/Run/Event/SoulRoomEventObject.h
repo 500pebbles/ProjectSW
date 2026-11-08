@@ -10,6 +10,7 @@ class USceneComponent;
 class USoundBase;
 class UStaticMeshComponent;
 class USoulInteractableComponent;
+class USoulHighlightComponent;
 class UPointLightComponent;
 
 UENUM(BlueprintType)
@@ -70,6 +71,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Event")
 	TObjectPtr<USoulInteractableComponent> Interactable;
+
+	/** 하이라이트 (색과 세기는 BP) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Event")
+	TObjectPtr<USoulHighlightComponent> Highlight;
 
 	/** F 뒤 효과까지 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Event", meta = (ClampMin = "0", Units = "s"))

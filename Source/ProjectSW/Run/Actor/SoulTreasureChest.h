@@ -9,6 +9,7 @@ class UNiagaraSystem;
 class USoundBase;
 class UStaticMeshComponent;
 class USoulInteractableComponent;
+class USoulHighlightComponent;
 class USoulLootDropComponent;
 
 /** 보물상자 (BP_TreasureChest, #11). Treasure 방에 하나. F로 1회 열고 드랍 표를 굴린다. 통메시라 뚜껑 대신 펄스와 FX */
@@ -37,6 +38,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chest")
 	TObjectPtr<USoulInteractableComponent> Interactable;
+
+	/** 하이라이트 (색과 세기는 BP) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chest")
+	TObjectPtr<USoulHighlightComponent> Highlight;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chest")
 	TObjectPtr<USoulLootDropComponent> LootDrop;

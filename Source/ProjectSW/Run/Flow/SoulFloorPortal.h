@@ -6,6 +6,7 @@
 
 class USphereComponent;
 class USoulInteractableComponent;
+class USoulHighlightComponent;
 class APawn;
 
 /**
@@ -37,6 +38,10 @@ protected:
 	/** F로 들어간다 (프롬프트, 반경은 BP) */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
 	TObjectPtr<USoulInteractableComponent> Interactable;
+
+	/** 하이라이트 (색과 세기는 BP) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
+	TObjectPtr<USoulHighlightComponent> Highlight;
 
 	/** 켜져 있으면 플레이어가 닿는 순간 들어간다 (단계 B 임시. 지금은 끄고 F로 들어간다) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Portal")

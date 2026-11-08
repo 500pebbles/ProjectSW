@@ -2,6 +2,7 @@
 #include "Run/Core/SoulRunSubsystem.h"
 #include "Run/Equipment/SoulLootDropComponent.h"
 #include "Run/Interact/SoulInteractableComponent.h"
+#include "Run/Interact/SoulHighlightComponent.h"
 #include "Utility/SoulLog.h"
 
 #include "Components/StaticMeshComponent.h"
@@ -21,6 +22,8 @@ ASoulTreasureChest::ASoulTreasureChest()
 	Interactable->bOneShot = true;
 
 	LootDrop = CreateDefaultSubobject<USoulLootDropComponent>(TEXT("LootDrop"));
+
+	Highlight = CreateDefaultSubobject<USoulHighlightComponent>(TEXT("Highlight"));
 }
 
 void ASoulTreasureChest::BeginPlay()

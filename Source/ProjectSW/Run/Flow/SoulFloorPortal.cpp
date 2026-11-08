@@ -3,6 +3,7 @@
 #include "Character/SoulCharacterPlayer.h"
 #include "Components/SphereComponent.h"
 #include "Run/Interact/SoulInteractableComponent.h"
+#include "Run/Interact/SoulHighlightComponent.h"
 #include "Utility/SoulLog.h"
 
 ASoulFloorPortal::ASoulFloorPortal()
@@ -17,6 +18,8 @@ ASoulFloorPortal::ASoulFloorPortal()
 	Interactable = CreateDefaultSubobject<USoulInteractableComponent>(TEXT("Interactable"));
 	Interactable->SetupAttachment(Trigger);
 	Interactable->bOneShot = true;
+
+	Highlight = CreateDefaultSubobject<USoulHighlightComponent>(TEXT("Highlight"));
 }
 
 void ASoulFloorPortal::HandleInteracted(APawn* User)

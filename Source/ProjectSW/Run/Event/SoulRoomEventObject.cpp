@@ -5,6 +5,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Run/Interact/SoulInteractableComponent.h"
+#include "Run/Interact/SoulHighlightComponent.h"
 #include "Run/Progression/SoulProgressionComponent.h"
 #include "Utility/SoulLog.h"
 
@@ -36,6 +37,8 @@ ASoulRoomEventObject::ASoulRoomEventObject()
 	Interactable = CreateDefaultSubobject<USoulInteractableComponent>(TEXT("Interactable"));
 	Interactable->SetupAttachment(Root);
 	Interactable->bOneShot = true;
+
+	Highlight = CreateDefaultSubobject<USoulHighlightComponent>(TEXT("Highlight"));
 }
 
 void ASoulRoomEventObject::BeginPlay()
