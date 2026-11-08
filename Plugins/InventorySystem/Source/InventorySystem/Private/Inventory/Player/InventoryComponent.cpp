@@ -11,6 +11,7 @@
 #include "Inventory/UI/Inventory/InventoryBase.h"
 #include "Item/ItemComponent.h"
 #include "Item/Data/ItemData.h"
+#include "Item/Interface/InventoryInteractInterface.h"
 
 // Sets default values for this component's properties
 UInventoryComponent::UInventoryComponent()
@@ -88,6 +89,13 @@ void UInventoryComponent::CollectItem(AActor* TargetItem)
 {
 	if (!IsValid(TargetItem))
 	{
+		return;
+	}
+	
+	// 상호작용 인터페이스 -> (액터 상호작용을 통해 교환을 진행하는 아이템) 이 경우 즉시 습득이 아닌 교환 처리가 필요하므로 습득하지 못하게 막음
+	if (IInventoryInteractInterface* Interactable = Cast<IInventoryInteractInterface>(TargetItem))
+	{
+		Interactable->HandleInventoryInteract(this);
 		return;
 	}
 	
@@ -187,6 +195,42 @@ int32 UInventoryComponent::DropItem(const FGuid& InID, int32 Count)
 	return RemoveItem(InID, DropQuantity);
 }
 
+int32 UInventoryComponent::CountItems(FName RowName) const
+{
+	return InventoryData.CountByRowName(RowName);
+}
+
+bool UInventoryComponent::CanApplyChange(const TArray<FInventoryItemRequirement>& Remove,
+	const TArray<UItemData*>& Add) const
+{
+	TArray<FGuid> RemoveIDs;
+	TArray<FIntPoint> AddPosition;
+	return CheckChangeAvailable(Remove, Add, RemoveIDs, AddPosition);
+}
+
+bool UInventoryComponent::TryApplyChange(const TArray<FInventoryItemRequirement>& Remove,
+	const TArray<UItemData*>& Add)
+{
+	TArray<FGuid> RemoveIDs;
+	TArray<FIntPoint> AddPositions;
+	// 교환 가능한지 검증
+	if (!CheckChangeAvailable(Remove, Add, RemoveIDs, AddPositions))
+	{
+		return false;
+	}
+	
+	for (const FGuid& ID : RemoveIDs)
+	{
+		RemoveItem(ID, MAX_int32);
+	}
+	
+	for (int32 i =  0; i< Add.Num(); i++)
+	{
+		AddUnequipedItem(Add[i], AddPositions[i]);
+	}
+	return true;
+}
+
 bool UInventoryComponent::SpawnDroppedItem(const FDataTableRowHandle& InItemRow)
 {
 	UWorld* World = GetWorld();
@@ -226,6 +270,52 @@ FTransform UInventoryComponent::CalculateDropPosition(const AActor& OwnerActor) 
 	return FTransform(FRotator::ZeroRotator, bHit ? FVector(Hit.ImpactPoint) : Desired);
 }
 
+bool UInventoryComponent::CheckChangeAvailable(const TArray<FInventoryItemRequirement>& Remove,
+	const TArray<UItemData*>& Add, TArray<FGuid>& OutRemoveIDs, TArray<FIntPoint>& OutAddPositions) const
+{
+	OutRemoveIDs.Reset();
+	OutAddPositions.Reset();
+	
+	// 데이터를 복사해서 시뮬레이션 함
+	FInventoryDataArray ArrayForSimulation = InventoryData;
+	
+	// 요구 아이템 목록을 가져와 수량 검사
+	for (const FInventoryItemRequirement& Requirement : Remove)
+	{
+		TArray<FGuid> IDs;
+		// 요구 아이템과 그 아이템의 수량을 주고 수량만큼 아이템이 있는지 확인 후 있으면 IDs에 담아서 반환
+		if (!ArrayForSimulation.CollectEntryIDsByRowName(Requirement.RowName, Requirement.Count, IDs))
+		{
+			return false;
+		}
+		// 아이템이 수량만큼 있으면 반환받은 ID를 가져다가 제거될 아이템 엔트리 ID목록에 넣어서 반환
+		for (const FGuid& ID : IDs)
+		{
+			ArrayForSimulation.RemoveByID(ID);
+			OutRemoveIDs.Add(ID);
+		}
+	}
+	
+	// 교환으로 획득할 아이템들의 위치 판정을 위함 -> 앞서 제거된 아이템의 위치도 반영
+	for (UItemData* Item : Add)
+	{
+		if (!IsValid(Item))
+		{
+			return false;
+		}
+		
+		const FIntPoint Position = ArrayForSimulation.FindAvailablePosition(Item, FGuid());
+		if (Position.X < 0 || Position.Y < 0 || nullptr == ArrayForSimulation.AddItemDataToPosition(Item, Position))
+		{
+			return false;
+		}
+		// 아이템 추가가 가능하다면 어느 위치에 추가될 것인지 반환
+		OutAddPositions.Add(Position);
+	}
+	
+	return true;
+}
+
 
 void UInventoryComponent::CreateInventoryHUDWidget()
 {
@@ -244,6 +334,28 @@ void UInventoryComponent::CreateInventoryHUDWidget()
 
 void UInventoryComponent::HandleTraceItemChanged(bool bHasTarget, FKey InputKey, AActor* TargetItemActor)
 {
+	// 이전까지 바라보고 있던 아이템을 더 이상 바라보지 않고 있음을 전달(교환을 위한 아이템에게 전달)
+	if (IInventoryInteractInterface* PrevInteract = Cast<IInventoryInteractInterface>(FocusedItem.Get()))
+	{
+		PrevInteract->OnInventoryFocusEnd(this);
+	}
+	FocusedItem = bHasTarget ? TargetItemActor : nullptr;
+	
+	// 아이템 액터가 교환용 아이템인 경우 상호작용 메시지 대신 아이템의 정보를 표시하도록 함
+	if (bHasTarget)
+	{
+		if (IInventoryInteractInterface* NewItem = Cast<IInventoryInteractInterface>(TargetItemActor))
+		{
+			if (InventoryHUDWidget)
+			{
+				InventoryHUDWidget->HideInteractionMessage();
+			}
+			NewItem->OnInventoryFocusBegin(this, InputKey);
+			return;
+		}
+		
+	}
+	
 	if (!IsValid(InventoryHUDWidget))
 	{
 		return;

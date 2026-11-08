@@ -251,7 +251,7 @@ void UInventoryInputComponent::TraceItem()
 	
 	// 현재 상호작용 가능한 액터를 검사하고 있다가 상호작용 대상 유무가 바뀌면 HUD에 알림
 	const bool bHasTarget = CurrentTraceItem.IsValid();
-	if (bHasTarget != bHasTraceTarget)
+	if (bHasTarget != bHasTraceTarget || CurrentTraceItem != LastTracedItem)
 	{
 		bHasTraceTarget = bHasTarget;
 		

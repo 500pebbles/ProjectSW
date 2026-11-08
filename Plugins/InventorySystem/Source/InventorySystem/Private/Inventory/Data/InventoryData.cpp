@@ -68,6 +68,50 @@ FIntPoint FInventoryDataArray::FindAvailablePosition(const UItemData* InItemData
 	return FIntPoint::NoneValue;
 }
 
+int32 FInventoryDataArray::CountByRowName(FName RowName) const
+{
+	int32 Count = 0;
+	for (const FInventoryDataEntry& Entry : ItemDataArray)
+	{
+		const UItemData* Item = Entry.GetItem();
+		if (IsValid(Item) && Item->GetRowName() == RowName)
+		{
+			// 엔트리의 스택 수량만큼 카운트 증가
+			Count += Entry.GetQuantity();
+		}
+	}
+	
+	return Count;
+}
+
+bool FInventoryDataArray::CollectEntryIDsByRowName(FName RowName, int32 Count, TArray<FGuid>& OutIDs) const
+{
+	OutIDs.Reset();
+	// 요구 수량이 없으면 모으지 않아도 됨
+	if (Count <= 0)
+	{
+		return true;
+	}
+	
+	int32 Collected = 0;
+	for (const FInventoryDataEntry& Entry : ItemDataArray)
+	{
+		const UItemData* Item = Entry.GetItem();
+		if (IsValid(Item) && Item->GetRowName() == RowName)
+		{
+			// 엔트리들을 찾아서 엔트리의 스택 수량을 받고 그 수만큼 카운트 증가
+			OutIDs.Add(Entry.GetID());
+			Collected += Entry.GetQuantity();
+			if (Collected >= Count)
+			{
+				return true;
+			}
+		}
+	}
+	
+	return false;
+}
+
 FInventoryDataArray::FInventoryDataArray()
 {
 	OwnerComponent = nullptr;
@@ -247,4 +291,13 @@ FRemoveResult FInventoryDataArray::RemoveItemData(const FGuid& InID, int32 Remov
 		ItemDataArray.RemoveAt(ItemIndex);
 	}
 	return Result;
+}
+
+bool FInventoryDataArray::RemoveByID(const FGuid& InID)
+{
+	// RemoveAll은 제거한 개수를 반환 -> 0보다 크면 제거했다는 것이므로 제거 성공으로 true반환
+	return ItemDataArray.RemoveAll([&InID](const FInventoryDataEntry& Entry)
+	{
+		return Entry.GetID() == InID;
+	}) > 0;
 }
