@@ -42,6 +42,18 @@ public:
 	int32 GetNormalPointCount() const { return NormalPoints; }
 	int32 GetBossPointCount() const { return BossPoints; }
 
+	/**
+	 * 강화 몹 자리 요청. 위치가 속한 전투방에 남은 몫이 있고 Role이 Normal이면 몫을 하나 쓰고 true.
+	 * 몫은 BeginFloor에서 방마다 정한다(포인트가 무작위 순서로 깔려 먼저 스폰되는 일반 몹이 무작위로 뽑힌다)
+	 */
+	bool ClaimTough(const FVector& Location, ESoulMobRole Role);
+
+	const FSoulMobToughRules& GetToughRules() const { return Rules.Tough; }
+
+	/** 이 층에 정한 강화 몹 몫 합과, 실제로 강화된 몹 수 */
+	int32 GetToughPlanned() const { return ToughPlanned; }
+	int32 GetToughApplied() const { return ToughApplied; }
+
 protected:
 	virtual void Deinitialize() override;
 
@@ -61,6 +73,11 @@ private:
 
 	int32 NormalPoints = 0;
 	int32 BossPoints = 0;
+
+	/** 방 Id → 남은 강화 몹 몫 */
+	TMap<int32, int32> ToughQuota;
+	int32 ToughPlanned = 0;
+	int32 ToughApplied = 0;
 
 	struct FStuckInfo
 	{

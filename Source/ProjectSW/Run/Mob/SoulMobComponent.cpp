@@ -14,7 +14,9 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "BrainComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Components/WidgetComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -78,6 +80,19 @@ void USoulMobComponent::InitializeComponent()
 	}
 	ScoreValue = Score;
 
+	// 강화 몹(정예): 보상과 크기는 여기서, 체력은 기본 속성이 들어간 뒤(ApplyToughStats)
+	if (USoulMobEncounterSubsystem* Encounter = World->GetSubsystem<USoulMobEncounterSubsystem>(); Encounter && PendingLevel <= 0 && Encounter->ClaimTough(Enemy->GetActorLocation(), Role))
+	{
+		bTough = true;
+		ToughRules = Encounter->GetToughRules();
+		const int32 BaseScore = ScoreValue;
+		const float BaseExpWeight = ExpWeight;
+		ScoreValue = FMath::RoundToInt(ScoreValue * ToughRules.ScoreScale);
+		ExpWeight *= ToughRules.ExpScale;
+		Enemy->SetActorScale3D(Enemy->GetActorScale3D() * ToughRules.MeshScale);
+		SW_LOG("[MOB] tough pick %s score %d -> %d expWeight %.1f -> %.1f", *Enemy->GetName(), BaseScore, ScoreValue, BaseExpWeight, ExpWeight);
+	}
+
 	Enemy->GetCharacterMovement()->MaxWalkSpeed = Enemy->BaseWalkSpeed;
 }
 
@@ -108,12 +123,17 @@ void USoulMobComponent::BeginPlay()
 		if (const UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld()))
 		{
 			FNavLocation NavLocation;
-			const float HalfHeight = Enemy->GetDefaultHalfHeight();
+			const float HalfHeight = Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 			if (NavSys->ProjectPointToNavigation(Enemy->GetActorLocation(), NavLocation, FVector(400.f, 400.f, 600.f)))
 			{
 				Enemy->SetActorLocation(NavLocation.Location + FVector(0.f, 0.f, HalfHeight), false, nullptr, ETeleportType::TeleportPhysics);
 			}
 		}
+	}
+
+	if (bTough)
+	{
+		GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ThisClass::ApplyToughStats));
 	}
 
 	if (SpawnMontage)
@@ -132,6 +152,47 @@ void USoulMobComponent::BeginPlay()
 	}
 
 	FinishSpawn();
+}
+
+void USoulMobComponent::ApplyToughStats()
+{
+	ASoulCharacterEnemy* Enemy = GetEnemy();
+	UAbilitySystemComponent* ASC = Enemy ? Enemy->GetAbilitySystemComponent() : nullptr;
+	if (!ASC || bDead)
+		return;
+
+	// 레벨 기본값 위에 곱한다. 현재값 기준으로 기본값을 올려 다른 가산 효과가 있어도 현재값이 배율만큼 된다
+	const FGameplayAttribute MaxHealthAttr = USoulAttributeSet::GetMaxHealthAttribute();
+	const float OldMax = ASC->GetNumericAttribute(MaxHealthAttr);
+	ASC->SetNumericAttributeBase(MaxHealthAttr, ASC->GetNumericAttributeBase(MaxHealthAttr) + OldMax * (ToughRules.HealthScale - 1.f));
+	const float NewMax = ASC->GetNumericAttribute(MaxHealthAttr);
+	ASC->SetNumericAttributeBase(USoulAttributeSet::GetHealthAttribute(), NewMax);
+
+	int32 Overlaid = 0;
+	if (ToughRules.OverlayMaterial)
+	{
+		ToughMID = UMaterialInstanceDynamic::Create(ToughRules.OverlayMaterial, this);
+		ToughMID->SetVectorParameterValue(TEXT("Color"), ToughRules.OverlayColor);
+		ToughMID->SetScalarParameterValue(TEXT("Intensity"), ToughRules.OverlayIntensity);
+		ToughMID->SetScalarParameterValue(TEXT("FresnelExponent"), ToughRules.OverlayFresnelExponent);
+		ToughMID->SetScalarParameterValue(TEXT("BaseGlow"), ToughRules.OverlayBaseGlow);
+		TArray<USkeletalMeshComponent*> Meshes;
+		Enemy->GetComponents(Meshes);
+		for (USkeletalMeshComponent* Mesh : Meshes)
+		{
+			// 팀이 이미 오버레이를 쓰는 메시는 건드리지 않는다
+			if (Mesh && Mesh->IsVisible() && !Mesh->GetOverlayMaterial())
+			{
+				Mesh->SetOverlayMaterial(ToughMID);
+				++Overlaid;
+			}
+		}
+	}
+
+	const UCapsuleComponent* Capsule = Enemy->GetCapsuleComponent();
+	SW_LOG("[MOB] tough %s lv=%d maxHealth %.0f -> %.0f health=%.0f scale=%.2f capsule r=%.0f hh=%.0f score=%d expWeight=%.1f overlay=%d",
+		*Enemy->GetName(), Enemy->GetCharacterLevel(), OldMax, NewMax, ASC->GetNumericAttribute(USoulAttributeSet::GetHealthAttribute()),
+		Enemy->GetActorScale3D().X, Capsule->GetScaledCapsuleRadius(), Capsule->GetScaledCapsuleHalfHeight(), ScoreValue, ExpWeight, Overlaid);
 }
 
 void USoulMobComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)

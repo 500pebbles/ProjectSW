@@ -4,6 +4,7 @@
 #include "SoulMobTypes.generated.h"
 
 class UAnimMontage;
+class UMaterialInterface;
 class ASoulCharacterEnemy;
 class USoulEnemySet;
 class USoulSpawnPatternData;
@@ -84,6 +85,58 @@ struct PROJECTSW_API FSoulMobRoomCount
 	int32 Max = 0;
 };
 
+/**
+ * 강화 몹(정예). 전투방마다 그 방에 스폰된 Role Normal 몹 몇 마리를 골라 체력, 크기, 보상을 키운다.
+ * 역할 Elite(Mist)와는 별개다. 수가 0이면 그 방 크기에서는 고르지 않는다
+ */
+USTRUCT(BlueprintType)
+struct PROJECTSW_API FSoulMobToughRules
+{
+	GENERATED_BODY()
+
+	/** 방 크기별 강화 몹 수 (그 방 일반 몹 수를 넘지 않는다) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tough", meta = (ClampMin = "0"))
+	int32 SingleRoom = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tough", meta = (ClampMin = "0"))
+	int32 DualRoom = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tough", meta = (ClampMin = "0"))
+	int32 QuadRoom = 0;
+
+	/** 최대 체력 배율 (레벨 기본값을 넣은 뒤 곱하고 체력을 꽉 채운다) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tough", meta = (ClampMin = "0.1"))
+	float HealthScale = 3.f;
+
+	/** 크기 배율 (캡슐과 메시가 같이 커진다) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tough", meta = (ClampMin = "0.1"))
+	float MeshScale = 1.2f;
+
+	/** 처치 경험치 배율 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tough", meta = (ClampMin = "0"))
+	float ExpScale = 2.f;
+
+	/** 처치 점수 배율 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tough", meta = (ClampMin = "0"))
+	float ScoreScale = 2.f;
+
+	/** 구분용 오버레이 재질 (M_RunHighlight처럼 Color, Intensity, FresnelExponent, BaseGlow 파라미터). 비우면 크기만 바뀐다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tough|Look")
+	TObjectPtr<UMaterialInterface> OverlayMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tough|Look")
+	FLinearColor OverlayColor = FLinearColor(1.f, 0.12f, 0.08f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tough|Look", meta = (ClampMin = "0"))
+	float OverlayIntensity = 0.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tough|Look", meta = (ClampMin = "0.1"))
+	float OverlayFresnelExponent = 2.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Tough|Look", meta = (ClampMin = "0"))
+	float OverlayBaseGlow = 0.05f;
+};
+
 /** 층 하나의 몹 규칙 (DA_DungeonFlow.Floors[n].MobRules). USoulMobEncounterSubsystem이 읽는다 */
 USTRUCT(BlueprintType)
 struct PROJECTSW_API FSoulMobFloorRules
@@ -114,6 +167,10 @@ struct PROJECTSW_API FSoulMobFloorRules
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob|Count")
 	FSoulMobRoomCount QuadRoom;
+
+	/** 강화 몹(정예): 방마다 일반 몹 중 몇 마리를 체력, 크기, 보상 배율로 키운다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob|Tough")
+	FSoulMobToughRules Tough;
 
 	/** 방 안 스폰 위치 후보 (DA_SpawnPatterns) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob|Count")

@@ -7,6 +7,7 @@
 
 class ASoulCharacterEnemy;
 class UAnimMontage;
+class UMaterialInstanceDynamic;
 struct FOnAttributeChangeData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSoulMobEventSignature, ASoulCharacterEnemy*, Mob);
@@ -62,6 +63,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Mob")
 	bool IsStationary() const { return bStationary; }
+
+	/** 강화 몹(정예)인지. 스폰 때 층 규칙(MobRules.Tough)으로 정해진다 */
+	UFUNCTION(BlueprintPure, Category = "Mob")
+	bool IsTough() const { return bTough; }
 
 	/** 소환자가 소환물을 만들 때 레벨을 정한다 (InitializeComponent 전에) */
 	void SetPendingLevel(int32 InLevel) { PendingLevel = InLevel; }
@@ -136,6 +141,8 @@ private:
 	void FinishSpawn();
 	void SpawnSummon(const FSoulMobSummon& Summon);
 	const FSoulMobAttackRule* FindRule(const UAnimMontage* Montage) const;
+	/** 강화 몹 체력과 표시. 팀 BeginPlay가 기본 속성을 넣은 다음 틱에 부른다 */
+	void ApplyToughStats();
 
 	int32 PendingLevel = 0;
 	double LastAttackTime = -1000.0;
@@ -144,4 +151,10 @@ private:
 	TArray<TWeakObjectPtr<AActor>> SpawnedSummons;
 	FTimerHandle SpawnTimer;
 	bool bDead = false;
+
+	bool bTough = false;
+	FSoulMobToughRules ToughRules;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> ToughMID;
 };

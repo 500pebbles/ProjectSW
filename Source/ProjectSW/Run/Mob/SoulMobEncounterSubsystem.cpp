@@ -11,6 +11,7 @@
 #include "Utility/SoulLog.h"
 #include "Run/Core/SoulRunSubsystem.h"
 
+#include "Components/CapsuleComponent.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
@@ -35,6 +36,9 @@ void USoulMobEncounterSubsystem::EndFloor()
 	StuckTrack.Reset();
 	NormalPoints = 0;
 	BossPoints = 0;
+	ToughQuota.Reset();
+	ToughPlanned = 0;
+	ToughApplied = 0;
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(RescueTimer);
@@ -147,21 +151,34 @@ void USoulMobEncounterSubsystem::BeginFloor(const FSoulMobFloorRules& InRules, c
 
 		const FSoulMobRoomCount* Count = &Rules.SingleRoom;
 		const TArray<FVector>* Candidates = Rules.Patterns ? &Rules.Patterns->SingleRoom : nullptr;
+		int32 Tough = Rules.Tough.SingleRoom;
 		if (Room.Shape == EPMGRoomShape::DualHorizontal || Room.Shape == EPMGRoomShape::DualVertical)
 		{
 			Count = &Rules.DualRoom;
 			Candidates = Rules.Patterns ? &Rules.Patterns->DualRoom : nullptr;
+			Tough = Rules.Tough.DualRoom;
 		}
 		else if (Room.Shape == EPMGRoomShape::Quad)
 		{
 			Count = &Rules.QuadRoom;
 			Candidates = Rules.Patterns ? &Rules.Patterns->QuadRoom : nullptr;
+			Tough = Rules.Tough.QuadRoom;
 		}
 		if (!Candidates || Candidates->IsEmpty())
 			continue;
 
 		TArray<FVector> Pool = *Candidates;
-		const int32 Num = FMath::Min(Stream.RandRange(Count->Min, FMath::Max(Count->Min, Count->Max)), Pool.Num());
+		const int32 Wanted = Stream.RandRange(Count->Min, FMath::Max(Count->Min, Count->Max));
+		const int32 Num = FMath::Min(Wanted, Pool.Num());
+		if (Num < Wanted)
+		{
+			SW_LOG_WARNING("[ENC] floor=%d room=%d 후보 %d개가 몹 수 %d보다 적음 (DA_SpawnPatterns)", Floor, RoomId, Pool.Num(), Wanted);
+		}
+		if (const int32 RoomTough = FMath::Min(Tough, Num); RoomTough > 0)
+		{
+			ToughQuota.Add(RoomId, RoomTough);
+			ToughPlanned += RoomTough;
+		}
 		for (int32 i = 0; i < Num; ++i)
 		{
 			const int32 Pick = Stream.RandRange(0, Pool.Num() - 1);
@@ -174,7 +191,7 @@ void USoulMobEncounterSubsystem::BeginFloor(const FSoulMobFloorRules& InRules, c
 		++RoomCount;
 	}
 
-	SW_LOG("[ENC] floor=%d combatRooms=%d normalPoints=%d bossPoints=%d normalSet=%s bossSet=%s", Floor, RoomCount, NormalPoints, BossPoints,
+	SW_LOG("[ENC] floor=%d combatRooms=%d normalPoints=%d toughPlanned=%d bossPoints=%d normalSet=%s bossSet=%s", Floor, RoomCount, NormalPoints, ToughPlanned, BossPoints,
 		NormalSet ? *NormalSet->GetName() : TEXT("none"), BossSet ? *BossSet->GetName() : TEXT("none"));
 	if (!BossSet || BossPoints == 0)
 	{
@@ -188,6 +205,10 @@ void USoulMobEncounterSubsystem::NotifyMobKilled(ASoulCharacterEnemy* Enemy, con
 {
 	if (!Mob)
 		return;
+	if (Mob->IsTough())
+	{
+		SW_LOG("[ENC] tough killed %s score=%d expWeight=%.1f", Enemy ? *Enemy->GetName() : TEXT("?"), Mob->GetScoreValue(), Mob->GetExpWeight());
+	}
 	if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this); Run && Mob->GetScoreValue() > 0)
 	{
 		Run->AddScore(Mob->GetRole() == ESoulMobRole::Boss ? FName(TEXT("Boss")) : FName(TEXT("Kill")), Mob->GetScoreValue());
@@ -197,6 +218,18 @@ void USoulMobEncounterSubsystem::NotifyMobKilled(ASoulCharacterEnemy* Enemy, con
 		Run->AddKill();
 	}
 	OnMobKilled.Broadcast(Enemy, Mob);
+}
+
+bool USoulMobEncounterSubsystem::ClaimTough(const FVector& Location, ESoulMobRole Role)
+{
+	if (!bActive || Role != ESoulMobRole::Normal)
+		return false;
+	int32* Quota = ToughQuota.Find(FindRoomAt(Location));
+	if (!Quota || *Quota <= 0)
+		return false;
+	--*Quota;
+	++ToughApplied;
+	return true;
 }
 
 int32 USoulMobEncounterSubsystem::FindRoomAt(const FVector& Location) const
@@ -276,7 +309,7 @@ void USoulMobEncounterSubsystem::RescueStuckMobs()
 		FNavLocation Point;
 		if (NavSys->GetRandomReachablePointInRadius(Player->GetActorLocation(), Mob->RescueDistance, Point))
 		{
-			Enemy->TeleportTo(Point.Location + FVector(0.f, 0.f, Enemy->GetDefaultHalfHeight()), Enemy->GetActorRotation(), false, true);
+			Enemy->TeleportTo(Point.Location + FVector(0.f, 0.f, Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()), Enemy->GetActorRotation(), false, true);
 			Info.LastLocation = Enemy->GetActorLocation();
 			Info.LastMovedTime = Now;
 			SW_LOG("[ENC] rescue %s", *Enemy->GetName());
