@@ -31,9 +31,12 @@ public:
 	void InitRoom(const FPMGResultRoom& Room, float CellSize);
 	void SetTriggerEnabled(bool bEnabled);
 	void MarkVisited();
+	FVector GetWaypointLocation(float PawnHalfHeight) const;
 
 	FORCEINLINE bool IsVisited() const { return bVisited; }
 	FORCEINLINE int32 GetRoomId() const { return RoomId; }
+	FORCEINLINE bool HasWaypoint() const { return bHasWaypoint; }
+	FORCEINLINE bool IsInCombat() const { return bInCombat; }
 
 	bool HasCombat() const;
 	void StartCombat();
@@ -68,6 +71,15 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TObjectPtr<USoulEnemySet> DefaultEnemySet;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	bool bHasWaypoint = false;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Setup", meta = (EditCondition = "bHasWaypoint"))
+	float WaypointRadius = 300.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Setup", meta = (EditCondition = "bHasWaypoint"))
+	float WaypointFallbackHeight = 150.f;
 
 	UPROPERTY()
 	TArray<TObjectPtr<ASoulCharacterEnemy>> AliveEnemies;

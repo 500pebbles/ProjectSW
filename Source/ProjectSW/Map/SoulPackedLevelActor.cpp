@@ -3,6 +3,7 @@
 
 #include "SoulPackedLevelActor.h"
 #include "Components/BoxComponent.h"
+#include "NavigationSystem.h"
 #include "SoulRoomSpawnPointComponent.h"
 #include "Character/SoulEnemySet.h"
 #include "Character/SoulCharacterPlayer.h"
@@ -54,6 +55,18 @@ void ASoulPackedLevelActor::SetTriggerEnabled(bool bEnabled)
 void ASoulPackedLevelActor::MarkVisited()
 {
 	bVisited = true;
+}
+
+FVector ASoulPackedLevelActor::GetWaypointLocation(float PawnHalfHeight) const
+{
+	const FVector Center = GetActorLocation();
+	if (const UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld()))
+	{
+		FNavLocation NavLocation;
+		if (NavSys->GetRandomReachablePointInRadius(Center, WaypointRadius, NavLocation))
+			return NavLocation.Location + FVector(0.0, 0.0, PawnHalfHeight);
+	}
+	return Center + FVector(0.0, 0.0, WaypointFallbackHeight);
 }
 
 bool ASoulPackedLevelActor::HasCombat() const
