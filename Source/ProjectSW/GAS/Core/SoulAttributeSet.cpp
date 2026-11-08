@@ -120,7 +120,23 @@ void USoulAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectMo
 			
 			const bool bIsCriticalHit = USoulAbilitySystemLibrary::IsCriticalHit(Props.EffectContextHandle); 
 			const int32 DamageType =USoulAbilitySystemLibrary::GetDamageType(Props.EffectContextHandle); 
-			ShowDamageText(Props, LocalIncomingDamage, bIsCriticalHit, DamageType);
+			// 런 무기: 물리와 속성이 둘 다 있으면 저항 전 비율로 나눠 숫자 2개 (합은 실제 피해)
+			float PhysicalPart = 0.f, ElementPart = 0.f;
+			int32 ElementIndex = 0, TypeIndex = 0;
+			for (const TTuple<FGameplayTag, FGameplayTag>& Pair : SoulTags::DamageTypes::GetDamageTypes())
+			{
+				const float Part = Data.EffectSpec.GetSetByCallerMagnitude(Pair.Key, false, 0.f);
+				if (Pair.Key == SoulTags::DamageTypes::Physical) PhysicalPart = Part;
+				else if (Part > 0.f) { ElementPart += Part; ElementIndex = TypeIndex; }
+				++TypeIndex;
+			}
+			if (PhysicalPart > 0.f && ElementPart > 0.f)
+			{
+				const float PhysicalShown = LocalIncomingDamage * PhysicalPart / (PhysicalPart + ElementPart);
+				ShowDamageText(Props, PhysicalShown, bIsCriticalHit, 0);
+				ShowDamageText(Props, LocalIncomingDamage - PhysicalShown, bIsCriticalHit, ElementIndex);
+			}
+			else ShowDamageText(Props, LocalIncomingDamage, bIsCriticalHit, DamageType);
 		}
 	}
 }

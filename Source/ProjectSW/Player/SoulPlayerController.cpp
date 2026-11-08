@@ -230,6 +230,7 @@ void ASoulPlayerController::ShowDamageText_Implementation(float DamageAmount, AC
 	DamageText->RegisterComponent();
 	DamageText->AttachToComponent(TargetCharacter->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 	DamageText->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+	if (DamageType != 0) DamageText->AddWorldOffset(ElementTextOffset * (bIsCriticalHit ? 2.f : 1.f));
 	DamageText->SetDamageText(DamageAmount, bIsCriticalHit, DamageType);
 }
 

@@ -184,6 +184,7 @@ private:
 	void ApplyDescendHeal();
 	void RunSelfTestEvents(int32 Step);
 	void RunSelfTestItems(int32 Step);
+	void RunSelfTestWeapon(int32 Step);
 
 	TWeakObjectPtr<APMGMapBuilder> Builder;
 	TWeakObjectPtr<APawn> PlayerPawn;
@@ -220,4 +221,5 @@ private:
 	FTimerHandle SelfTestWatchdog;
 	FTimerHandle SelfTestHealTimer;
 	TWeakObjectPtr<AActor> SelfTestPickup;
+	FTimerHandle SelfTestInputTimer;
 };

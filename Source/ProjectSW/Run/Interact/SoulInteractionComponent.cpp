@@ -1,5 +1,6 @@
 #include "Run/Interact/SoulInteractionComponent.h"
 #include "Run/Interact/SoulInteractableComponent.h"
+#include "Run/Equipment/SoulEquipmentComponent.h"
 #include "Utility/SoulLog.h"
 
 #include "Components/Widget.h"
@@ -103,6 +104,14 @@ void USoulInteractionComponent::HandleCollect(AActor* Target)
 		if (!IsValid(Target) || Target->IsActorBeingDestroyed())
 		{
 			OnItemCollected.Broadcast(Target);
+			// 무기 칸이 비었으면 바로 장착 (런 폰만 켠다)
+			if (bAutoEquipOnPickup)
+			{
+				if (const USoulEquipmentComponent* Equipment = USoulEquipmentComponent::Find(GetOwner()))
+				{
+					Equipment->TryAutoEquipFromInventory(Inventory);
+				}
+			}
 		}
 	}
 }

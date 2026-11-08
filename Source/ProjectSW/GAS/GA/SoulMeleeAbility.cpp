@@ -7,6 +7,7 @@
 #include "AbilitySystemComponent.h"
 #include "GAS/Core/SoulAttributeSet.h"
 #include "Utility/SoulGameplayTags.h"
+#include "Run/Equipment/SoulEquipmentComponent.h"
 
 void USoulMeleeAbility::ApplyMeleeDamage(AActor* TargetActor, float Multiplier)
 {
@@ -37,6 +38,9 @@ void USoulMeleeAbility::ApplyMeleeDamage(AActor* TargetActor, float Multiplier)
 		const float ScaledDamage = Pair.Value.GetValueAtLevel(GetAbilityLevel());
 		UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, Pair.Key, ScaledDamage * Multiplier * PowerScale * AmpScale);
 	}	
+	// 런 무기: 물리 x ElementRatio를 무기 속성으로 더한다 (컴포넌트가 없는 팀 폰은 그대로)
+	if (const USoulEquipmentComponent* Equipment = AvatarActor->FindComponentByClass<USoulEquipmentComponent>())
+		Equipment->AppendWeaponDamage(SpecHandle);
 	
 	
 	// Step 3 : 대상에게 적용.

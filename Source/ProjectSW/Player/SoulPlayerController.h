@@ -123,6 +123,10 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TSubclassOf<USoulDamageTextComponent> DamageTextComponentClass;
 
+	/** 속성 숫자(DamageType != 0)를 물리 숫자 위로 띄우는 거리. 치명타는 2배 */
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	FVector ElementTextOffset = FVector(0.f, 0.f, 45.f);
+
 /* UI : Map */
 public:
 	void ToggleMap();

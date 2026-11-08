@@ -9,6 +9,8 @@
 #include "Run/Interact/SoulInteractionComponent.h"
 #include "Run/Interact/SoulInteractableComponent.h"
 #include "Run/Interact/SoulItemLibrary.h"
+#include "Run/Equipment/SoulEquipmentComponent.h"
+#include "Run/Equipment/SoulEquipmentDefinition.h"
 #include "Run/Event/SoulRoomEventObject.h"
 #include "Run/Event/SoulRoomEvent_Effect.h"
 #include "Run/Event/SoulFloorMine.h"
@@ -1334,6 +1336,10 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 		{
 			RunSelfTestItems(Step);
 		}
+		else if (SelfTestMode == TEXT("weapon"))
+		{
+			RunSelfTestWeapon(Step);
+		}
 		else
 		{
 			RunSelfTestFloors();
@@ -1677,6 +1683,133 @@ void USoulFloorDirectorComponent::RunSelfTestItems(int32 Step)
 		break;
 	default:
 		SW_LOG("[SELFTEST] items pickups after boss kill=%d", CountPickups(GetWorld()));
+		FinishSelfTest();
+		break;
+	}
+#endif
+}
+
+void USoulFloorDirectorComponent::RunSelfTestWeapon(int32 Step)
+{
+#if !UE_BUILD_SHIPPING
+	APawn* Pawn = PlayerPawn.Get();
+	USoulInteractionComponent* Interaction = USoulInteractionComponent::Find(Pawn);
+	USoulEquipmentComponent* Equipment = USoulEquipmentComponent::Find(Pawn);
+	auto LogWeapon = [Pawn, Equipment](const TCHAR* Label)
+	{
+		FString MeshName = TEXT("none");
+		TArray<USkeletalMeshComponent*> Meshes;
+		if (Pawn)
+		{
+			Pawn->GetComponents(Meshes);
+		}
+		for (const USkeletalMeshComponent* Mesh : Meshes)
+		{
+			if (Mesh->GetFName() == TEXT("Weapon") && Mesh->GetSkeletalMeshAsset())
+			{
+				MeshName = Mesh->GetSkeletalMeshAsset()->GetName();
+			}
+		}
+		const USoulEquipmentDefinition* Weapon = Equipment ? Equipment->GetCurrentWeapon() : nullptr;
+		SW_LOG("[SELFTEST] weapon %s current=%s mesh=%s", Label, Weapon ? *Weapon->GetName() : TEXT("none"), *MeshName);
+	};
+	switch (Step)
+	{
+	case 0:
+	{
+		LogWeapon(TEXT("start"));
+		const USoulRunConfig* Config = USoulRunGameComponent::GetRunConfig(this);
+		if (Config && Config->ItemTable && Pawn)
+		{
+			FDataTableRowHandle Row;
+			Row.DataTable = Config->ItemTable;
+			Row.RowName = TEXT("Weapon_012");
+			SelfTestPickup = USoulItemLibrary::SpawnPickup(this, Config->WeaponPickupClass, Row, Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * 150.f);
+		}
+		ScheduleSelfTest(1, 0.5f);
+		break;
+	}
+	case 1:
+		if (Interaction && SelfTestPickup.IsValid())
+		{
+			Interaction->CollectTarget(SelfTestPickup.Get());
+		}
+		ScheduleSelfTest(2, 0.5f);
+		break;
+	case 2:
+		LogWeapon(TEXT("after pickup"));
+		DebugGoToCombatRoom();
+		ScheduleSelfTest(3, 3.f);
+		break;
+	case 3:
+	{
+		// 가장 가까운 몹 앞에 서서 평타 6번. 몹 ASC에 걸리는 Spec의 물리와 속성 SetByCaller를 기록한다
+		ASoulCharacterEnemy* Target = nullptr;
+		float Best = TNumericLimits<float>::Max();
+		for (TActorIterator<ASoulCharacterEnemy> It(GetWorld()); It; ++It)
+		{
+			const float Distance = Pawn ? FVector::Dist(It->GetActorLocation(), Pawn->GetActorLocation()) : 0.f;
+			if (Distance < Best)
+			{
+				Best = Distance;
+				Target = *It;
+			}
+		}
+		if (Target && Pawn)
+		{
+			const FVector Front = Target->GetActorLocation() + Target->GetActorForwardVector() * (Target->GetCapsuleComponent()->GetScaledCapsuleRadius() + 90.f);
+			Pawn->TeleportTo(Front, (Target->GetActorLocation() - Front).Rotation(), false, true);
+			if (APlayerController* PC = GetPlayerController())
+			{
+				PC->SetControlRotation((Target->GetActorLocation() - Front).Rotation());
+			}
+			if (UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target))
+			{
+				TargetASC->OnGameplayEffectAppliedDelegateToSelf.AddWeakLambda(this, [TargetASC](UAbilitySystemComponent* Source, const FGameplayEffectSpec& Spec, FActiveGameplayEffectHandle)
+				{
+					FString Parts;
+					for (const TTuple<FGameplayTag, FGameplayTag>& Pair : SoulTags::DamageTypes::GetDamageTypes())
+					{
+						const float Value = Spec.GetSetByCallerMagnitude(Pair.Key, false, 0.f);
+						if (Value > 0.f)
+						{
+							Parts += FString::Printf(TEXT(" %s=%.1f"), *Pair.Key.GetTagName().ToString().RightChop(21), Value);
+						}
+					}
+					if (!Parts.IsEmpty())
+					{
+						auto R = [TargetASC](const FGameplayAttribute& Attribute) { return TargetASC->GetNumericAttribute(Attribute); };
+						SW_LOG("[SELFTEST] weapon hit %s%s hp=%.0f def=%.1f R phys=%.1f fire=%.1f frost=%.1f light=%.1f wind=%.1f holy=%.1f dark=%.1f", *TargetASC->GetAvatarActor()->GetName(), *Parts,
+							R(USoulAttributeSet::GetHealthAttribute()), R(USoulAttributeSet::GetDefenseAttribute()), R(USoulAttributeSet::GetPhysicalResistanceAttribute()), R(USoulAttributeSet::GetFireResistanceAttribute()),
+							R(USoulAttributeSet::GetFrostResistanceAttribute()), R(USoulAttributeSet::GetLightningResistanceAttribute()), R(USoulAttributeSet::GetWindResistanceAttribute()),
+							R(USoulAttributeSet::GetHolyResistanceAttribute()), R(USoulAttributeSet::GetDarkResistanceAttribute()));
+					}
+				});
+			}
+			SW_LOG("[SELFTEST] weapon target %s", *Target->GetName());
+		}
+		GetWorld()->GetTimerManager().SetTimer(SelfTestInputTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			if (USoulAbilitySystemComponent* ASC = Cast<USoulAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PlayerPawn.Get())))
+			{
+				ASC->SetNumericAttributeBase(USoulAttributeSet::GetHealthAttribute(), ASC->GetNumericAttribute(USoulAttributeSet::GetMaxHealthAttribute()));
+				ASC->AbilityInputTagPressed(SoulTags::InputTags::LMB);
+				ASC->AbilityInputTagReleased(SoulTags::InputTags::LMB);
+			}
+		}), 0.5f, true);
+		ScheduleSelfTest(4, 4.f);
+		break;
+	}
+	case 4:
+		GetWorld()->GetTimerManager().ClearTimer(SelfTestInputTimer);
+		GEngine->Exec(GetWorld(), TEXT("soul.Weapon.Equip"));
+		LogWeapon(TEXT("after unequip"));
+		GEngine->Exec(GetWorld(), TEXT("soul.Weapon.Equip 029"));
+		LogWeapon(TEXT("cheat 029"));
+		ScheduleSelfTest(5, 0.5f);
+		break;
+	default:
+		SoulFloorDirectorDebug::KillAllMobs(GetWorld());
 		FinishSelfTest();
 		break;
 	}
