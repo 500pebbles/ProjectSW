@@ -31,8 +31,22 @@ public:
 	/** 대상과 거리로 공격 몽타주를 고른다. 패턴 인터페이스가 있으면 그쪽을 부른다 */
 	UAnimMontage* ChooseAttack(AActor* Target);
 
-	/** 공격 시작을 기록한다 (간격과 쿨타임) */
+	/** 공격 시작을 기록한다 (몽타주 쿨타임) */
 	void NotifyAttackStarted(UAnimMontage* Montage);
+
+	/** 공격 끝을 기록한다. AttackInterval은 여기부터 잰다 (클립 + 간격) */
+	void NotifyAttackEnded();
+
+	/** 마지막 공격 시작이나 끝 시각 (정체 구제가 사격 중인 몹을 건너뛰는 데 쓴다) */
+	double GetLastAttackTime() const { return LastAttackTime; }
+
+	/** 정체 구제: 이 시간 동안 이동도 공격도 없고 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob|Rescue", meta = (ClampMin = "0", Units = "s"))
+	float RescueStuckSeconds = 0.f;
+
+	/** 정체 구제: 플레이어와 이 거리보다 멀면 플레이어 근처 이 반경 안으로 옮긴다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob|Rescue", meta = (ClampMin = "0", Units = "cm"))
+	float RescueDistance = 0.f;
 
 	/** 공격 규칙 배율 x BaseDamageScale x 층 배율 */
 	float GetDamageMultiplier(UAnimMontage* Montage) const;
@@ -68,7 +82,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob")
 	ESoulMobRole Role = ESoulMobRole::Normal;
 
-	/** 공격과 공격 사이 최소 간격 */
+	/** 공격이 끝난 뒤 다음 공격까지 최소 간격 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob|Attack", meta = (ClampMin = "0", Units = "s"))
 	float AttackInterval = 0.f;
 

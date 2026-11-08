@@ -185,6 +185,7 @@ private:
 	void RunSelfTestEvents(int32 Step);
 	void RunSelfTestItems(int32 Step);
 	void RunSelfTestWeapon(int32 Step);
+	void RunSelfTestSummon(int32 Step);
 
 	TWeakObjectPtr<APMGMapBuilder> Builder;
 	TWeakObjectPtr<APawn> PlayerPawn;

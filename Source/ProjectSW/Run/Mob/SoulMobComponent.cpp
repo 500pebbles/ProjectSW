@@ -223,6 +223,11 @@ UAnimMontage* USoulMobComponent::ChooseAttack(AActor* Target)
 	return Candidates.Last();
 }
 
+void USoulMobComponent::NotifyAttackEnded()
+{
+	LastAttackTime = GetWorld()->GetTimeSeconds();
+}
+
 void USoulMobComponent::NotifyAttackStarted(UAnimMontage* Montage)
 {
 	LastAttackTime = GetWorld()->GetTimeSeconds();

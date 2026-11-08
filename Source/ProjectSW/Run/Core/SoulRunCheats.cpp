@@ -1,6 +1,7 @@
 // 런 치트 (개발 빌드 전용)
 #include "Run/Core/SoulRunSubsystem.h"
 #include "GAS/Core/SoulAttributeSet.h"
+#include "Interface/SoulCombatInterface.h"
 #include "Utility/SoulLog.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
@@ -21,6 +22,11 @@ namespace SoulRunCheats
 		if (!ASC)
 		{
 			SW_LOG_WARNING("soul.Run.ForceEnd Fail : 폰 ASC 없음");
+			return;
+		}
+		if (Pawn->Implements<USoulCombatInterface>() && ISoulCombatInterface::Execute_IsDead(Pawn))
+		{
+			SW_LOG_WARNING("soul.Run.ForceEnd Fail : 이미 죽은 폰");
 			return;
 		}
 

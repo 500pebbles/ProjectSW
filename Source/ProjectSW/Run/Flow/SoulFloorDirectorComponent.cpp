@@ -36,6 +36,9 @@
 #include "Animation/AnimMontage.h"
 #include "Blueprint/UserWidget.h"
 #include "Build/PMGMapBuilder.h"
+#include "AIController.h"
+#include "BehaviorTree/BehaviorTreeComponent.h"
+#include "BehaviorTree/BTNode.h"
 #include "Inventory/Player/InventoryComponent.h"
 #include "Item/ItemActorBase.h"
 #include "Camera/PlayerCameraManager.h"
@@ -84,6 +87,40 @@ namespace SoulFloorDirectorDebug
 			Enemy->Die();
 		}
 		SW_LOG("[SELFTEST] KillAll count=%d", Targets.Num());
+	}
+
+	/** 디버그: 살아 있는 보스 체력을 최대 체력 x Ratio만큼 깎는다 (소환 임계 확인용, 0 아래로는 안 내림) */
+	static ASoulCharacterEnemy* DamageBoss(UWorld* World, float Ratio)
+	{
+		for (TActorIterator<ASoulCharacterEnemy> It(World); It; ++It)
+		{
+			const USoulMobComponent* Mob = USoulMobComponent::Find(*It);
+			UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(*It);
+			if (!Mob || Mob->GetRole() != ESoulMobRole::Boss || !ASC || ISoulCombatInterface::Execute_IsDead(*It))
+				continue;
+			const float Max = ASC->GetNumericAttribute(USoulAttributeSet::GetMaxHealthAttribute());
+			const float Health = ASC->GetNumericAttribute(USoulAttributeSet::GetHealthAttribute());
+			ASC->SetNumericAttributeBase(USoulAttributeSet::GetHealthAttribute(), FMath::Max(1.f, Health - Max * Ratio));
+			SW_LOG("[SELFTEST] DamageBoss %s hp %.0f -> %.0f (%.0f%%)", *It->GetName(), Health, ASC->GetNumericAttribute(USoulAttributeSet::GetHealthAttribute()),
+				100.f * ASC->GetNumericAttribute(USoulAttributeSet::GetHealthAttribute()) / FMath::Max(Max, 1.f));
+			return *It;
+		}
+		SW_LOG_WARNING("[SELFTEST] DamageBoss: 살아 있는 보스 없음");
+		return nullptr;
+	}
+
+	static int32 CountSummons(UWorld* World)
+	{
+		int32 Count = 0;
+		for (TActorIterator<ASoulCharacterEnemy> It(World); It; ++It)
+		{
+			const USoulMobComponent* Mob = USoulMobComponent::Find(*It);
+			if (Mob && Mob->GetRole() == ESoulMobRole::Summon && !It->IsActorBeingDestroyed() && !ISoulCombatInterface::Execute_IsDead(*It))
+			{
+				++Count;
+			}
+		}
+		return Count;
 	}
 }
 
@@ -214,7 +251,19 @@ void USoulFloorDirectorComponent::GenerateCurrentFloor()
 	if (!Settings)
 	{
 		SW_LOG_ERROR("[FLOOR] %d층 MapSettings가 비어 있음 (DA_DungeonFlow)", CurrentFloorIndex + 1);
-		AbortFloorStart(TEXT("map settings"));
+		if (bFirstFloor)
+		{
+			AbortFloorStart(TEXT("map settings"));
+		}
+		else
+		{
+			// 이전 층을 지운 빈 월드라 폰을 풀면 떨어진다. 생성 실패와 같은 경로로 보낸다
+			if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this))
+			{
+				Run->EndRun(false);
+			}
+			RestartDungeonMap();
+		}
 		return;
 	}
 
@@ -414,7 +463,13 @@ void USoulFloorDirectorComponent::Reveal()
 	OnFloorReady.Broadcast(CurrentFloorIndex + 1);
 
 	// Exit 방에 전투가 없으면 클리어 신호가 오지 않으므로 바로 포탈을 예약한다
-	if (ExitRoom.IsValid() && !ExitRoom->HasCombat() && !IsLastFloor())
+	if (ExitRoom.IsValid() && !ExitRoom->HasCombat() && IsLastFloor())
+	{
+		// 보스 세트나 보스 포인트가 빠지면 클리어 신호가 오지 않아 런이 멈춘다
+		SW_LOG_ERROR("[FLOOR] 마지막 층 Exit 방에 보스 포인트 없음 (MobRules.BossSet, BossRoomType 확인), 바로 클리어");
+		BeginClear();
+	}
+	else if (ExitRoom.IsValid() && !ExitRoom->HasCombat() && !IsLastFloor())
 	{
 		SW_LOG("[FLOOR] Exit 방에 전투 없음, 포탈 예약");
 		SchedulePortal();
@@ -694,7 +749,16 @@ void USoulFloorDirectorComponent::RestartDungeonMap()
 	{
 		// 셀프 테스트는 재시작 요청까지만 확인하고 끝낸다 (다시 열면 테스트가 처음부터 돈다)
 		SW_LOG("[SELFTEST] restart requested");
-		FinishSelfTest();
+		if (SelfTestMode == TEXT("death"))
+		{
+			FinishSelfTest();
+		}
+		else
+		{
+			SW_LOG_ERROR("[SELFTEST] FAIL restart requested mode=%s floor=%d", *SelfTestMode, CurrentFloorIndex + 1);
+			GLog->Flush();
+			FPlatformMisc::RequestExitWithStatus(true, 3);
+		}
 		return;
 	}
 #endif
@@ -1293,7 +1357,8 @@ void USoulFloorDirectorComponent::ArmSelfTestWatchdog(const TCHAR* Step)
 		}
 		else
 		{
-			FPlatformMisc::RequestExitWithStatus(false, 3);
+			GLog->Flush();
+			FPlatformMisc::RequestExitWithStatus(true, 3);
 		}
 	}), SoulFloorDirector::SelfTestStepTimeoutSec, false);
 #endif
@@ -1339,6 +1404,10 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 		else if (SelfTestMode == TEXT("weapon"))
 		{
 			RunSelfTestWeapon(Step);
+		}
+		else if (SelfTestMode == TEXT("summon"))
+		{
+			RunSelfTestSummon(Step);
 		}
 		else
 		{
@@ -1504,9 +1573,24 @@ void USoulFloorDirectorComponent::RunSelfTestSpawn(int32 Step)
 	{
 	case 0:
 		GEngine->Exec(GetWorld(), TEXT("soul.Mob.Spawn /Game/Blueprints/Character/Enemy/Mob/JunkGarura/BP_Mob_JunkGarura.BP_Mob_JunkGarura_C 900"));
+		// 0.5초마다 BT 노드, 속도, 몽타주, 공격 가능 여부를 남긴다 (발사 간격이 어디서 늘어나는지)
+		GetWorld()->GetTimerManager().SetTimer(SelfTestInputTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			for (TActorIterator<ASoulCharacterEnemy> It(GetWorld()); It; ++It)
+			{
+				const USoulMobComponent* Mob = USoulMobComponent::Find(*It);
+				const AAIController* AI = Cast<AAIController>(It->GetController());
+				const UBehaviorTreeComponent* BT = AI ? Cast<UBehaviorTreeComponent>(AI->GetBrainComponent()) : nullptr;
+				const UBTNode* Node = BT ? BT->GetActiveNode() : nullptr;
+				const UAnimInstance* Anim = It->GetMesh() ? It->GetMesh()->GetAnimInstance() : nullptr;
+				SW_LOG("[SELFTEST] garura t=%.2f node=%s speed=%.0f montage=%d canAttack=%d", GetWorld()->GetTimeSeconds(), Node ? *Node->GetNodeName() : TEXT("none"),
+					It->GetVelocity().Size2D(), Anim && Anim->IsAnyMontagePlaying() ? 1 : 0, Mob && Mob->CanAttackNow() ? 1 : 0);
+			}
+		}), 0.5f, true);
 		ScheduleSelfTest(1, 20.f);
 		break;
 	case 1:
+		GetWorld()->GetTimerManager().ClearTimer(SelfTestInputTimer);
 		LogPlayerHealth(TEXT("garura after"));
 		SoulFloorDirectorDebug::KillAllMobs(GetWorld());
 		ScheduleSelfTest(2, 2.f);
@@ -1816,6 +1900,60 @@ void USoulFloorDirectorComponent::RunSelfTestWeapon(int32 Step)
 #endif
 }
 
+void USoulFloorDirectorComponent::RunSelfTestSummon(int32 Step)
+{
+#if !UE_BUILD_SHIPPING
+	switch (Step)
+	{
+	case 0:
+		// 3층(ThePrimal)까지 바로 내려간다
+		if (!IsLastFloor())
+		{
+			RequestDescend();
+			return;
+		}
+		DebugGoToBossRoom();
+		GetWorld()->GetTimerManager().SetTimer(SelfTestHealTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
+		{
+			if (UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PlayerPawn.Get()))
+			{
+				ASC->SetNumericAttributeBase(USoulAttributeSet::GetHealthAttribute(), ASC->GetNumericAttribute(USoulAttributeSet::GetMaxHealthAttribute()));
+			}
+		}), 1.f, true);
+		ScheduleSelfTest(1, 4.f);
+		break;
+	case 1:
+		SW_LOG("[SELFTEST] summon before=%d", SoulFloorDirectorDebug::CountSummons(GetWorld()));
+		SoulFloorDirectorDebug::DamageBoss(GetWorld(), 0.35f);
+		ScheduleSelfTest(2, 2.f);
+		break;
+	case 2:
+		SW_LOG("[SELFTEST] summon after 70%%=%d", SoulFloorDirectorDebug::CountSummons(GetWorld()));
+		SoulFloorDirectorDebug::DamageBoss(GetWorld(), 0.05f);
+		ScheduleSelfTest(3, 1.f);
+		break;
+	case 3:
+		SW_LOG("[SELFTEST] summon repeat above 40%%=%d", SoulFloorDirectorDebug::CountSummons(GetWorld()));
+		SoulFloorDirectorDebug::DamageBoss(GetWorld(), 0.25f);
+		ScheduleSelfTest(4, 2.f);
+		break;
+	case 4:
+		SW_LOG("[SELFTEST] summon after 40%%=%d", SoulFloorDirectorDebug::CountSummons(GetWorld()));
+		if (ASoulCharacterEnemy* Boss = SoulFloorDirectorDebug::DamageBoss(GetWorld(), 0.f))
+		{
+			Boss->Die();
+		}
+		ScheduleSelfTest(5, 3.f);
+		break;
+	default:
+		GetWorld()->GetTimerManager().ClearTimer(SelfTestHealTimer);
+		SW_LOG("[SELFTEST] summon after boss death=%d clear=%d", SoulFloorDirectorDebug::CountSummons(GetWorld()), bClearPending);
+		FinishSelfTest();
+		break;
+	}
+#endif
+}
+
 void USoulFloorDirectorComponent::RunSelfTestBossFront(int32 Step)
 {
 #if !UE_BUILD_SHIPPING
@@ -1917,11 +2055,23 @@ static FAutoConsoleCommandWithWorld GSoulFloorSelfTestCommand(
 	TEXT("층이 준비될 때마다 Next → 포탈 → 종료 순서로 스스로 진행한다 (자동 실행 확인용)"),
 	FConsoleCommandWithWorldDelegate::CreateLambda([](UWorld* World)
 	{
-		SoulFloorDirector::bSelfTestRequested = true;
+		// Director가 있으면 지금 맵에서만 켠다. 없을 때만 다음 L_Dungeon을 위해 플래그를 남긴다
 		if (USoulFloorDirectorComponent* Director = USoulFloorDirectorComponent::Get(World))
 		{
 			Director->StartSelfTest();
 		}
+		else
+		{
+			SoulFloorDirector::bSelfTestRequested = true;
+		}
+	}));
+
+static FAutoConsoleCommandWithWorldAndArgs GSoulMobDamageBossCommand(
+	TEXT("soul.Mob.DamageBoss"),
+	TEXT("soul.Mob.DamageBoss <비율> : 살아 있는 보스 체력을 최대 체력 x 비율만큼 깎는다 (소환 임계 확인)"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		SoulFloorDirectorDebug::DamageBoss(World, Args.Num() > 0 ? FCString::Atof(*Args[0]) : 0.3f);
 	}));
 
 static FAutoConsoleCommandWithWorld GSoulFloorGoBossCommand(

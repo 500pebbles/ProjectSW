@@ -201,6 +201,11 @@ void USoulMobAttackAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, 
 			AI->ClearFocus(EAIFocusPriority::Gameplay);
 		}
 		Enemy->GetCharacterMovement()->MaxWalkSpeed = Enemy->bHitReacting ? 0.f : Enemy->BaseWalkSpeed;
+		// 간격은 공격이 끝난 때부터 잰다 (몽타주를 고르지 못한 시도는 공격이 아니다)
+		if (USoulMobComponent* Mob = USoulMobComponent::Find(Enemy); Mob && ActiveMontage)
+		{
+			Mob->NotifyAttackEnded();
+		}
 	}
 	ActiveMontage = nullptr;
 	ActiveTarget.Reset();

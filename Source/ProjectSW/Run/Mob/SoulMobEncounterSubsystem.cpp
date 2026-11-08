@@ -18,10 +18,8 @@
 
 namespace SoulEncounter
 {
-	/** 구제: 이 시간 동안 거의 안 움직였고 플레이어와 멀면 옮긴다 (디자인 값이 아니라 막힘 감지 기준) */
-	static constexpr double StuckSeconds = 20.0;
+	/** 구제: 이만큼도 안 움직이면 멈춘 것으로 본다 (막힘 감지 기준). 시간과 거리는 USoulMobComponent의 Rescue 칸 */
 	static constexpr float StuckMoveTolerance = 50.f;
-	static constexpr float StuckFarDistance = 600.f;
 }
 
 void USoulMobEncounterSubsystem::Deinitialize()
@@ -178,6 +176,10 @@ void USoulMobEncounterSubsystem::BeginFloor(const FSoulMobFloorRules& InRules, c
 
 	SW_LOG("[ENC] floor=%d combatRooms=%d normalPoints=%d bossPoints=%d normalSet=%s bossSet=%s", Floor, RoomCount, NormalPoints, BossPoints,
 		NormalSet ? *NormalSet->GetName() : TEXT("none"), BossSet ? *BossSet->GetName() : TEXT("none"));
+	if (!BossSet || BossPoints == 0)
+	{
+		SW_LOG_WARNING("[ENC] floor=%d 보스 세트(%s)나 보스 포인트(%d)가 없음", Floor, BossSet ? *BossSet->GetName() : TEXT("none"), BossPoints);
+	}
 
 	GetWorld()->GetTimerManager().SetTimer(RescueTimer, FTimerDelegate::CreateUObject(this, &ThisClass::RescueStuckMobs), 1.f, true);
 }
@@ -251,7 +253,7 @@ void USoulMobEncounterSubsystem::RescueStuckMobs()
 	{
 		ASoulCharacterEnemy* Enemy = *It;
 		const USoulMobComponent* Mob = USoulMobComponent::Find(Enemy);
-		if (!Mob || Mob->IsStationary() || ISoulCombatInterface::Execute_IsDead(Enemy))
+		if (!Mob || Mob->IsStationary() || ISoulCombatInterface::Execute_IsDead(Enemy) || Mob->RescueStuckSeconds <= 0.f || Mob->RescueDistance <= 0.f)
 			continue;
 
 		FStuckInfo& Info = StuckTrack.FindOrAdd(Enemy);
@@ -262,11 +264,13 @@ void USoulMobEncounterSubsystem::RescueStuckMobs()
 			continue;
 		}
 
-		if (Now - Info.LastMovedTime < SoulEncounter::StuckSeconds || FVector::Dist2D(Enemy->GetActorLocation(), Player->GetActorLocation()) < SoulEncounter::StuckFarDistance)
+		// 이동도 공격도 없을 때만 (서서 쏘는 원거리 몹은 건너뛴다)
+		if (Now - Info.LastMovedTime < Mob->RescueStuckSeconds || Now - Mob->GetLastAttackTime() < Mob->RescueStuckSeconds
+			|| FVector::Dist2D(Enemy->GetActorLocation(), Player->GetActorLocation()) < Mob->RescueDistance)
 			continue;
 
 		FNavLocation Point;
-		if (NavSys->GetRandomReachablePointInRadius(Player->GetActorLocation(), SoulEncounter::StuckFarDistance, Point))
+		if (NavSys->GetRandomReachablePointInRadius(Player->GetActorLocation(), Mob->RescueDistance, Point))
 		{
 			Enemy->TeleportTo(Point.Location + FVector(0.f, 0.f, Enemy->GetDefaultHalfHeight()), Enemy->GetActorRotation(), false, true);
 			Info.LastLocation = Enemy->GetActorLocation();
