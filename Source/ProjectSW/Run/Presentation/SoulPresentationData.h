@@ -144,6 +144,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal")
 	FLinearColor PortalBannerColor = FLinearColor(0.75f, 0.45f, 1.f);
 
+	/** 런 층마다 화면 구석에 띄우는 지도 키 안내. {Key}는 지도 키 이름. 비우면 안 띄운다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
+	FText MapKeyHintFormat = NSLOCTEXT("SoulRun", "MapKeyHint", "{Key} 지도");
+
+	/** 화면 기준 앵커와 정렬 (1,0 = 오른쪽 위) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
+	FVector2D MapKeyHintAnchor = FVector2D(1.f, 0.f);
+
+	/** 앵커에서 떨어진 자리 (px) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
+	FVector2D MapKeyHintOffset = FVector2D(-24.f, 120.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
+	FLinearColor MapKeyHintColor = FLinearColor(0.9f, 0.9f, 0.9f);
+
 	/** 게이트 F (입장) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
 	TObjectPtr<USoundBase> EntrySound;

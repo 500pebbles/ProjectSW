@@ -31,6 +31,9 @@
 #include "Interface/SoulCombatInterface.h"
 #include "GAS/Core/SoulAttributeSet.h"
 #include "Map/SoulPackedLevelActor.h"
+#include "Map/SoulMapSubsystem.h"
+#include "Map/SoulMapWidget.h"
+#include "Run/Interact/SoulHighlightComponent.h"
 #include "Player/SoulPlayerController.h"
 #include "UI/HUD/SoulHUD.h"
 #include "Utility/SoulGameplayTags.h"
@@ -183,6 +186,7 @@ void USoulFloorDirectorComponent::BeginPlay()
 
 void USoulFloorDirectorComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	HideMapKeyHint();
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearAllTimersForObject(this);
@@ -499,6 +503,7 @@ void USoulFloorDirectorComponent::Reveal()
 
 	bTransitioning = false;
 	bFirstFloor = false;
+	ShowMapKeyHint();
 
 	LogFloorState(TEXT("Ready"));
 	FloorReadyTime = GetWorld()->GetTimeSeconds();
@@ -824,6 +829,50 @@ void USoulFloorDirectorComponent::ShowPortalGuide(ASoulFloorPortal* InPortal) co
 	SW_LOG("[FLOOR] portal guide banner=\"%s / %s\"", *Data->PortalOpenText.ToString(), *FText::Format(Data->PortalOpenSubtitleFormat, Args).ToString());
 }
 
+const UInputAction* USoulFloorDirectorComponent::GetMapAction() const
+{
+	// 팀 PC의 MapAction은 비공개라 이름으로 읽는다
+	const APlayerController* PC = GetPlayerController();
+	const FObjectProperty* Property = PC ? FindFProperty<FObjectProperty>(PC->GetClass(), TEXT("MapAction")) : nullptr;
+	return Property ? Cast<UInputAction>(Property->GetObjectPropertyValue_InContainer(PC)) : nullptr;
+}
+
+void USoulFloorDirectorComponent::ShowMapKeyHint()
+{
+	const USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this);
+	const USoulPresentationData* Data = Pres ? Pres->GetData() : nullptr;
+	APlayerController* PC = GetPlayerController();
+	if (!Data || !PC || Data->MapKeyHintFormat.IsEmpty())
+		return;
+	if (!MapKeyHint)
+	{
+		MapKeyHint = CreateWidget<USoulKeyHintWidget>(PC, USoulKeyHintWidget::StaticClass());
+		if (!MapKeyHint)
+			return;
+		MapKeyHint->FontSize = 16;
+	}
+	FFormatNamedArguments Args;
+	const FText Key = USoulKeyHintWidget::GetActionKeyText(PC, GetMapAction(), INVTEXT("M"));
+	Args.Add(TEXT("Key"), Key);
+	if (!MapKeyHint->IsInViewport())
+	{
+		MapKeyHint->AddToViewport(5);
+	}
+	MapKeyHint->SetHint(FText::Format(Data->MapKeyHintFormat, Args), Data->MapKeyHintColor);
+	MapKeyHint->SetAnchorsInViewport(FAnchors(Data->MapKeyHintAnchor.X, Data->MapKeyHintAnchor.Y));
+	MapKeyHint->SetAlignmentInViewport(Data->MapKeyHintAnchor);
+	MapKeyHint->SetPositionInViewport(Data->MapKeyHintOffset, false);
+	SW_LOG("[FLOOR] map hint key=%s floor=%d", *Key.ToString(), CurrentFloorIndex + 1);
+}
+
+void USoulFloorDirectorComponent::HideMapKeyHint()
+{
+	if (MapKeyHint)
+	{
+		MapKeyHint->RemoveFromParent();
+	}
+}
+
 void USoulFloorDirectorComponent::DebugForceClear()
 {
 	if (!bClearPending && !bPlayerDead)
@@ -930,6 +979,7 @@ void USoulFloorDirectorComponent::HandlePlayerHealthChanged(const FOnAttributeCh
 void USoulFloorDirectorComponent::ShowRunResult()
 {
 	SW_LOG("[FLOOR] Run result floor=%d", CurrentFloorIndex + 1);
+	HideMapKeyHint();
 	// 생성 실패 경로에서 로딩 화면이 남지 않게 최소 표시 시간을 무시하고 내린다
 	if (USoulTransitionSubsystem* Transition = USoulTransitionSubsystem::Get(this))
 	{
@@ -1840,6 +1890,66 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 					break;
 				}
 				FinishSelfTest();
+			}
+		}
+		else if (SelfTestMode == TEXT("map"))
+		{
+			// 사용자 피드백 2, 3: 지도 키로 지도가 열리고 현재 층 방이 나오는지 → 닫기 → 1층은 포탈을 F로 들어가 2층에서 반복
+			APlayerController* PC = GetPlayerController();
+			FKey MapKey;
+			if (const UEnhancedInputLocalPlayerSubsystem* Input = PC ? ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()) : nullptr; Input && GetMapAction())
+			{
+				const TArray<FKey> Keys = Input->QueryKeysMappedToAction(GetMapAction());
+				MapKey = Keys.IsEmpty() ? FKey() : Keys[0];
+			}
+			auto PressMapKey = [this, PC, MapKey]()
+			{
+				if (!PC || !MapKey.IsValid())
+					return;
+				PC->InputKey(FInputKeyEventArgs::CreateSimulated(MapKey, IE_Pressed, 1.f));
+				GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [PC, MapKey]()
+				{
+					PC->InputKey(FInputKeyEventArgs::CreateSimulated(MapKey, IE_Released, 0.f));
+				}));
+			};
+			const ASoulHUD* HUD = PC ? Cast<ASoulHUD>(PC->GetHUD()) : nullptr;
+			const USoulMapSubsystem* MapSubsystem = GetWorld()->GetSubsystem<USoulMapSubsystem>();
+			if (Step == 0)
+			{
+				int32 Highlights = 0;
+				int32 ActiveHighlights = 0;
+				for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+				{
+					if (const USoulHighlightComponent* Highlight = It->FindComponentByClass<USoulHighlightComponent>())
+					{
+						++Highlights;
+						ActiveHighlights += Highlight->IsHighlightActive() ? 1 : 0;
+					}
+				}
+				SW_LOG("[SELFTEST] map floor=%d key=%s hint=%d highlights=%d/%d", CurrentFloorIndex + 1, *MapKey.ToString(), MapKeyHint && MapKeyHint->IsInViewport(), ActiveHighlights, Highlights);
+				PressMapKey();
+				ScheduleSelfTest(1, 0.6f);
+			}
+			else if (Step == 1)
+			{
+				TArray<UUserWidget*> MapWidgets;
+				UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, MapWidgets, USoulMapWidget::StaticClass(), true);
+				SW_LOG("[SELFTEST] map open=%d hasData=%d rooms=%d current=%d widgets=%d cursor=%d", HUD && HUD->IsMapOpen(), MapSubsystem && MapSubsystem->HasMapData(),
+					MapSubsystem ? MapSubsystem->GetMapResult().Rooms.Num() : -1, MapSubsystem ? MapSubsystem->GetCurrentRoomId() : -1, MapWidgets.Num(), PC && PC->bShowMouseCursor);
+				PressMapKey();
+				ScheduleSelfTest(2, 0.6f);
+			}
+			else
+			{
+				SW_LOG("[SELFTEST] map closed open=%d input=%d", HUD && HUD->IsMapOpen(), PC && PC->InputEnabled());
+				if (CurrentFloorIndex == 0)
+				{
+					DebugGoToPortal();
+				}
+				else
+				{
+					FinishSelfTest();
+				}
 			}
 		}
 		else if (SelfTestMode == TEXT("bossskip"))

@@ -9,6 +9,8 @@ class APMGMapBuilder;
 class APawn;
 class APlayerController;
 class ASoulFloorPortal;
+class UInputAction;
+class USoulKeyHintWidget;
 class ASoulRoomEventObject;
 class ASoulPackedLevelActor;
 class UAnimMontage;
@@ -153,6 +155,11 @@ private:
 
 	/** 포탈 배너, 포탈 위 표시 (DA_Presentation 문구, 키 이름은 입력 매핑) */
 	void ShowPortalGuide(ASoulFloorPortal* InPortal) const;
+
+	/** 지도 키 안내 (팀 PC의 MapAction 매핑 키) */
+	void ShowMapKeyHint();
+	void HideMapKeyHint();
+	const UInputAction* GetMapAction() const;
 	void BeginClear();
 
 	void HandlePawnDied(AActor* DeadActor);
@@ -216,6 +223,9 @@ protected:
 	TWeakObjectPtr<APawn> PlayerPawn;
 	TWeakObjectPtr<ASoulPackedLevelActor> ExitRoom;
 	TWeakObjectPtr<ASoulFloorPortal> Portal;
+
+	UPROPERTY(Transient)
+	TObjectPtr<USoulKeyHintWidget> MapKeyHint;
 	TArray<TWeakObjectPtr<AActor>> FloorActors;
 	TArray<TWeakObjectPtr<ASoulRoomEventObject>> FloorEventObjects;
 	bool bEventSetBonusGiven = false;
