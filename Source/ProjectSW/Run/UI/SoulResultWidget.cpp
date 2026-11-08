@@ -5,6 +5,7 @@
 #include "Run/Equipment/SoulEquipmentCatalog.h"
 #include "Run/Equipment/SoulEquipmentDefinition.h"
 #include "Run/Presentation/SoulTransitionSubsystem.h"
+#include "Run/Presentation/SoulPresentationSubsystem.h"
 #include "Run/Save/SoulHallOfFameSubsystem.h"
 #include "Run/Save/SoulScoreRules.h"
 #include "Utility/SoulLog.h"
@@ -40,6 +41,11 @@ USoulResultWidget* USoulResultWidget::ShowResult(APlayerController* PC, TSubclas
 		return nullptr;
 	Widget->Setup(Summary, EntryId);
 	Widget->AddToViewport(100);
+	// 결과창 밑에 팀 HUD가 비치지 않게 (마을로 가면 새 월드라 따로 되돌릴 필요 없음)
+	if (USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(PC))
+	{
+		Pres->SetGameHudHidden(TEXT("Result"), true);
+	}
 	// 표시 순서: 눌린 키 비우기 → UI 입력(이름 칸이나 귀환 버튼에 포커스) → 커서
 	PC->FlushPressedKeys();
 	FInputModeUIOnly Mode;

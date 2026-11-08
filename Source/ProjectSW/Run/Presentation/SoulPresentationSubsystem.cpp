@@ -4,6 +4,11 @@
 #include "Run/Core/SoulRunConfig.h"
 #include "Run/Core/SoulRunGameComponent.h"
 #include "Run/UI/SoulPresentationWidgets.h"
+#include "Run/UI/SoulKeyHintWidget.h"
+#include "Run/Progression/SoulLevelBarWidget.h"
+#include "UI/Widget/SoulUserWidget.h"
+#include "Inventory/UI/InventoryHUDWidget.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Character/SoulCharacterEnemy.h"
 #include "Player/SoulPlayerController.h"
 #include "Components/AudioComponent.h"
@@ -130,6 +135,52 @@ void USoulPresentationSubsystem::StopBgm(float FadeOutSec)
 	BgmSound = nullptr;
 }
 
+void USoulPresentationSubsystem::SetGameHudHidden(FName Reason, bool bHidden)
+{
+	const bool bWasHidden = !HudHideReasons.IsEmpty();
+	if (bHidden)
+	{
+		HudHideReasons.Add(Reason);
+	}
+	else
+	{
+		HudHideReasons.Remove(Reason);
+	}
+	const bool bNowHidden = !HudHideReasons.IsEmpty();
+	if (bWasHidden == bNowHidden)
+		return;
+
+	if (bNowHidden)
+	{
+		TArray<UUserWidget*> Widgets;
+		UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, Widgets, UUserWidget::StaticClass(), true);
+		for (UUserWidget* Widget : Widgets)
+		{
+			const bool bHud = Widget->IsA<USoulUserWidget>() || Widget->IsA<UInventoryHUDWidget>() || Widget->IsA<USoulKeyHintWidget>() || Widget->IsA<USoulLevelBarWidget>();
+			if (bHud && Widget->IsInViewport() && Widget->GetVisibility() != ESlateVisibility::Collapsed && Widget->GetVisibility() != ESlateVisibility::Hidden)
+			{
+				HiddenHudWidgets.Emplace(Widget, Widget->GetVisibility());
+				Widget->SetVisibility(ESlateVisibility::Collapsed);
+			}
+		}
+	}
+	else
+	{
+		for (const TPair<TWeakObjectPtr<UUserWidget>, ESlateVisibility>& Entry : HiddenHudWidgets)
+		{
+			if (UUserWidget* Widget = Entry.Key.Get())
+			{
+				Widget->SetVisibility(Entry.Value);
+			}
+		}
+	}
+	SW_LOG("[PRES] hud hidden=%d reason=%s widgets=%d", bNowHidden, *Reason.ToString(), HiddenHudWidgets.Num());
+	if (!bNowHidden)
+	{
+		HiddenHudWidgets.Reset();
+	}
+}
+
 void USoulPresentationSubsystem::PlayBossIntro(ASoulCharacterEnemy* Boss)
 {
 	const USoulPresentationData* Data = GetData();
@@ -181,6 +232,7 @@ void USoulPresentationSubsystem::PlayBossIntro(ASoulCharacterEnemy* Boss)
 	}
 
 	bIntroPlaying = true;
+	SetGameHudHidden(TEXT("Intro"), true);
 	bReturning = false;
 	bSkipped = false;
 	IntroSounds.Reset();
@@ -405,6 +457,7 @@ void USoulPresentationSubsystem::FinishIntro(bool bRestoreInput)
 	}
 	bIntroPlaying = false;
 	bReturning = false;
+	SetGameHudHidden(TEXT("Intro"), false);
 	if (bRestoreInput && GetData())
 	{
 		PlayBgm(GetData()->BossBgm);

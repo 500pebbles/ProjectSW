@@ -12,6 +12,7 @@ class UNiagaraSystem;
 class USoundBase;
 class USoulBossIntroWidget;
 class USoulPresentationData;
+class UUserWidget;
 
 UENUM(BlueprintType)
 enum class ESoulBossIntroStage : uint8
@@ -66,6 +67,12 @@ public:
 
 	USoundBase* GetCurrentBgm() const { return BgmSound; }
 
+	/**
+	 * 팀 오버레이(스킬, HP), 팀 인벤토리 HUD(퀵슬롯, 줍기 문구), 레벨 바, 키 안내를 숨기거나 되돌린다. 이유별로 세고 모든 이유가 풀리면 되돌린다.
+	 * 위젯 에셋은 고치지 않고 보이기만 바꾼다 (보스 인트로, 결과창)
+	 */
+	void SetGameHudHidden(FName Reason, bool bHidden);
+
 	UPROPERTY(BlueprintAssignable, Category = "Presentation")
 	FSoulBossIntroStageSignature OnIntroStage;
 
@@ -109,4 +116,7 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<USoundBase> BgmSound;
+
+	TSet<FName> HudHideReasons;
+	TArray<TPair<TWeakObjectPtr<UUserWidget>, ESlateVisibility>> HiddenHudWidgets;
 };
