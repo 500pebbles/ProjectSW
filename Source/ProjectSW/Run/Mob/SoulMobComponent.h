@@ -68,6 +68,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Mob")
 	bool IsTough() const { return bTough; }
 
+	/** 정예로 키운 크기 배율 (BP 기본 크기 대비, 정예가 아니면 1). 공격 판정 위치와 반경에 곱한다 */
+	float GetSizeScale() const { return bTough ? ToughRules.MeshScale : 1.f; }
+
 	/** 소환자가 소환물을 만들 때 레벨을 정한다 (InitializeComponent 전에) */
 	void SetPendingLevel(int32 InLevel) { PendingLevel = InLevel; }
 
@@ -141,8 +144,10 @@ private:
 	void FinishSpawn();
 	void SpawnSummon(const FSoulMobSummon& Summon);
 	const FSoulMobAttackRule* FindRule(const UAnimMontage* Montage) const;
-	/** 강화 몹 체력과 표시. 팀 BeginPlay가 기본 속성을 넣은 다음 틱에 부른다 */
+	/** 강화 몹 체력. 팀 BeginPlay가 기본 속성을 넣은 다음 틱에 부른다 */
 	void ApplyToughStats();
+	/** 강화 몹 오버레이를 붙이거나 뗀다. 바뀐 메시 수 */
+	int32 ApplyToughOverlay(bool bOn);
 
 	int32 PendingLevel = 0;
 	double LastAttackTime = -1000.0;

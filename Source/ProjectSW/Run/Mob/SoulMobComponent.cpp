@@ -90,7 +90,9 @@ void USoulMobComponent::InitializeComponent()
 		ScoreValue = FMath::RoundToInt(ScoreValue * ToughRules.ScoreScale);
 		ExpWeight *= ToughRules.ExpScale;
 		Enemy->SetActorScale3D(Enemy->GetActorScale3D() * ToughRules.MeshScale);
-		SW_LOG("[MOB] tough pick %s score %d -> %d expWeight %.1f -> %.1f", *Enemy->GetName(), BaseScore, ScoreValue, BaseExpWeight, ExpWeight);
+		// 오버레이는 처음 그려지기 전에 건다. 보이던 메시에 나중에 걸면 쿡된 DX12에서 오버레이 PSO를 만드는 동안 메시가 몇 프레임 사라질 수 있다
+		const int32 Overlaid = ApplyToughOverlay(true);
+		SW_LOG("[MOB] tough pick %s score %d -> %d expWeight %.1f -> %.1f overlay=%d", *Enemy->GetName(), BaseScore, ScoreValue, BaseExpWeight, ExpWeight, Overlaid);
 	}
 
 	Enemy->GetCharacterMovement()->MaxWalkSpeed = Enemy->BaseWalkSpeed;
@@ -163,36 +165,55 @@ void USoulMobComponent::ApplyToughStats()
 
 	// 레벨 기본값 위에 곱한다. 현재값 기준으로 기본값을 올려 다른 가산 효과가 있어도 현재값이 배율만큼 된다
 	const FGameplayAttribute MaxHealthAttr = USoulAttributeSet::GetMaxHealthAttribute();
+	const FGameplayAttribute HealthAttr = USoulAttributeSet::GetHealthAttribute();
 	const float OldMax = ASC->GetNumericAttribute(MaxHealthAttr);
 	ASC->SetNumericAttributeBase(MaxHealthAttr, ASC->GetNumericAttributeBase(MaxHealthAttr) + OldMax * (ToughRules.HealthScale - 1.f));
 	const float NewMax = ASC->GetNumericAttribute(MaxHealthAttr);
-	ASC->SetNumericAttributeBase(USoulAttributeSet::GetHealthAttribute(), NewMax);
+	// 늘어난 만큼만 더한다. 스폰 직후 받은 피해는 남는다
+	ASC->SetNumericAttributeBase(HealthAttr, ASC->GetNumericAttributeBase(HealthAttr) + (NewMax - OldMax));
 
-	int32 Overlaid = 0;
-	if (ToughRules.OverlayMaterial)
+	const UCapsuleComponent* Capsule = Enemy->GetCapsuleComponent();
+	SW_LOG("[MOB] tough %s lv=%d maxHealth %.0f -> %.0f health=%.0f scale=%.2f capsule r=%.0f hh=%.0f score=%d expWeight=%.1f",
+		*Enemy->GetName(), Enemy->GetCharacterLevel(), OldMax, NewMax, ASC->GetNumericAttribute(HealthAttr),
+		Enemy->GetActorScale3D().X, Capsule->GetScaledCapsuleRadius(), Capsule->GetScaledCapsuleHalfHeight(), ScoreValue, ExpWeight);
+}
+
+int32 USoulMobComponent::ApplyToughOverlay(bool bOn)
+{
+	ASoulCharacterEnemy* Enemy = GetEnemy();
+	if (!Enemy)
+		return 0;
+	if (bOn && !ToughMID && ToughRules.OverlayMaterial)
 	{
 		ToughMID = UMaterialInstanceDynamic::Create(ToughRules.OverlayMaterial, this);
 		ToughMID->SetVectorParameterValue(TEXT("Color"), ToughRules.OverlayColor);
 		ToughMID->SetScalarParameterValue(TEXT("Intensity"), ToughRules.OverlayIntensity);
 		ToughMID->SetScalarParameterValue(TEXT("FresnelExponent"), ToughRules.OverlayFresnelExponent);
 		ToughMID->SetScalarParameterValue(TEXT("BaseGlow"), ToughRules.OverlayBaseGlow);
-		TArray<USkeletalMeshComponent*> Meshes;
-		Enemy->GetComponents(Meshes);
-		for (USkeletalMeshComponent* Mesh : Meshes)
+	}
+	if (!ToughMID)
+		return 0;
+
+	int32 Count = 0;
+	TArray<USkeletalMeshComponent*> Meshes;
+	Enemy->GetComponents(Meshes);
+	for (USkeletalMeshComponent* Mesh : Meshes)
+	{
+		if (!Mesh)
+			continue;
+		if (bOn && Mesh->IsVisible() && !Mesh->GetOverlayMaterial())
 		{
 			// 팀이 이미 오버레이를 쓰는 메시는 건드리지 않는다
-			if (Mesh && Mesh->IsVisible() && !Mesh->GetOverlayMaterial())
-			{
-				Mesh->SetOverlayMaterial(ToughMID);
-				++Overlaid;
-			}
+			Mesh->SetOverlayMaterial(ToughMID);
+			++Count;
+		}
+		else if (!bOn && Mesh->GetOverlayMaterial() == ToughMID)
+		{
+			Mesh->SetOverlayMaterial(nullptr);
+			++Count;
 		}
 	}
-
-	const UCapsuleComponent* Capsule = Enemy->GetCapsuleComponent();
-	SW_LOG("[MOB] tough %s lv=%d maxHealth %.0f -> %.0f health=%.0f scale=%.2f capsule r=%.0f hh=%.0f score=%d expWeight=%.1f overlay=%d",
-		*Enemy->GetName(), Enemy->GetCharacterLevel(), OldMax, NewMax, ASC->GetNumericAttribute(USoulAttributeSet::GetHealthAttribute()),
-		Enemy->GetActorScale3D().X, Capsule->GetScaledCapsuleRadius(), Capsule->GetScaledCapsuleHalfHeight(), ScoreValue, ExpWeight, Overlaid);
+	return Count;
 }
 
 void USoulMobComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -362,6 +383,12 @@ void USoulMobComponent::HandleDied(AActor* DeadActor)
 		return;
 
 	SW_LOG("[MOB] died %s level=%d", *Enemy->GetName(), Enemy->GetCharacterLevel());
+
+	// 정예 붉은 기운은 죽으면 바로 뗀다 (시체가 남는 동안 정예처럼 보이지 않게)
+	if (bTough)
+	{
+		SW_LOG("[MOB] tough overlay off %s meshes=%d", *Enemy->GetName(), ApplyToughOverlay(false));
+	}
 
 	if (!bRagdollOnDeath)
 	{

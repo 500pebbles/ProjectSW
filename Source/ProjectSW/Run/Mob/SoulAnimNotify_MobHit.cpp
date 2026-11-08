@@ -1,4 +1,5 @@
 #include "Run/Mob/SoulAnimNotify_MobHit.h"
+#include "Run/Mob/SoulMobComponent.h"
 #include "Utility/SoulGameplayTags.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
@@ -35,7 +36,10 @@ FVector USoulAnimNotify_MobHit::ComputeOrigin(const USkeletalMeshComponent* Mesh
 	Forward = Forward.GetSafeNormal();
 	const FVector Side = FVector::CrossProduct(FVector::UpVector, Forward);
 
-	return Foot + FVector(0.f, 0.f, GroundHeight) + Forward * ForwardOffset + Side * SideOffset;
+	// 정예로 키운 몹은 판정 위치도 같이 커진다. BP 기본 스케일(보스)은 이미 저작 값에 들어 있어 곱하지 않는다. 프리뷰는 1
+	const USoulMobComponent* Mob = USoulMobComponent::Find(MeshComp->GetOwner());
+	const float Scale = Mob ? Mob->GetSizeScale() : 1.f;
+	return Foot + (FVector(0.f, 0.f, GroundHeight) + Forward * ForwardOffset + Side * SideOffset) * Scale;
 }
 
 void USoulAnimNotify_MobHit::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)

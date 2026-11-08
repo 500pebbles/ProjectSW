@@ -104,17 +104,24 @@ void USoulMobAttackAbility::HandleHitEvent(FGameplayEventData Payload)
 	FVector Origin;
 	float Radius;
 	float NotifyScale = 1.f;
+	// 정예로 키운 몹은 판정 반경도 같이 커진다 (위치는 ComputeOrigin이 키운다, BP 기본 스케일은 곱하지 않음)
+	const USoulMobComponent* SizeMob = USoulMobComponent::Find(Enemy);
+	const float ActorScale = SizeMob ? SizeMob->GetSizeScale() : 1.f;
 	if (HitNotify)
 	{
 		Origin = HitNotify->ComputeOrigin(Enemy->GetMesh());
-		Radius = HitNotify->Radius;
+		Radius = HitNotify->Radius * ActorScale;
 		NotifyScale = HitNotify->DamageScale;
 	}
 	else
 	{
 		const float HalfHeight = Enemy->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-		Origin = Enemy->GetActorLocation() + Enemy->GetActorForwardVector() * FallbackForwardOffset - FVector(0.f, 0.f, HalfHeight * 0.5f);
-		Radius = FallbackRadius;
+		Origin = Enemy->GetActorLocation() + Enemy->GetActorForwardVector() * FallbackForwardOffset * ActorScale - FVector(0.f, 0.f, HalfHeight * 0.5f);
+		Radius = FallbackRadius * ActorScale;
+	}
+	if (ActorScale != 1.f)
+	{
+		SW_LOG("[MOB] hit %s scale=%.2f radius=%.0f (notify %.0f)", *Enemy->GetName(), ActorScale, Radius, HitNotify ? HitNotify->Radius : FallbackRadius);
 	}
 
 	if (CVarSoulMobDebugHit.GetValueOnGameThread() > 0)
