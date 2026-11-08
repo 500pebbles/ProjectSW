@@ -229,6 +229,13 @@ void USoulFloorDirectorComponent::StartFirstFloor()
 		// L_Dungeon 직접 실행: 런 없이 들어오면 1층부터
 		Run->BeginRun();
 	}
+#if !UE_BUILD_SHIPPING
+	// 첫 셀프 테스트 단계 전에 생성 실패나 사망으로 EndRun이 되어도 세이브에 기록을 쓰지 않게 여기서 먼저 건다
+	if (bSelfTest)
+	{
+		ApplySelfTestSubmitRule(ReadSelfTestMode());
+	}
+#endif
 
 	// 팀 GM의 OnMapReady가 재생성마다 폰을 다시 만들고 HUD를 중복시키므로 첫 Generate 전에 뗀다
 	const AGameModeBase* GameMode = Cast<AGameModeBase>(GetOwner());
@@ -2220,24 +2227,37 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 	GetWorld()->GetTimerManager().SetTimer(SelfTestTimer, Delegate, FMath::Max(Delay, 0.01f), false);
 }
 
-void USoulFloorDirectorComponent::RunSelfTestStep()
+FString USoulFloorDirectorComponent::ReadSelfTestMode() const
 {
-#if !UE_BUILD_SHIPPING
-	SelfTestMode = CVarSoulFloorSelfTestMode.GetValueOnGameThread();
-	if (SelfTestMode.IsEmpty())
+	FString Mode = CVarSoulFloorSelfTestMode.GetValueOnGameThread();
+	if (Mode.IsEmpty())
 	{
-		FParse::Value(FCommandLine::Get(), TEXT("SoulFloorSelfTestMode="), SelfTestMode);
+		FParse::Value(FCommandLine::Get(), TEXT("SoulFloorSelfTestMode="), Mode);
 	}
-	SW_LOG("[SELFTEST] floor=%d mode=%s", CurrentFloorIndex + 1, SelfTestMode.IsEmpty() ? TEXT("floors") : *SelfTestMode);
-	// 셀프 테스트 런은 명예의 전당에 내지 않는다 (세이브에 가짜 기록이 남지 않게). BeginRun이 플래그를 풀어서 층마다 다시 건다.
-	// 예외: result와 shots는 기록 제출과 결과창, 보드를 시험하므로 실제로 제출한다. 이 두 모드는 실행한 폴더의 SoulProfile.sav에 기록을 쓴다
-	// (패키지에서 돌리면 사용자 세이브에 쓰니 먼저 백업할 것. shots는 마을 셀프 테스트의 의상 선택도 세이브에 쓴다)
-	const bool bSubmits = SelfTestMode == TEXT("result") || SelfTestMode == TEXT("shots");
+	return Mode;
+}
+
+bool USoulFloorDirectorComponent::ApplySelfTestSubmitRule(const FString& Mode) const
+{
+	// 셀프 테스트 런은 명예의 전당에 내지 않는다 (세이브에 가짜 기록이 남지 않게). BeginRun이 플래그를 풀어서 다시 걸어야 한다.
+	// 예외: result와 shots는 기록 제출, 결과창, 보드를 시험하므로 실제로 제출하고, 실행한 폴더의 SoulProfile.sav에 기록을 쓴다
+	// (패키지에서 돌리면 사용자 세이브에 쓰니 먼저 백업할 것)
+	const bool bSubmits = Mode == TEXT("result") || Mode == TEXT("shots");
 	if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this); Run && !bSubmits)
 	{
 		Run->SetSkipSubmit(true);
 	}
-	SW_LOG("[SELFTEST] submit=%d", bSubmits);
+	SW_LOG("[SELFTEST] submit=%d mode=%s", bSubmits, Mode.IsEmpty() ? TEXT("floors") : *Mode);
+	return bSubmits;
+}
+
+void USoulFloorDirectorComponent::RunSelfTestStep()
+{
+#if !UE_BUILD_SHIPPING
+	SelfTestMode = ReadSelfTestMode();
+	SW_LOG("[SELFTEST] floor=%d mode=%s", CurrentFloorIndex + 1, SelfTestMode.IsEmpty() ? TEXT("floors") : *SelfTestMode);
+	// 콘솔 StartSelfTest처럼 StartFirstFloor 뒤에 켠 셀프 테스트를 위해 층마다 다시 건다
+	ApplySelfTestSubmitRule(SelfTestMode);
 	ArmSelfTestWatchdog(TEXT("floor ready"));
 	ScheduleSelfTest(0, 0.f);
 #endif

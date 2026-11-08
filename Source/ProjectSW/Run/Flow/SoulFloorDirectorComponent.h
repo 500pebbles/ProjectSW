@@ -187,6 +187,10 @@ private:
 	void PrepareOpenLevel();
 	void LogFloorState(const TCHAR* Label) const;
 	void RunSelfTestStep();
+	/** 셀프 테스트 모드: 콘솔 변수 soul.Floor.SelfTestMode, 비었으면 -SoulFloorSelfTestMode= */
+	FString ReadSelfTestMode() const;
+	/** result, shots가 아니면 이번 런을 명예의 전당에 내지 않게 한다. 제출하면 true */
+	bool ApplySelfTestSubmitRule(const FString& Mode) const;
 	void RunSelfTestFloors();
 	void RunSelfTestMob(int32 Step);
 	void RunSelfTestBoss(int32 Step);
