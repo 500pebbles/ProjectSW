@@ -2229,6 +2229,15 @@ void USoulFloorDirectorComponent::RunSelfTestStep()
 		FParse::Value(FCommandLine::Get(), TEXT("SoulFloorSelfTestMode="), SelfTestMode);
 	}
 	SW_LOG("[SELFTEST] floor=%d mode=%s", CurrentFloorIndex + 1, SelfTestMode.IsEmpty() ? TEXT("floors") : *SelfTestMode);
+	// 셀프 테스트 런은 명예의 전당에 내지 않는다 (세이브에 가짜 기록이 남지 않게). BeginRun이 플래그를 풀어서 층마다 다시 건다.
+	// 예외: result와 shots는 기록 제출과 결과창, 보드를 시험하므로 실제로 제출한다. 이 두 모드는 실행한 폴더의 SoulProfile.sav에 기록을 쓴다
+	// (패키지에서 돌리면 사용자 세이브에 쓰니 먼저 백업할 것. shots는 마을 셀프 테스트의 의상 선택도 세이브에 쓴다)
+	const bool bSubmits = SelfTestMode == TEXT("result") || SelfTestMode == TEXT("shots");
+	if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this); Run && !bSubmits)
+	{
+		Run->SetSkipSubmit(true);
+	}
+	SW_LOG("[SELFTEST] submit=%d", bSubmits);
 	ArmSelfTestWatchdog(TEXT("floor ready"));
 	ScheduleSelfTest(0, 0.f);
 #endif
