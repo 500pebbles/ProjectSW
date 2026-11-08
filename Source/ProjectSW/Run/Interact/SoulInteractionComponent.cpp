@@ -155,6 +155,8 @@ void USoulInteractionComponent::HandleTraceChanged(bool bHasTarget, FKey InputKe
 	const USoulInteractableComponent* Interactable = IsValid(TargetActor) ? TargetActor->FindComponentByClass<USoulInteractableComponent>() : nullptr;
 	if (bHasTarget && Interactable)
 	{
+		// #40: 플러그인이 바라보던 상점 아이템(IInventoryInteractInterface)의 포커스를 먼저 끝낸다. 상점 아이템에서 런 오브젝트로 바로 넘어가는 경우
+		ForwardTraceToInventory(false, InputKey, nullptr);
 		UInventoryHUDWidget* HUD = SoulInteraction::ReadObjectProperty<UInventoryHUDWidget>(Inventory, TEXT("InventoryHUDWidget"));
 		if (HUD)
 		{
@@ -170,8 +172,14 @@ void USoulInteractionComponent::HandleTraceChanged(bool bHasTarget, FKey InputKe
 		return;
 	}
 
-	// 아이템이나 대상 없음은 플러그인 처리 그대로 (protected라 이름으로 부른다)
-	if (UFunction* Function = Inventory->FindFunction(TEXT("HandleTraceItemChanged")))
+	// 아이템이나 대상 없음은 플러그인 처리 그대로 (상점 아이템 포커스와 정보창 포함)
+	ForwardTraceToInventory(bHasTarget, InputKey, TargetActor);
+}
+
+void USoulInteractionComponent::ForwardTraceToInventory(bool bHasTarget, FKey InputKey, AActor* TargetActor)
+{
+	// protected라 이름으로 부른다
+	if (UFunction* Function = Inventory ? Inventory->FindFunction(TEXT("HandleTraceItemChanged")) : nullptr)
 	{
 		struct FParams
 		{

@@ -71,6 +71,7 @@ private:
 
 	UFUNCTION()
 	void HandleTraceChanged(bool bHasTarget, FKey InputKey, AActor* TargetActor);
+	void ForwardTraceToInventory(bool bHasTarget, FKey InputKey, AActor* TargetActor);
 
 	UFUNCTION()
 	void HandleEquipmentToggled();
