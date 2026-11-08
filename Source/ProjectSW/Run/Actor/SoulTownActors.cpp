@@ -488,11 +488,12 @@ void ASoulTownDirector::RunTownSelfTest(ESoulTownArrival Arrival)
 			}
 			break;
 		}
+		// 석상 상호작용은 마지막 의상을 세이브에 쓰므로, 셀프 테스트는 저장하지 않는 경로로 입는다 (사용자 세이브를 바꾸지 않게)
 		if (Statues.Num() > 4)
 		{
-			if (USoulInteractableComponent* Interactable = Statues[4]->FindComponentByClass<USoulInteractableComponent>())
+			if (USoulEquipmentComponent* Equipment = USoulEquipmentComponent::Find(Pawn); Equipment && Statues[4]->GetCostume())
 			{
-				Interactable->Interact(Pawn);
+				Equipment->EquipCostume(Statues[4]->GetCostume(), false);
 			}
 		}
 		FTimerHandle Next;
