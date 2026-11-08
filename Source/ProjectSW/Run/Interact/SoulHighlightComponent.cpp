@@ -16,6 +16,7 @@ namespace SoulHighlight
 	static const FName IntensityParam(TEXT("Intensity"));
 	static const FName FresnelParam(TEXT("FresnelExponent"));
 	static const FName NoHighlightTag(TEXT("NoHighlight"));
+	static const FName BaseGlowParam(TEXT("BaseGlow"));
 }
 
 USoulHighlightComponent::USoulHighlightComponent()
@@ -89,9 +90,46 @@ void USoulHighlightComponent::BeginPlay()
 		}
 	}
 
+	if (bRing && OverlayMaterial)
+	{
+		if (UStaticMesh* Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder")))
+		{
+			Ring = NewObject<UStaticMeshComponent>(Owner, TEXT("SoulHighlightRing"));
+			Ring->SetupAttachment(Root);
+			Ring->SetStaticMesh(Mesh);
+			Ring->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Ring->SetCastShadow(false);
+			// 월드 크기로 맞춘다 (주인 스케일과 무관하게)
+			Ring->SetUsingAbsoluteScale(true);
+			Ring->SetRelativeScale3D(RingScale);
+			// 바닥 높이: 주인 아래쪽 경계 + RingZ
+			// 상호작용 구는 바닥 아래로 내려가므로 보이는 메시 경계만 쓴다
+			FBox Bounds(ForceInit);
+			for (const TWeakObjectPtr<UMeshComponent>& MeshComp : Meshes)
+			{
+				if (MeshComp.IsValid())
+				{
+					Bounds += MeshComp->Bounds.GetBox();
+				}
+			}
+			const float FloorZ = Bounds.IsValid ? Bounds.Min.Z : Owner->GetActorLocation().Z;
+			Ring->SetWorldLocation(FVector(Owner->GetActorLocation().X, Owner->GetActorLocation().Y, FloorZ + RingZ + 50.f * RingScale.Z));
+			Ring->ComponentTags.Add(SoulHighlight::NoHighlightTag);
+			RingMID = UMaterialInstanceDynamic::Create(OverlayMaterial, this);
+			RingMID->SetVectorParameterValue(SoulHighlight::ColorParam, Color);
+			RingMID->SetScalarParameterValue(SoulHighlight::FresnelParam, 2.f);
+			RingMID->SetScalarParameterValue(SoulHighlight::BaseGlowParam, RingBaseGlow);
+			for (int32 i = 0; i < FMath::Max(Ring->GetNumMaterials(), 1); ++i)
+			{
+				Ring->SetMaterial(i, RingMID);
+			}
+			Ring->RegisterComponent();
+		}
+	}
+
 	bActive = IsOwnerInteractable();
 	ApplyOverlay(bActive);
-	SW_LOG("[HIGHLIGHT] %s meshes=%d overlay=%d light=%d beacon=%d active=%d", *Owner->GetName(), Meshes.Num(), MID != nullptr, Light != nullptr, Beacon != nullptr, bActive);
+	SW_LOG("[HIGHLIGHT] %s meshes=%d overlay=%d light=%d beacon=%d ring=%d active=%d", *Owner->GetName(), Meshes.Num(), MID != nullptr, Light != nullptr, Beacon != nullptr, Ring != nullptr, bActive);
 }
 
 void USoulHighlightComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -122,6 +160,10 @@ void USoulHighlightComponent::ApplyOverlay(bool bOn)
 	if (Beacon)
 	{
 		Beacon->SetVisibility(bOn);
+	}
+	if (Ring)
+	{
+		Ring->SetVisibility(bOn);
 	}
 }
 
@@ -180,6 +222,10 @@ void USoulHighlightComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	if (MID)
 	{
 		MID->SetScalarParameterValue(SoulHighlight::IntensityParam, Base * Pulse);
+	}
+	if (RingMID)
+	{
+		RingMID->SetScalarParameterValue(SoulHighlight::IntensityParam, Base * RingIntensityScale * Pulse);
 	}
 	if (BeaconMID)
 	{

@@ -90,6 +90,26 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight|Light")
 	FVector LightOffset = FVector(0.f, 0.f, 120.f);
 
+	/** 바닥 링 (얇은 원판, 가장자리가 밝다). 평소에도 "상호작용할 것"으로 보이게 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight|Ring")
+	bool bRing = true;
+
+	/** 링 크기 (엔진 원기둥 지름 100, 높이 100 기준) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight|Ring", meta = (EditCondition = "bRing"))
+	FVector RingScale = FVector(2.2f, 2.2f, 0.06f);
+
+	/** 링 세기 (오버레이 세기에 곱한다) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight|Ring", meta = (EditCondition = "bRing", ClampMin = "0"))
+	float RingIntensityScale = 1.f;
+
+	/** 링 안쪽 바탕 빛 (작을수록 가장자리만) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight|Ring", meta = (EditCondition = "bRing", ClampMin = "0"))
+	float RingBaseGlow = 0.12f;
+
+	/** 바닥에서 띄우는 높이 (주인 기준) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight|Ring", meta = (EditCondition = "bRing"))
+	float RingZ = 2.f;
+
 	/** 멀리서 보이는 빛기둥 (포탈) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight|Beacon")
 	bool bBeacon = false;
@@ -131,6 +151,12 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMeshComponent> Beacon;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> RingMID;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMeshComponent> Ring;
 
 	TArray<TWeakObjectPtr<UMeshComponent>> Meshes;
 	bool bActive = true;
