@@ -185,7 +185,8 @@ bool USoulAbilitySystemComponent::GetSkillSlotUIData(const FGameplayTag& SlotInp
 	else
 	{
 		// 인게임 HUD 모드(-1): 쿨타임 스킵 로직이 반영된 '다음에 실제 나가는 단계' 표시
-		const int32 AvailableStep = FindAvailableChainStep(*ChainState, ChainState->CurrentStep, true);
+		// 슬롯 위젯이 매 프레임 부르므로 스킵 로그는 끈다 (단계별 쿨타임이 생긴 뒤 프레임마다 찍히던 것)
+		const int32 AvailableStep = FindAvailableChainStep(*ChainState, ChainState->CurrentStep, true, false);
 		StepToDisplay = (AvailableStep != INDEX_NONE)
 			? AvailableStep
 			: FMath::Clamp(ChainState->CurrentStep, 0, NumSteps - 1);
@@ -264,7 +265,7 @@ bool USoulAbilitySystemComponent::SwapSkillChainSteps(const FGameplayTag& SlotA,
 	return true;
 }
 
-int32 USoulAbilitySystemComponent::FindAvailableChainStep(const FSoulSkillChainRuntimeState& ChainState, int32 StartStep, bool bAllowWrapToStart) const
+int32 USoulAbilitySystemComponent::FindAvailableChainStep(const FSoulSkillChainRuntimeState& ChainState, int32 StartStep, bool bAllowWrapToStart, bool bLogSkip) const
 {
 	const int32 NumSteps = ChainState.SpecHandles.Num();
 	if (NumSteps == 0) return INDEX_NONE;
@@ -282,7 +283,7 @@ int32 USoulAbilitySystemComponent::FindAvailableChainStep(const FSoulSkillChainR
 	{
 		if (IsStepReady(Step))
 		{
-			if (Step != ClampedStart)
+			if (Step != ClampedStart && bLogSkip)
 			{
 				SW_LOG("[SkillChain] Slot %s: Step %d is on cooldown -> Auto-skipped to Step %d", *ChainState.SlotInputTag.ToString(), ClampedStart, Step);
 			}
@@ -296,7 +297,8 @@ int32 USoulAbilitySystemComponent::FindAvailableChainStep(const FSoulSkillChainR
 		{
 			if (IsStepReady(Step))
 			{
-				SW_LOG("[SkillChain] Slot %s: Remaining steps on cooldown -> Restarted at available Step %d", *ChainState.SlotInputTag.ToString(), Step);
+				if (bLogSkip)
+					SW_LOG("[SkillChain] Slot %s: Remaining steps on cooldown -> Restarted at available Step %d", *ChainState.SlotInputTag.ToString(), Step);
 				return Step;
 			}
 		}

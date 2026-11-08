@@ -120,7 +120,7 @@ protected:
 private:
 	bool HandleSkillSlotInput(const FGameplayTag& InputTag);
 	// StartStep부터 체인 순서대로 검사하여, 쿨타임 중인 단계(예: 1-1)는 건너뛰고 사용 가능한 단계(예: 1-2) 인덱스를 반환 (없으면 INDEX_NONE)
-	int32 FindAvailableChainStep(const FSoulSkillChainRuntimeState& ChainState, int32 StartStep, bool bAllowWrapToStart) const;
+	int32 FindAvailableChainStep(const FSoulSkillChainRuntimeState& ChainState, int32 StartStep, bool bAllowWrapToStart, bool bLogSkip = true) const;
 	bool TryActivateSlotChainStep(FSoulSkillChainRuntimeState& ChainState, int32 StartStep, bool bAllowWrapToStart, USoulSkillAbility* ActiveSkillToCancel);
 	USoulSkillAbility* FindCurrentlyActiveSkillAbility() const;
 	void ResetSkillChainSlot(FGameplayTag SlotInputTag);
