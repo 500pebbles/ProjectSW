@@ -867,9 +867,10 @@ void USoulFloorDirectorComponent::ShowMapKeyHint()
 		MapKeyHint->AddToViewport(5);
 	}
 	MapKeyHint->SetHint(FText::Format(Data->MapKeyHintFormat, Args), Data->MapKeyHintColor);
+	// SetPositionInViewport가 앵커를 왼쪽 위로 되돌리므로 자리 다음에 앵커와 정렬을 넣는다
+	MapKeyHint->SetPositionInViewport(Data->MapKeyHintOffset, false);
 	MapKeyHint->SetAnchorsInViewport(FAnchors(Data->MapKeyHintAnchor.X, Data->MapKeyHintAnchor.Y));
 	MapKeyHint->SetAlignmentInViewport(Data->MapKeyHintAnchor);
-	MapKeyHint->SetPositionInViewport(Data->MapKeyHintOffset, false);
 	SW_LOG("[FLOOR] map hint key=%s floor=%d", *Key.ToString(), CurrentFloorIndex + 1);
 }
 
