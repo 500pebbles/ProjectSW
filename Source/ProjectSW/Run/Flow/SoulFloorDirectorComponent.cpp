@@ -10,6 +10,8 @@
 #include "Run/Interact/SoulInteractableComponent.h"
 #include "Run/Interact/SoulItemLibrary.h"
 #include "Run/Presentation/SoulTransitionSubsystem.h"
+#include "Run/Presentation/SoulPresentationSubsystem.h"
+#include "Run/Presentation/SoulPresentationData.h"
 #include "Run/Save/SoulHallOfFameSubsystem.h"
 #include "Run/UI/SoulResultWidget.h"
 #include "Run/Equipment/SoulEquipmentComponent.h"
@@ -354,6 +356,7 @@ void USoulFloorDirectorComponent::HandleGenerationFinished(const FPMGResult& Res
 	if (ExitRoom.IsValid())
 	{
 		ExitRoom->OnCombatFinished.AddUObject(this, &ThisClass::HandleExitCombatFinished);
+		ExitRoom->OnPlayerEntered.AddUObject(this, &ThisClass::HandleExitEntered);
 	}
 	else
 	{
@@ -470,6 +473,21 @@ void USoulFloorDirectorComponent::Reveal()
 	CurtainIn(CurtainFadeInSec);
 	UnlockPlayer();
 	ApplyDescendHeal();
+	if (USoulTransitionSubsystem* Transition = USoulTransitionSubsystem::Get(this))
+	{
+		Transition->HideLoading();
+	}
+	if (const USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this); Pres && Pres->GetData())
+	{
+		if (const FSoulLoadingEntry* Entry = Pres->GetData()->FindLoading(GetLoadingId(CurrentFloorIndex)))
+		{
+			Pres->ShowBanner(Entry->Title, Entry->Subtitle, Entry->Color);
+		}
+		if (PlayerPawn.IsValid())
+		{
+			Pres->PlayAt(Pres->GetData()->LandSound, Pres->GetData()->LandFX, PlayerPawn->GetActorLocation() - FVector(0.f, 0.f, PlayerPawn->GetDefaultHalfHeight()));
+		}
+	}
 
 	bTransitioning = false;
 	bFirstFloor = false;
@@ -528,6 +546,15 @@ void USoulFloorDirectorComponent::RequestDescend()
 	UGameplayStatics::SetGlobalTimeDilation(this, 1.f);
 	LockPlayer();
 	CurtainOut(CurtainFadeOutSec);
+	if (USoulTransitionSubsystem* Transition = USoulTransitionSubsystem::Get(this))
+	{
+		Transition->ShowLoading(GetLoadingId(CurrentFloorIndex + 1));
+	}
+	if (const USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this); Pres && Pres->GetData() && PlayerPawn.IsValid())
+	{
+		Pres->PlayAt(Pres->GetData()->FloorMoveSound, Pres->GetData()->FloorMoveFX, PlayerPawn->GetActorLocation());
+		Pres->PlaySound2D(Pres->GetData()->FloorMoveVoice);
+	}
 
 	GetWorld()->GetTimerManager().SetTimer(CurtainTimer, this, &ThisClass::UnloadFloor, FMath::Max(CurtainFadeOutSec, 0.01f), false);
 }
@@ -601,6 +628,29 @@ void USoulFloorDirectorComponent::RegisterFloorActor(AActor* Actor)
 
 // ---------- Exit 방, 포탈, 클리어 ----------
 
+void USoulFloorDirectorComponent::HandleExitEntered(ASoulPackedLevelActor* Room)
+{
+	if (bTransitioning || bPlayerDead || Room != ExitRoom.Get())
+		return;
+	// 보스 스폰은 같은 입장에서 일어나므로 조금 뒤에 찾는다
+	FTimerHandle Handle;
+	GetWorld()->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		for (TActorIterator<ASoulCharacterEnemy> It(GetWorld()); It; ++It)
+		{
+			const USoulMobComponent* Mob = USoulMobComponent::Find(*It);
+			if (Mob && Mob->GetRole() == ESoulMobRole::Boss && !ISoulCombatInterface::Execute_IsDead(*It))
+			{
+				if (USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this))
+				{
+					Pres->PlayBossIntro(*It);
+				}
+				return;
+			}
+		}
+	}), 0.2f, false);
+}
+
 void USoulFloorDirectorComponent::HandleExitCombatFinished(ASoulPackedLevelActor* Room)
 {
 	if (bTransitioning || bClearPending || bPlayerDead || Room != ExitRoom.Get())
@@ -608,6 +658,11 @@ void USoulFloorDirectorComponent::HandleExitCombatFinished(ASoulPackedLevelActor
 
 	SW_LOG("[FLOOR] Exit 방 전투 종료 floor=%d", CurrentFloorIndex + 1);
 
+	if (const USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this); Pres && Pres->GetData())
+	{
+		Pres->ShowBanner(IsLastFloor() ? Pres->GetData()->DungeonClearText : Pres->GetData()->FloorClearText, FText::GetEmpty(), FLinearColor(1.f, 0.85f, 0.4f));
+		Pres->PlaySound2D(Pres->GetData()->FloorClearSound);
+	}
 	if (IsLastFloor())
 	{
 		BeginClear();
@@ -722,6 +777,10 @@ ASoulFloorPortal* USoulFloorDirectorComponent::SpawnPortal()
 
 	Portal = NewPortal;
 	RegisterFloorActor(NewPortal);
+	if (const USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this); Pres && Pres->GetData())
+	{
+		Pres->PlayAt(Pres->GetData()->PortalSound, Pres->GetData()->PortalFX, Location);
+	}
 	SW_LOG("[FLOOR] Portal spawned floor=%d at %s nearestDrop=%.0f drops=%d", CurrentFloorIndex + 1, *Location.ToCompactString(), Nearest, Drops.Num());
 	return NewPortal;
 }
@@ -785,6 +844,14 @@ void USoulFloorDirectorComponent::HandlePawnDied(AActor* DeadActor)
 	}
 
 	GetWorld()->GetTimerManager().SetTimer(DeathTimer, this, &ThisClass::FinishDeath, FMath::Max(DeathEndRunDelaySec, 0.01f), false);
+	FTimerHandle BannerHandle;
+	GetWorld()->GetTimerManager().SetTimer(BannerHandle, FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		if (const USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this); Pres && Pres->GetData())
+		{
+			Pres->ShowBanner(Pres->GetData()->FailedText, FText::GetEmpty(), FLinearColor(0.9f, 0.2f, 0.2f));
+		}
+	}), FMath::Max(USoulPresentationSubsystem::Get(this) && USoulPresentationSubsystem::Get(this)->GetData() ? USoulPresentationSubsystem::Get(this)->GetData()->FailedBannerDelaySec : 0.f, 0.01f), false);
 }
 
 void USoulFloorDirectorComponent::FinishDeath()
@@ -973,6 +1040,11 @@ void USoulFloorDirectorComponent::UnparkPawn()
 
 	Character->SetActorEnableCollision(true);
 	Character->GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+}
+
+FName USoulFloorDirectorComponent::GetLoadingId(int32 FloorIndex) const
+{
+	return FName(*FString::Printf(TEXT("F%d"), FloorIndex + 1));
 }
 
 void USoulFloorDirectorComponent::CurtainOut(float Duration)
@@ -1554,6 +1626,30 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 		else if (SelfTestMode == TEXT("fpath"))
 		{
 			RunSelfTestFPath(Step);
+		}
+		else if (SelfTestMode == TEXT("bossskip"))
+		{
+			// 보스방 → 인트로 1.5초 → 스킵 → 입력과 뷰 타깃 복구 확인
+			if (Step == 0)
+			{
+				DebugGoToBossRoom();
+				ScheduleSelfTest(1, 1.5f);
+			}
+			else if (Step == 1)
+			{
+				const USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this);
+				SW_LOG("[SELFTEST] bossskip playing=%d", Pres && Pres->IsIntroPlaying());
+				GEngine->Exec(GetWorld(), TEXT("soul.Pres.SkipIntro"));
+				ScheduleSelfTest(2, 1.f);
+			}
+			else
+			{
+				const APlayerController* PC = GetPlayerController();
+				const USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this);
+				SW_LOG("[SELFTEST] bossskip after: playing=%d input=%d viewTargetIsPawn=%d", Pres && Pres->IsIntroPlaying(), PC && PC->InputEnabled(),
+					PC && PC->GetViewTarget() == PC->GetPawn());
+				FinishSelfTest();
+			}
 		}
 		else if (SelfTestMode == TEXT("result"))
 		{

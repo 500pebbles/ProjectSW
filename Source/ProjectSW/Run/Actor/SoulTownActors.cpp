@@ -4,6 +4,8 @@
 #include "Run/Equipment/SoulEquipmentComponent.h"
 #include "Run/Interact/SoulInteractableComponent.h"
 #include "Run/Presentation/SoulTransitionSubsystem.h"
+#include "Run/Presentation/SoulPresentationSubsystem.h"
+#include "Run/Presentation/SoulPresentationData.h"
 #include "Run/Save/SoulHallOfFameSubsystem.h"
 #include "Run/UI/SoulHallOfFameBoardWidget.h"
 #include "Utility/SoulLog.h"
@@ -41,6 +43,11 @@ void ASoulDungeonGate::BeginPlay()
 
 void ASoulDungeonGate::HandleInteracted(APawn* User)
 {
+	if (const USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this); Pres && Pres->GetData())
+	{
+		Pres->PlayAt(Pres->GetData()->EntrySound, Pres->GetData()->EntryFX, User ? User->GetActorLocation() : GetActorLocation());
+		Pres->PlaySound2D(Pres->GetData()->EntryVoice);
+	}
 	// 클리어 시간은 게이트 F부터 (로딩과 연출 포함, 2.3)
 	if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this))
 	{
@@ -250,6 +257,10 @@ void ASoulTownDirector::BeginPlay()
 		Arrival = ESoulTownArrival::Relaunch;
 	}
 	OnTownArrived(Arrival);
+	if (USoulTransitionSubsystem* Transition = USoulTransitionSubsystem::Get(this))
+	{
+		Transition->HideLoading();
+	}
 
 #if !UE_BUILD_SHIPPING
 	if (FParse::Param(FCommandLine::Get(), TEXT("SoulTownSelfTest")))

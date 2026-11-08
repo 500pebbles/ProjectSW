@@ -12,6 +12,8 @@ class USoulScoreRules;
 class USoulHallOfFameRules;
 class USoulEquipmentCatalog;
 class USoulResultWidget;
+class USoulCombatFeelData;
+class USoulPresentationData;
 
 /**
  * 런 진입점 (DA_RunConfig). BP_RunGameMode와 이후 BP_TitleGameMode의 USoulRunGameComponent가 하드 참조해 쿡 루트가 된다.
@@ -65,6 +67,14 @@ public:
 	/** 런이 끝났을 때 결과창 (WBP_Result). 비면 바로 마을로 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Record")
 	TSubclassOf<USoulResultWidget> ResultWidgetClass;
+
+	/** 타격감 (DA_CombatFeel). 비면 타격감 서브시스템이 꺼진다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Feel")
+	TObjectPtr<USoulCombatFeelData> CombatFeel;
+
+	/** 연출 (DA_Presentation): 로딩 화면, 배너, 소리, 보스 인트로 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation")
+	TObjectPtr<USoulPresentationData> Presentation;
 
 	/** 맵 이동 직전 페이드 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Run", meta = (ClampMin = "0", Units = "s"))

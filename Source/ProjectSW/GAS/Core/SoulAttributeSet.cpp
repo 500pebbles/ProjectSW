@@ -11,6 +11,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/SoulPlayerController.h"
+#include "Run/Combat/SoulCombatFeelSubsystem.h"
 #include "Utility/SoulGameplayTags.h"
 
 USoulAttributeSet::USoulAttributeSet()
@@ -106,6 +107,7 @@ void USoulAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectMo
 			SetHealth(FMath::Clamp(NewHealth, 0.f, GetMaxHealth()));
 			
 			const bool bFatal = NewHealth <= 0.f;
+			USoulCombatFeelSubsystem::NotifyDamage(Props.SourceAvatarActor, Props.TargetAvatarActor, LocalIncomingDamage, bFatal, USoulAbilitySystemLibrary::IsCriticalHit(Props.EffectContextHandle), Props.EffectContextHandle);
 			if (bFatal)
 			{				
 				ISoulCombatInterface* CombatInterface = Cast<ISoulCombatInterface>(Props.TargetAvatarActor);

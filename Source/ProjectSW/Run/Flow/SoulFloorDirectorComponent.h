@@ -153,6 +153,8 @@ private:
 	void FinishDeath();
 	/** 런이 끝난 뒤: 결과창 → 마을 (결과창 클래스가 없으면 바로 마을) */
 	void ShowRunResult();
+	FName GetLoadingId(int32 FloorIndex) const;
+	void HandleExitEntered(ASoulPackedLevelActor* Room);
 	void HandlePlayerHealthChanged(const struct FOnAttributeChangeData& Data);
 	int32 LastGeneratedSeed = 0;
 	bool bDamageTracked = false;
