@@ -330,4 +330,8 @@ void USoulMobComponent::HandleDied(AActor* DeadActor)
 	SpawnedSummons.Reset();
 
 	OnMobDied.Broadcast(Enemy);
+	if (USoulMobEncounterSubsystem* Encounter = GetWorld()->GetSubsystem<USoulMobEncounterSubsystem>())
+	{
+		Encounter->NotifyMobKilled(Enemy, this);
+	}
 }

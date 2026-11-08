@@ -5,6 +5,8 @@
 #include "Run/Core/SoulRunGameComponent.h"
 #include "Run/Core/SoulRunConfig.h"
 #include "Run/Core/SoulRunTags.h"
+#include "Run/Progression/SoulProgressionComponent.h"
+#include "GAS/Core/SoulAbilitySystemComponent.h"
 #include "Run/Mob/SoulMobComponent.h"
 #include "Run/Mob/SoulMobEncounterSubsystem.h"
 #include "Actor/SoulProjectileBase.h"
@@ -278,6 +280,14 @@ void USoulFloorDirectorComponent::HandleGenerationFinished(const FPMGResult& Res
 
 	LogFloorState(TEXT("Generated"));
 
+	// 텔레메트리: 방 입장과 전투 종료 시각 (SW.Run.Telemetry 1)
+	RoomEnterTime.Reset();
+	for (TActorIterator<ASoulPackedLevelActor> RoomIt(GetWorld()); RoomIt; ++RoomIt)
+	{
+		RoomIt->OnPlayerEntered.AddUObject(this, &ThisClass::HandleRoomEnteredTelemetry);
+		RoomIt->OnCombatFinished.AddUObject(this, &ThisClass::HandleRoomCombatFinishedTelemetry);
+	}
+
 	NavWaitStartTime = GetWorld()->GetTimeSeconds();
 	// 방 스폰이 만든 dirty area가 큐에 들어간 다음 프레임부터 본다
 	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &ThisClass::PollNavigation);
@@ -382,6 +392,8 @@ void USoulFloorDirectorComponent::Reveal()
 	bFirstFloor = false;
 
 	LogFloorState(TEXT("Ready"));
+	FloorReadyTime = GetWorld()->GetTimeSeconds();
+	LogTelemetry(TEXT("floor_ready"));
 	OnFloorReady.Broadcast(CurrentFloorIndex + 1);
 
 	// Exit 방에 전투가 없으면 클리어 신호가 오지 않으므로 바로 포탈을 예약한다
@@ -413,6 +425,7 @@ void USoulFloorDirectorComponent::RequestDescend()
 	}
 
 	SW_LOG("[FLOOR] Descend %d -> %d", CurrentFloorIndex + 1, CurrentFloorIndex + 2);
+	LogTelemetry(FString::Printf(TEXT("floor_end floorSec=%.1f"), GetWorld()->GetTimeSeconds() - FloorReadyTime));
 	bTransitioning = true;
 	if (bSelfTest)
 	{
@@ -506,6 +519,37 @@ void USoulFloorDirectorComponent::HandleExitCombatFinished(ASoulPackedLevelActor
 	{
 		SchedulePortal();
 	}
+}
+
+static TAutoConsoleVariable<int32> CVarSoulRunTelemetry(TEXT("SW.Run.Telemetry"), 0, TEXT("1이면 방, 층, 보스 시간과 체력, 레벨을 [TEL] 로그로 찍는다"));
+
+void USoulFloorDirectorComponent::LogTelemetry(const FString& Event) const
+{
+	if (CVarSoulRunTelemetry.GetValueOnGameThread() <= 0)
+		return;
+	const UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(const_cast<APawn*>(PlayerPawn.Get()));
+	const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this);
+	SW_LOG("[TEL] floor=%d t=%.1f run=%.1f %s hp=%.0f/%.0f lv=%d exp=%d", CurrentFloorIndex + 1, GetWorld()->GetTimeSeconds() - FloorReadyTime,
+		Run ? Run->GetElapsedRealSeconds() : 0.0, *Event,
+		ASC ? ASC->GetNumericAttribute(USoulAttributeSet::GetHealthAttribute()) : -1.f, ASC ? ASC->GetNumericAttribute(USoulAttributeSet::GetMaxHealthAttribute()) : -1.f,
+		Run ? Run->GetState().Level : 0, Run ? Run->GetState().Exp : 0);
+}
+
+void USoulFloorDirectorComponent::HandleRoomEnteredTelemetry(ASoulPackedLevelActor* Room)
+{
+	if (!Room || RoomEnterTime.Contains(Room->GetRoomId()))
+		return;
+	RoomEnterTime.Add(Room->GetRoomId(), GetWorld()->GetTimeSeconds());
+	const FName Type = LastResult.Rooms.IsValidIndex(Room->GetRoomId()) ? LastResult.Rooms[Room->GetRoomId()].RoomType : NAME_None;
+	LogTelemetry(FString::Printf(TEXT("room_enter id=%d type=%s"), Room->GetRoomId(), *Type.ToString()));
+}
+
+void USoulFloorDirectorComponent::HandleRoomCombatFinishedTelemetry(ASoulPackedLevelActor* Room)
+{
+	if (!Room || bTransitioning)
+		return;
+	const double* Enter = RoomEnterTime.Find(Room->GetRoomId());
+	LogTelemetry(FString::Printf(TEXT("room_clear id=%d fightSec=%.1f boss=%d"), Room->GetRoomId(), Enter ? GetWorld()->GetTimeSeconds() - *Enter : -1.0, Room == ExitRoom.Get()));
 }
 
 void USoulFloorDirectorComponent::SchedulePortal()
@@ -995,6 +1039,10 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 		{
 			RunSelfTestBossFront(Step);
 		}
+		else if (SelfTestMode == TEXT("stats"))
+		{
+			RunSelfTestStats(Step);
+		}
 		else
 		{
 			RunSelfTestFloors();
@@ -1167,6 +1215,90 @@ void USoulFloorDirectorComponent::RunSelfTestSpawn(int32 Step)
 		ScheduleSelfTest(2, 2.f);
 		break;
 	default:
+		FinishSelfTest();
+		break;
+	}
+#endif
+}
+
+void USoulFloorDirectorComponent::LogSkillState(const TCHAR* Label) const
+{
+#if !UE_BUILD_SHIPPING
+	const UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(const_cast<APawn*>(PlayerPawn.Get()));
+	if (!ASC)
+		return;
+	float Remaining = 0.f;
+	float Duration = 0.f;
+	const FGameplayEffectQuery Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(FGameplayTagContainer(SoulTags::Cooldown::Skill_1_0));
+	for (const TPair<float, float>& Pair : ASC->GetActiveEffectsTimeRemainingAndDuration(Query))
+	{
+		Remaining = FMath::Max(Remaining, Pair.Key);
+		Duration = FMath::Max(Duration, Pair.Value);
+	}
+	SW_LOG("[SELFTEST] %s stamina=%.1f/%.0f cd1_0=%.1f/%.1f", Label, ASC->GetNumericAttribute(USoulAttributeSet::GetStaminaAttribute()),
+		ASC->GetNumericAttribute(USoulAttributeSet::GetMaxStaminaAttribute()), Remaining, Duration);
+#endif
+}
+
+void USoulFloorDirectorComponent::RunSelfTestStats(int32 Step)
+{
+#if !UE_BUILD_SHIPPING
+	USoulProgressionComponent* Progression = USoulProgressionComponent::Find(PlayerPawn.Get());
+	USoulAbilitySystemComponent* ASC = Cast<USoulAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PlayerPawn.Get()));
+	switch (Step)
+	{
+	case 0:
+		GEngine->Exec(GetWorld(), TEXT("SW.Run.Telemetry 1"));
+		if (Progression)
+		{
+			Progression->DumpToLog();
+			GEngine->Exec(GetWorld(), TEXT("soul.Prog.SetLevel 5"));
+			GEngine->Exec(GetWorld(), TEXT("soul.Prog.SetLevel 10"));
+			GEngine->Exec(GetWorld(), TEXT("soul.Prog.SetLevel 1"));
+		}
+		LogSkillState(TEXT("skill before"));
+		if (ASC)
+		{
+			ASC->AbilityInputTagPressed(SoulTags::InputTags::KEY_1);
+			ASC->AbilityInputTagReleased(SoulTags::InputTags::KEY_1);
+		}
+		ScheduleSelfTest(1, 0.5f);
+		break;
+	case 1:
+		LogSkillState(TEXT("skill +0.5s"));
+		ScheduleSelfTest(2, 2.5f);
+		break;
+	case 2:
+		LogSkillState(TEXT("dash before"));
+		if (ASC)
+		{
+			ASC->AbilityInputTagPressed(SoulTags::InputTags::Dash);
+			ASC->AbilityInputTagReleased(SoulTags::InputTags::Dash);
+		}
+		ScheduleSelfTest(3, 0.2f);
+		break;
+	case 3:
+		LogSkillState(TEXT("dash +0.2s"));
+		ScheduleSelfTest(4, 3.f);
+		break;
+	case 4:
+		LogSkillState(TEXT("regen +3s"));
+		DebugGoToCombatRoom();
+		ScheduleSelfTest(5, 4.f);
+		break;
+	case 5:
+		SoulFloorDirectorDebug::KillAllMobs(GetWorld());
+		ScheduleSelfTest(6, 3.f);
+		break;
+	default:
+		if (Progression)
+		{
+			Progression->DumpToLog();
+		}
+		if (const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this))
+		{
+			SW_LOG("[SELFTEST] ledger=%d", Run->GetLedgerTotal());
+		}
 		FinishSelfTest();
 		break;
 	}

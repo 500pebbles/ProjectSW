@@ -7,6 +7,10 @@
 #include "SoulMobEncounterSubsystem.generated.h"
 
 class ASoulPackedLevelActor;
+class ASoulCharacterEnemy;
+class USoulMobComponent;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FSoulMobKilledSignature, ASoulCharacterEnemy*, const USoulMobComponent*);
 
 /**
  * 층별 몹 배치. Director가 BeginFloor를 불러야만 동작한다(팀 맵은 그대로).
@@ -29,6 +33,10 @@ public:
 
 	float GetDamageScale() const { return bActive ? Rules.DamageScale : 1.f; }
 	float GetAttackIntervalScale() const { return bActive ? Rules.AttackIntervalScale : 1.f; }
+
+	/** 몹이 죽었을 때 (경험치, 점수). USoulMobComponent가 부른다 */
+	void NotifyMobKilled(ASoulCharacterEnemy* Enemy, const USoulMobComponent* Mob);
+	FSoulMobKilledSignature OnMobKilled;
 
 	/** 층에 깔린 몹 포인트 수 (일반, 보스) */
 	int32 GetNormalPointCount() const { return NormalPoints; }

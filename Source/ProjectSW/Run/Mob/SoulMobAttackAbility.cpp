@@ -23,6 +23,9 @@ USoulMobAttackAbility::USoulMobAttackAbility()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 
+	// 몹 피해는 CT_Damage_Mob과 배율만 따른다 (공격력 성장은 플레이어 전용)
+	AttackPowerReference = 0.f;
+
 	// BTTask_Attack이 Abilities.Attack 태그로 켠다
 	FGameplayTagContainer Tags;
 	Tags.AddTag(SoulTags::Abilities::Attack);

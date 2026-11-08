@@ -9,6 +9,7 @@
 #include "Map/SoulRoomSpawnPointComponent.h"
 #include "Interface/SoulCombatInterface.h"
 #include "Utility/SoulLog.h"
+#include "Run/Core/SoulRunSubsystem.h"
 
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
@@ -179,6 +180,17 @@ void USoulMobEncounterSubsystem::BeginFloor(const FSoulMobFloorRules& InRules, c
 		NormalSet ? *NormalSet->GetName() : TEXT("none"), BossSet ? *BossSet->GetName() : TEXT("none"));
 
 	GetWorld()->GetTimerManager().SetTimer(RescueTimer, FTimerDelegate::CreateUObject(this, &ThisClass::RescueStuckMobs), 1.f, true);
+}
+
+void USoulMobEncounterSubsystem::NotifyMobKilled(ASoulCharacterEnemy* Enemy, const USoulMobComponent* Mob)
+{
+	if (!Mob)
+		return;
+	if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this); Run && Mob->GetScoreValue() > 0)
+	{
+		Run->AddScore(Mob->GetRole() == ESoulMobRole::Boss ? FName(TEXT("Boss")) : FName(TEXT("Kill")), Mob->GetScoreValue());
+	}
+	OnMobKilled.Broadcast(Enemy, Mob);
 }
 
 int32 USoulMobEncounterSubsystem::FindRoomAt(const FVector& Location) const

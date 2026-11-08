@@ -34,7 +34,13 @@ struct FSoulSkillSlotUIData
 	// 3초 체인 유예 타이머 남은 비율 (1.0 -> 0.0)
 	UPROPERTY(BlueprintReadOnly, Category = "SkillChain")
 	float ChainWindowRemainingRatio = 0.0f;
+
+	// 표시 단계의 비용(스태미나)을 낼 수 있는지
+	UPROPERTY(BlueprintReadOnly, Category = "SkillChain")
+	bool bCanAffordCost = true;
 };
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSoulCostDeniedSignature, const UGameplayAbility*, Ability);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSkillChainStateChangedSignature);
 
 // 에디터에서 슬롯마다 설정할 체인 구조체
@@ -101,6 +107,11 @@ public:
 	bool SwapSkillChainSteps(const FGameplayTag& SlotA, int32 StepA, const FGameplayTag& SlotB, int32 StepB);
 	UPROPERTY(BlueprintAssignable, Category = "SkillChain")
 	FOnSkillChainStateChangedSignature OnSkillChainStateChanged;
+
+	// 쿨타임은 통과했는데 비용(스태미나)이 모자라 발동하지 못했을 때
+	UPROPERTY(BlueprintAssignable, Category = "Cost")
+	FOnSoulCostDeniedSignature OnCostDenied;
+	void NotifyCostDenied(const UGameplayAbility* Ability) { OnCostDenied.Broadcast(Ability); }
 	
 protected:
 	UFUNCTION(Client, Reliable)

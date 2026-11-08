@@ -38,6 +38,12 @@ void USoulRunSubsystem::EndRun(bool bSuccess)
 	State.EndRealTime = FPlatformTime::Seconds();
 	const double Elapsed = GetElapsedRealSeconds();
 	SW_LOG("[RUN] EndRun success=%d floor=%d level=%d sec=%.1f", bSuccess, State.Floor, State.Level, Elapsed);
+	// 결과 최소판: 원장 항목과 합 (레벨, 시간 점수와 랭크는 단계 E의 DA_ScoreRules)
+	for (const TPair<FName, int32>& Pair : State.Ledger)
+	{
+		SW_LOG("[RUN] Summary %s=%d", *Pair.Key.ToString(), Pair.Value);
+	}
+	SW_LOG("[RUN] Summary ledger=%d forced=%d", GetLedgerTotal(), ForcedScore);
 
 	OnRunEnded.Broadcast(bSuccess);
 
@@ -48,6 +54,30 @@ void USoulRunSubsystem::EndRun(bool bSuccess)
 void USoulRunSubsystem::SetFloor(int32 NewFloor)
 {
 	State.Floor = NewFloor;
+}
+
+void USoulRunSubsystem::SetLevelExp(int32 NewLevel, int32 NewExp)
+{
+	State.Level = NewLevel;
+	State.Exp = NewExp;
+}
+
+void USoulRunSubsystem::AddScore(FName Category, int32 Amount)
+{
+	if (!IsRunActive() || Amount == 0)
+		return;
+	State.Ledger.FindOrAdd(Category) += Amount;
+	SW_LOG("[SCORE] %s +%d total=%d", *Category.ToString(), Amount, GetLedgerTotal());
+}
+
+int32 USoulRunSubsystem::GetLedgerTotal() const
+{
+	int32 Total = 0;
+	for (const TPair<FName, int32>& Pair : State.Ledger)
+	{
+		Total += Pair.Value;
+	}
+	return Total;
 }
 
 double USoulRunSubsystem::GetElapsedRealSeconds() const

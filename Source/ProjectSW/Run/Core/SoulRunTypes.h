@@ -38,6 +38,10 @@ struct PROJECTSW_API FSoulRunState
 	UPROPERTY(BlueprintReadOnly, Category = "Run")
 	bool bActive = false;
 
+	/** 점수 원장 (항목별 합). 정산 규칙(DA_ScoreRules)은 단계 E */
+	UPROPERTY(BlueprintReadOnly, Category = "Run")
+	TMap<FName, int32> Ledger;
+
 	/** EndRun이 한 번 실행되면 true. 이후 EndRun은 무시한다 */
 	UPROPERTY(BlueprintReadOnly, Category = "Run")
 	bool bRunEnded = false;

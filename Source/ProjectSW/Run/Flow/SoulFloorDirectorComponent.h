@@ -134,6 +134,9 @@ private:
 	void DestroyFloorActors();
 
 	void HandleExitCombatFinished(ASoulPackedLevelActor* Room);
+	void HandleRoomEnteredTelemetry(ASoulPackedLevelActor* Room);
+	void HandleRoomCombatFinishedTelemetry(ASoulPackedLevelActor* Room);
+	void LogTelemetry(const FString& Event) const;
 	void SchedulePortal();
 	ASoulFloorPortal* SpawnPortal();
 	void BeginClear();
@@ -160,6 +163,8 @@ private:
 	void RunSelfTestDeath(int32 Step);
 	void RunSelfTestSpawn(int32 Step);
 	void RunSelfTestBossFront(int32 Step);
+	void RunSelfTestStats(int32 Step);
+	void LogSkillState(const TCHAR* Label) const;
 	void LogPawnPose(const TCHAR* Label) const;
 	void ScheduleSelfTest(int32 Step, float Delay);
 	void LogPlayerHealth(const TCHAR* Label) const;
@@ -180,6 +185,8 @@ private:
 	double GenerateStartTime = 0.0;
 	double CurtainClosedTime = 0.0;
 	double NavWaitStartTime = 0.0;
+	double FloorReadyTime = 0.0;
+	TMap<int32, double> RoomEnterTime;
 
 	bool bFirstFloor = true;
 	bool bTransitioning = false;

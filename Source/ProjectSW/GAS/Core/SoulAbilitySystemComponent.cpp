@@ -70,6 +70,11 @@ void USoulAbilitySystemComponent::AbilityInputTagPressed(const FGameplayTag& Inp
 	{
 		return;
 	}
+	// Branch 이후(후딜) 스킬은 평타 입력으로 끊는다
+	if (USoulSkillAbility* ActiveSkill = InputTag.MatchesTagExact(SoulTags::InputTags::LMB) ? FindCurrentlyActiveSkillAbility() : nullptr; ActiveSkill && ActiveSkill->CanBeCanceledBySkill())
+	{
+		ActiveSkill->FinishForChainTransition();
+	}
 	ABILITYLIST_SCOPE_LOCK();
 	for (FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
 	{
@@ -192,6 +197,7 @@ bool USoulAbilitySystemComponent::GetSkillSlotUIData(const FGameplayTag& SlotInp
 		if (const USoulSkillAbility* SkillAbility = Cast<USoulSkillAbility>(AbilityObject))
 		{
 			OutData.SkillIcon = SkillAbility->GetSkillIcon();
+			OutData.bCanAffordCost = SkillAbility->CheckCost(Spec->Handle, AbilityActorInfo.Get());
 			const FGameplayTag SkillCooldownTag = SkillAbility->GetSkillCooldownTag();
 			if (SkillCooldownTag.IsValid())
 			{
@@ -342,6 +348,17 @@ bool USoulAbilitySystemComponent::TryActivateSlotChainStep(FSoulSkillChainRuntim
 	if (SelectedStep == INDEX_NONE)
 	{
 		SW_LOG("[SkillChain] No available skill in slot %s (all candidate steps on cooldown).", *ChainState.SlotInputTag.ToString());
+		// 쿨타임은 된 단계가 있는데 비용이 모자란 경우만 비용 부족으로 알린다
+		for (const FGameplayAbilitySpecHandle& StepHandle : ChainState.SpecHandles)
+		{
+			const FGameplayAbilitySpec* StepSpec = FindAbilitySpecFromHandle(StepHandle);
+			const UGameplayAbility* StepAbility = StepSpec ? (StepSpec->GetPrimaryInstance() ? StepSpec->GetPrimaryInstance() : StepSpec->Ability.Get()) : nullptr;
+			if (StepAbility && StepAbility->CheckCooldown(StepSpec->Handle, AbilityActorInfo.Get()) && !StepAbility->CheckCost(StepSpec->Handle, AbilityActorInfo.Get()))
+			{
+				NotifyCostDenied(StepAbility);
+				break;
+			}
+		}
 		return false;
 	}
 	FGameplayAbilitySpec* SelectedSpec = FindAbilitySpecFromHandle(ChainState.SpecHandles[SelectedStep]);

@@ -39,6 +39,16 @@ public:
 	/** Director가 층을 시작할 때 부른다 */
 	void SetFloor(int32 NewFloor);
 
+	/** 레벨과 현재 레벨 안 경험치 (USoulProgressionComponent가 쓴다) */
+	void SetLevelExp(int32 NewLevel, int32 NewExp);
+
+	/** 점수 원장에 더한다 (런이 끝났으면 무시) */
+	UFUNCTION(BlueprintCallable, Category = "Run")
+	void AddScore(FName Category, int32 Amount);
+
+	UFUNCTION(BlueprintPure, Category = "Run")
+	int32 GetLedgerTotal() const;
+
 	/** BeginRun부터 지금까지의 실시간 (초). 런이 없으면 0 */
 	UFUNCTION(BlueprintPure, Category = "Run")
 	double GetElapsedRealSeconds() const;

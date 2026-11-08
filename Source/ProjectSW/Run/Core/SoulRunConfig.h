@@ -5,6 +5,7 @@
 #include "SoulRunConfig.generated.h"
 
 class USoulDungeonFlowData;
+class USoulProgressionData;
 
 /**
  * 런 진입점 (DA_RunConfig). BP_RunGameMode와 이후 BP_TitleGameMode의 USoulRunGameComponent가 하드 참조해 쿡 루트가 된다.
@@ -27,4 +28,8 @@ public:
 	/** 층 배열과 전환 값 (DA_DungeonFlow) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Run")
 	TObjectPtr<USoulDungeonFlowData> DungeonFlow;
+
+	/** 레벨과 경험치 (DA_Progression) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Run")
+	TObjectPtr<USoulProgressionData> Progression;
 };
