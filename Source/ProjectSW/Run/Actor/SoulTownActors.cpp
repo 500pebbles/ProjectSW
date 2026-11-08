@@ -8,6 +8,11 @@
 #include "Run/Presentation/SoulPresentationData.h"
 #include "Run/Save/SoulHallOfFameSubsystem.h"
 #include "Run/UI/SoulHallOfFameBoardWidget.h"
+#include "Run/UI/SoulTownWidgets.h"
+#include "Run/Equipment/SoulEquipmentCatalog.h"
+#include "Run/Equipment/SoulEquipmentDefinition.h"
+#include "Run/Interact/SoulInteractionComponent.h"
+#include "Animation/AnimSequence.h"
 #include "Utility/SoulLog.h"
 
 #include "Components/SkeletalMeshComponent.h"
@@ -20,6 +25,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "TimerManager.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 
 // ---------- 게이트 ----------
 
@@ -88,6 +94,14 @@ ASoulCostumeStatue::ASoulCostumeStatue()
 
 	Interactable = CreateDefaultSubobject<USoulInteractableComponent>(TEXT("Interactable"));
 	Interactable->SetupAttachment(Root);
+
+	Card = CreateDefaultSubobject<UWidgetComponent>(TEXT("Card"));
+	Card->SetupAttachment(Root);
+	Card->SetWidgetSpace(EWidgetSpace::Screen);
+	Card->SetDrawAtDesiredSize(true);
+	Card->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Card->SetRelativeLocation(FVector(0.f, 0.f, 230.f));
+	Card->SetHiddenInGame(true);
 }
 
 void ASoulCostumeStatue::OnConstruction(const FTransform& Transform)
@@ -105,6 +119,10 @@ void ASoulCostumeStatue::ApplyCostumeVisuals()
 	{
 		// 포즈는 데이터: 재생하지 않고 한 시각에 세운다
 		Body->OverrideAnimationData(Costume->StatuePose, false, false, Costume->StatuePoseTime, 0.f);
+	}
+	if (PoseOverride)
+	{
+		Body->OverrideAnimationData(PoseOverride, false, false, PoseOverrideTime, 0.f);
 	}
 	Weapon->SetSkeletalMeshAsset(Costume->StatueWeaponMesh);
 	Saya->SetStaticMesh(Costume->StatueSheathMesh);
@@ -136,6 +154,44 @@ void ASoulCostumeStatue::BeginPlay()
 	ApplyCostumeVisuals();
 	Interactable->OnInteracted.AddDynamic(this, &ThisClass::HandleInteracted);
 	RefreshTint(true);
+	if (CardClass && Costume)
+	{
+		Card->SetWidgetClass(CardClass);
+		Card->InitWidget();
+		if (USoulCostumeCardWidget* Widget = Cast<USoulCostumeCardWidget>(Card->GetUserWidgetObject()))
+		{
+			Widget->SetCostume(Costume);
+		}
+		GetWorldTimerManager().SetTimer(CardTimer, this, &ThisClass::UpdateCardFocus, CardCheckInterval, true);
+	}
+}
+
+void ASoulCostumeStatue::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorldTimerManager().ClearTimer(CardTimer);
+	Super::EndPlay(EndPlayReason);
+}
+
+void ASoulCostumeStatue::UpdateCardFocus()
+{
+	const USoulInteractionComponent* Interaction = USoulInteractionComponent::Find(UGameplayStatics::GetPlayerPawn(this, 0));
+	ShowCard(Interaction && Interaction->GetTraceTarget() == this);
+}
+
+void ASoulCostumeStatue::ShowCard(bool bShow)
+{
+	if (bShow == bCardShown || !Card->GetUserWidgetObject())
+		return;
+	bCardShown = bShow;
+	if (bShow)
+	{
+		// 기록이 바뀌었을 수 있으니 보일 때마다 다시 채운다
+		if (USoulCostumeCardWidget* Widget = Cast<USoulCostumeCardWidget>(Card->GetUserWidgetObject()))
+		{
+			Widget->SetCostume(Costume);
+		}
+	}
+	Card->SetHiddenInGame(!bShow);
 }
 
 void ASoulCostumeStatue::HandleInteracted(APawn* User)
@@ -149,7 +205,7 @@ void ASoulCostumeStatue::HandleInteracted(APawn* User)
 void ASoulCostumeStatue::RefreshTint(bool bInstant)
 {
 	const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this);
-	const bool bSelected = Costume && Run && Run->GetSelectedCostume() == Costume->GetFName();
+	const bool bSelected = bAlwaysSelected || (Costume && Run && Run->GetSelectedCostume() == Costume->GetFName());
 	TargetTint = bSelected ? SelectedTint : UnselectedTint;
 	if (bInstant || TintBlendTime <= 0.f)
 	{
@@ -193,6 +249,91 @@ void ASoulCostumeStatue::RefreshAll(UWorld* World)
 	}
 }
 
+// ---------- 1위 석상 ----------
+
+ASoulChampionStatue::ASoulChampionStatue()
+{
+	NamePlate = CreateDefaultSubobject<UWidgetComponent>(TEXT("NamePlate"));
+	NamePlate->SetupAttachment(Root);
+	NamePlate->SetWidgetSpace(EWidgetSpace::Screen);
+	NamePlate->SetDrawAtDesiredSize(true);
+	NamePlate->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	NamePlate->SetRelativeLocation(FVector(0.f, 0.f, 240.f));
+	NamePlate->SetWidgetClass(USoulNamePlateWidget::StaticClass());
+	bAlwaysSelected = true;
+}
+
+void ASoulChampionStatue::BeginPlay()
+{
+	Super::BeginPlay();
+	// 1위 석상은 입을 수 없다 (보기만)
+	Interactable->SetInteractEnabled(false);
+	if (USoulHallOfFameSubsystem* HoF = USoulHallOfFameSubsystem::Get(this))
+	{
+		HoF->OnChanged.AddDynamic(this, &ThisClass::RefreshChampion);
+	}
+	RefreshChampion();
+}
+
+void ASoulChampionStatue::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (USoulHallOfFameSubsystem* HoF = USoulHallOfFameSubsystem::Get(this))
+	{
+		HoF->OnChanged.RemoveDynamic(this, &ThisClass::RefreshChampion);
+	}
+	Super::EndPlay(EndPlayReason);
+}
+
+void ASoulChampionStatue::RefreshChampion()
+{
+	const USoulHallOfFameSubsystem* HoF = USoulHallOfFameSubsystem::Get(this);
+	const TArray<FSoulHallOfFameEntry> Top = HoF ? HoF->GetTopEntries(1) : TArray<FSoulHallOfFameEntry>();
+	const USoulEquipmentCatalog* Catalog = USoulEquipmentCatalog::GetRunCatalog(this);
+	USoulCostumeDefinition* TopCostume = !Top.IsEmpty() && Catalog ? Catalog->FindCostumeByName(Top[0].CostumeId.ToString()) : nullptr;
+	if (!TopCostume && Catalog && !Top.IsEmpty())
+	{
+		TopCostume = Catalog->DefaultCostume;
+	}
+	// 기록이 없으면 숨는다
+	SetActorHiddenInGame(!TopCostume);
+	if (!TopCostume)
+	{
+		SW_LOG("[TOWN] champion hidden (no record)");
+		return;
+	}
+	const FSoulHallOfFameEntry& Entry = Top[0];
+	Costume = TopCostume;
+	PoseOverride = ChampionPose;
+	PoseOverrideTime = ChampionPoseTime;
+	ApplyCostumeVisuals();
+	// 무기는 그 기록의 무기 (없으면 의상 석상 무기)
+	if (const USoulEquipmentDefinition* TopWeapon = Catalog && !Entry.WeaponId.IsNone() ? Catalog->FindWeaponByName(Entry.WeaponId.ToString()) : nullptr)
+	{
+		Weapon->SetSkeletalMeshAsset(TopWeapon->WeaponMesh);
+		if (TopWeapon->SheathMesh)
+		{
+			Saya->SetStaticMesh(TopWeapon->SheathMesh);
+		}
+	}
+	RefreshTint(true);
+	FText PlateText = FText::FromString(Entry.PlayerName);
+	if (!NameFormat.IsEmpty())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Name"), FText::FromString(Entry.PlayerName));
+		Args.Add(TEXT("Score"), FText::AsNumber(Entry.Score));
+		Args.Add(TEXT("Grade"), FText::FromName(Entry.RankId));
+		PlateText = FText::Format(NameFormat, Args);
+	}
+	NamePlate->InitWidget();
+	if (USoulNamePlateWidget* Plate = Cast<USoulNamePlateWidget>(NamePlate->GetUserWidgetObject()))
+	{
+		Plate->SetPlateText(PlateText);
+	}
+	SW_LOG("[TOWN] champion %s costume=%s weapon=%s pose=%s plate=%s", *Entry.PlayerName, *Costume->GetName(), *Entry.WeaponId.ToString(),
+		ChampionPose ? *ChampionPose->GetName() : TEXT("none"), *PlateText.ToString());
+}
+
 // ---------- 명예의 전당 보드 ----------
 
 ASoulHallOfFameBoard::ASoulHallOfFameBoard()
@@ -206,6 +347,8 @@ ASoulHallOfFameBoard::ASoulHallOfFameBoard()
 	Board->SetupAttachment(Root);
 	Board->SetWidgetSpace(EWidgetSpace::World);
 	Board->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Interactable = CreateDefaultSubobject<USoulInteractableComponent>(TEXT("Interactable"));
+	Interactable->SetupAttachment(Root);
 }
 
 void ASoulHallOfFameBoard::BeginPlay()
@@ -215,7 +358,14 @@ void ASoulHallOfFameBoard::BeginPlay()
 	{
 		HoF->OnChanged.AddDynamic(this, &ThisClass::Refresh);
 	}
+	Interactable->OnInteracted.AddDynamic(this, &ThisClass::HandleInteracted);
+	Interactable->SetInteractEnabled(PanelClass != nullptr);
 	Refresh();
+}
+
+void ASoulHallOfFameBoard::HandleInteracted(APawn* User)
+{
+	USoulHallOfFamePanelWidget::Open(User ? Cast<APlayerController>(User->GetController()) : nullptr, PanelClass);
 }
 
 void ASoulHallOfFameBoard::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -307,6 +457,26 @@ void ASoulTownDirector::RunTownSelfTest(ESoulTownArrival Arrival)
 		SW_LOG("[SELFTEST] town statues=%d", Statues.Num());
 		if (Statues.Num() > 4)
 		{
+			Statues[4]->ShowCard(true);
+			Statues[4]->ShowCard(false);
+		}
+		for (TActorIterator<ASoulHallOfFameBoard> It(GetWorld()); It; ++It)
+		{
+			if (USoulInteractableComponent* BoardInteract = It->FindComponentByClass<USoulInteractableComponent>(); BoardInteract && BoardInteract->Interact(Pawn))
+			{
+				TArray<UUserWidget*> Panels;
+				UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, Panels, USoulHallOfFamePanelWidget::StaticClass(), false);
+				SW_LOG("[SELFTEST] town panel open=%d", Panels.Num());
+				for (UUserWidget* Panel : Panels)
+				{
+					Cast<USoulHallOfFamePanelWidget>(Panel)->SelectEntry(0);
+					Cast<USoulHallOfFamePanelWidget>(Panel)->Close();
+				}
+			}
+			break;
+		}
+		if (Statues.Num() > 4)
+		{
 			if (USoulInteractableComponent* Interactable = Statues[4]->FindComponentByClass<USoulInteractableComponent>())
 			{
 				Interactable->Interact(Pawn);
@@ -336,6 +506,13 @@ void ASoulTownDirector::RunTownSelfTest(ESoulTownArrival Arrival)
 
 void ASoulTownDirector::OnTownArrived_Implementation(ESoulTownArrival Arrival)
 {
+	if (Arrival == ESoulTownArrival::FirstLaunch && TownHintClass)
+	{
+		if (USoulTownHintWidget* Hint = CreateWidget<USoulTownHintWidget>(UGameplayStatics::GetPlayerController(this, 0), TownHintClass))
+		{
+			Hint->AddToViewport(20);
+		}
+	}
 	const USoulHallOfFameSubsystem* HoF = USoulHallOfFameSubsystem::Get(this);
 	SW_LOG("[TOWN] arrived=%d entries=%d place=%d best=%d", static_cast<int32>(Arrival), HoF ? HoF->GetEntryCount() : -1,
 		HoF ? HoF->GetRankOf(HoF->GetLastSubmittedId()) : 0, HoF ? HoF->WasLastSubmittedNewBest() : 0);

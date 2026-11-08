@@ -12,6 +12,11 @@ class UStaticMeshComponent;
 class USoulCostumeDefinition;
 class USoulInteractableComponent;
 class UWidgetComponent;
+class UAnimSequence;
+class USoulCostumeCardWidget;
+class USoulHallOfFamePanelWidget;
+class USoulNamePlateWidget;
+class USoulTownHintWidget;
 
 /** 던전 게이트 (BP_DungeonGate, L_Town G). F → BeginRun → 던전 */
 UCLASS()
@@ -62,8 +67,12 @@ public:
 
 	USoulCostumeDefinition* GetCostume() const { return Costume; }
 
+	/** 의상 카드를 켜고 끈다 (포커스 때, 셀프 테스트) */
+	void ShowCard(bool bShow);
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float DeltaSeconds) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Statue")
@@ -83,6 +92,18 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Statue")
 	TObjectPtr<USoulInteractableComponent> Interactable;
+
+	/** 의상 카드 (WBP_CostumeCard). 플레이어 트레이스가 이 석상을 잡았을 때만 보인다 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Statue")
+	TObjectPtr<UWidgetComponent> Card;
+
+	/** 비우면 카드가 없다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Statue")
+	TSubclassOf<USoulCostumeCardWidget> CardClass;
+
+	/** 포커스를 보는 간격 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Statue", meta = (ClampMin = "0.05", Units = "s"))
+	float CardCheckInterval = 0.2f;
 
 	/** 이 석상이 입히는 의상 (L_Town 인스턴스마다) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Statue")
@@ -110,12 +131,26 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Statue")
 	FName SheathSocketName;
 
+	/** 파생(1위 석상): 의상 포즈 대신 쓸 포즈 */
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimSequence> PoseOverride;
+
+	float PoseOverrideTime = 0.f;
+
+	/** 파생(1위 석상): 입은 의상과 상관없이 늘 원색 */
+	bool bAlwaysSelected = false;
+
+	void ApplyTint(const FLinearColor& Color);
+	void ApplyCostumeVisuals();
+
 private:
 	UFUNCTION()
 	void HandleInteracted(APawn* User);
 
-	void ApplyTint(const FLinearColor& Color);
-	void ApplyCostumeVisuals();
+	void UpdateCardFocus();
+
+	FTimerHandle CardTimer;
+	bool bCardShown = false;
 
 	FLinearColor CurrentTint = FLinearColor::White;
 	FLinearColor FromTint = FLinearColor::White;
@@ -123,7 +158,38 @@ private:
 	float BlendElapsed = 0.f;
 };
 
-/** 명예의 전당 보드 (BP_HallOfFame, L_Town B). 간판 메시 + 월드 위젯(상위 행) */
+/** 1위 석상 (BP_ChampionStatue, L_Town C). 1위 기록의 의상과 무기, 자랑 포즈, 이름표. 기록이 없으면 숨는다 */
+UCLASS()
+class PROJECTSW_API ASoulChampionStatue : public ASoulCostumeStatue
+{
+	GENERATED_BODY()
+
+public:
+	ASoulChampionStatue();
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Champion")
+	TObjectPtr<UWidgetComponent> NamePlate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Champion")
+	TObjectPtr<UAnimSequence> ChampionPose;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Champion")
+	float ChampionPoseTime = 0.f;
+
+	/** {Name} {Score} {Grade} */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Champion")
+	FText NameFormat;
+
+private:
+	UFUNCTION()
+	void RefreshChampion();
+};
+
+/** 명예의 전당 보드 (BP_HallOfFame, L_Town B). 간판 메시 + 월드 위젯(상위 행) + F로 여는 패널 */
 UCLASS()
 class PROJECTSW_API ASoulHallOfFameBoard : public AActor
 {
@@ -145,9 +211,19 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Board")
 	TObjectPtr<UWidgetComponent> Board;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Board")
+	TObjectPtr<USoulInteractableComponent> Interactable;
+
+	/** F로 여는 전체 패널 (WBP_HallOfFame) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Board")
+	TSubclassOf<USoulHallOfFamePanelWidget> PanelClass;
+
 private:
 	UFUNCTION()
 	void Refresh();
+
+	UFUNCTION()
+	void HandleInteracted(APawn* User);
 };
 
 /** 마을 도착 (BP_TownDirector, L_Town). 상황을 판정하고 OnTownArrived를 부른다 */
@@ -170,6 +246,10 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Town")
 	void OnTownArrived(ESoulTownArrival Arrival);
+
+	/** 처음 실행 때 띄우는 안내 (WBP_TownHint). 비우면 없다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Town")
+	TSubclassOf<USoulTownHintWidget> TownHintClass;
 
 protected:
 	virtual void BeginPlay() override;
