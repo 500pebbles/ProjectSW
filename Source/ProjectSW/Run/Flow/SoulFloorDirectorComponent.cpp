@@ -1971,6 +1971,110 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 				}
 			}
 		}
+		else if (SelfTestMode == TEXT("tough"))
+		{
+			// 층마다 전투방을 모두 열고 강화 몹(체력 x, 크기)을 기록한 뒤 처치(점수, 경험치), 보스 처치 후 포탈, 3층 클리어
+			auto FindRoom = [this]() -> ASoulPackedLevelActor*
+			{
+				for (TActorIterator<ASoulPackedLevelActor> It(GetWorld()); It; ++It)
+				{
+					if (IsValid(*It) && It->HasCombat() && *It != ExitRoom.Get() && !It->IsVisited())
+						return *It;
+				}
+				return nullptr;
+			};
+			auto RefillPlayer = [this]()
+			{
+				if (UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PlayerPawn.Get()))
+				{
+					ASC->SetNumericAttributeBase(USoulAttributeSet::GetHealthAttribute(), ASC->GetNumericAttribute(USoulAttributeSet::GetMaxHealthAttribute()));
+				}
+			};
+			const USoulMobEncounterSubsystem* Encounter = GetWorld()->GetSubsystem<USoulMobEncounterSubsystem>();
+			if (Step == 0)
+			{
+				RefillPlayer();
+				if (FindRoom())
+				{
+					DebugGoToCombatRoom();
+					ScheduleSelfTest(1, 3.f);
+				}
+				else
+				{
+					const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this);
+					SW_LOG("[SELFTEST] tough floor=%d normalPoints=%d toughPlanned=%d toughApplied=%d ledger=%d", CurrentFloorIndex + 1,
+						Encounter ? Encounter->GetNormalPointCount() : -1, Encounter ? Encounter->GetToughPlanned() : -1, Encounter ? Encounter->GetToughApplied() : -1, Run ? Run->GetLedgerTotal() : -1);
+					DebugGoToBossRoom();
+					ScheduleSelfTest(2, 10.f);
+				}
+			}
+			else if (Step == 1)
+			{
+				int32 Alive = 0;
+				const ASoulCharacterEnemy* ShotTarget = nullptr;
+				for (TActorIterator<ASoulCharacterEnemy> It(GetWorld()); It; ++It)
+				{
+					const USoulMobComponent* Mob = USoulMobComponent::Find(*It);
+					if (!IsValid(*It) || ISoulCombatInterface::Execute_IsDead(*It) || !Mob)
+						continue;
+					++Alive;
+					if (Mob->IsTough() && !ShotTarget)
+					{
+						ShotTarget = *It;
+					}
+					const UAbilitySystemComponent* ASC = It->GetAbilitySystemComponent();
+					SW_LOG("[SELFTEST] tough mob %s tough=%d lv=%d hp=%.0f/%.0f scale=%.2f", *It->GetName(), Mob->IsTough(), It->GetCharacterLevel(),
+						ASC ? ASC->GetNumericAttribute(USoulAttributeSet::GetHealthAttribute()) : -1.f, ASC ? ASC->GetNumericAttribute(USoulAttributeSet::GetMaxHealthAttribute()) : -1.f, It->GetActorScale3D().X);
+				}
+				SW_LOG("[SELFTEST] tough room alive=%d", Alive);
+				// 층마다 한 장: 강화 몹 쪽으로 카메라를 돌려 찍는다 (-SoulShotDir일 때만)
+				static int32 LastShotFloor = 0;
+				APlayerController* PC = GetPlayerController();
+				if (SoulShots::IsEnabled() && ShotTarget && PC && PlayerPawn.IsValid() && LastShotFloor != CurrentFloorIndex + 1)
+				{
+					LastShotFloor = CurrentFloorIndex + 1;
+					// 폰을 강화 몹에서 방 가운데 쪽으로 600cm 떨어진 곳에 두고 몹을 보게 한다 (카메라 붐이 벽에 눌리지 않게)
+					const FVector Target = ShotTarget->GetActorLocation();
+					FVector Away = (PlayerPawn->GetActorLocation() - Target).GetSafeNormal2D();
+					if (Away.IsNearlyZero())
+					{
+						Away = FVector::ForwardVector;
+					}
+					PlayerPawn->TeleportTo(Target + Away * 600.f + FVector(0.f, 0.f, 50.f), PlayerPawn->GetActorRotation(), false, true);
+					FRotator Look = (Target - PlayerPawn->GetActorLocation()).Rotation();
+					Look.Pitch = -12.f;
+					PC->SetControlRotation(Look);
+					SoulShots::Take(FString::Printf(TEXT("19_tough_f%d"), CurrentFloorIndex + 1), 0.4f);
+					ScheduleSelfTest(5, 0.9f);
+				}
+				else
+				{
+					SoulFloorDirectorDebug::KillAllMobs(GetWorld());
+					ScheduleSelfTest(0, 1.5f);
+				}
+			}
+			else if (Step == 5)
+			{
+				SoulFloorDirectorDebug::KillAllMobs(GetWorld());
+				ScheduleSelfTest(0, 1.5f);
+			}
+			else if (Step == 2)
+			{
+				RefillPlayer();
+				SoulFloorDirectorDebug::KillAllMobs(GetWorld());
+				ScheduleSelfTest(3, IsLastFloor() ? 2.f : PortalDelaySec + 1.5f);
+			}
+			else if (IsLastFloor())
+			{
+				const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this);
+				SW_LOG("[SELFTEST] tough clear=%d runEnded=%d ledger=%d", bClearPending, Run ? Run->GetState().bRunEnded : -1, Run ? Run->GetLedgerTotal() : -1);
+				FinishSelfTest();
+			}
+			else
+			{
+				DebugGoToPortal();
+			}
+		}
 		else if (SelfTestMode == TEXT("introdeath"))
 		{
 			// 보스 인트로 도중 사망 → HUD가 되돌아오는지 (사망 중단 경로)
