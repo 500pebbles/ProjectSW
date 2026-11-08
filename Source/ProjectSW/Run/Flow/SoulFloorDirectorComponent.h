@@ -1,0 +1,176 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Components/ActorComponent.h"
+#include "Data/PMGResult.h"
+#include "SoulFloorDirectorComponent.generated.h"
+
+class APMGMapBuilder;
+class APawn;
+class APlayerController;
+class ASoulFloorPortal;
+class ASoulPackedLevelActor;
+class UAnimMontage;
+class USoulDungeonFlowData;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSoulFloorEventSignature, int32, Floor);
+
+/**
+ * 던전 층 진행 (BP_DungeonGameMode의 컴포넌트). 같은 월드에서 맵을 지우고(Clear) 다음 층 설정으로 다시 만든다(Generate).
+ *
+ * BeginPlay      → PC 입력 잠금, 커튼 → 다음 틱 StartFirstFloor
+ * StartFirstFloor → 런이 없으면 BeginRun → 팀 GM의 OnMapReady 바인딩 해제 → 자기 핸들러 → 층 시작
+ * 생성 완료       → 폰 스폰(첫 층) 또는 이동 → NavMesh 대기 → 커튼 해제 → OnFloorReady
+ * Exit 방 전투 끝 → 마지막 층이면 클리어, 아니면 포탈 예약
+ * 포탈, soul.Floor.Next → RequestDescend → 정리 → 다음 층
+ * 폰 OnDied      → 사망 최소 처리 → EndRun(실패) → (결과창 전까지 임시) L_Dungeon 재시작
+ */
+UCLASS(ClassGroup = (Soul), meta = (BlueprintSpawnableComponent))
+class PROJECTSW_API USoulFloorDirectorComponent : public UActorComponent
+{
+	GENERATED_BODY()
+
+public:
+	USoulFloorDirectorComponent();
+
+	/** 지금 월드의 GameMode에 붙은 Director (L_Dungeon이 아니면 null) */
+	static USoulFloorDirectorComponent* Get(const UObject* WorldContextObject);
+
+	/** 다음 층으로 내려간다. 전환 중, 클리어 확정 뒤, 사망 뒤, 마지막 층에서는 무시한다 */
+	UFUNCTION(BlueprintCallable, Category = "Floor")
+	void RequestDescend();
+
+	/** 층을 바꿀 때 함께 지울 액터 (포탈, 이후 상자와 이벤트 오브젝트) */
+	UFUNCTION(BlueprintCallable, Category = "Floor")
+	void RegisterFloorActor(AActor* Actor);
+
+	/** 지금 층 (1부터). 시작 전이면 0 */
+	UFUNCTION(BlueprintPure, Category = "Floor")
+	int32 GetCurrentFloor() const { return CurrentFloorIndex + 1; }
+
+	UFUNCTION(BlueprintPure, Category = "Floor")
+	bool IsTransitioning() const { return bTransitioning; }
+
+	/** 층이 준비되어 커튼이 걷히고 입력이 돌아왔을 때 */
+	UPROPERTY(BlueprintAssignable, Category = "Floor")
+	FSoulFloorEventSignature OnFloorReady;
+
+	/** 층 이동을 시작했을 때 (Floor = 떠나는 층) */
+	UPROPERTY(BlueprintAssignable, Category = "Floor")
+	FSoulFloorEventSignature OnDescendStarted;
+
+	/** 디버그: 포탈이 없으면 지금 Exit 방에 세우고, 폰을 포탈 위로 옮긴다 (soul.Floor.Portal) */
+	void DebugGoToPortal();
+
+	/** 디버그: 층이 준비될 때마다 Next → 포탈 → 종료 순서로 스스로 진행한다 (soul.Floor.SelfTest) */
+	void StartSelfTest();
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	/** 층 배열과 전환 값 (DA_DungeonFlow) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Floor")
+	TObjectPtr<USoulDungeonFlowData> FlowData;
+
+	/** Exit 방 전투가 끝나면 세우는 포탈 (BP_FloorPortal) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Floor")
+	TSubclassOf<ASoulFloorPortal> PortalClass;
+
+	// ---------- 임시 값 (단계 F에서 DA_Presentation으로 옮긴다) ----------
+
+	/** 임시 커튼(카메라 페이드)이 검게 되는 시간 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Temporary", meta = (ClampMin = "0", Units = "s"))
+	float CurtainFadeOutSec = 0.f;
+
+	/** 커튼이 검게 된 뒤 최소로 유지하는 시간 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Temporary", meta = (ClampMin = "0", Units = "s"))
+	float CurtainMinHoldSec = 0.f;
+
+	/** 커튼이 걷히는 시간 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Temporary", meta = (ClampMin = "0", Units = "s"))
+	float CurtainFadeInSec = 0.f;
+
+	/** Exit 방 전투가 끝나고 포탈이 서기까지 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Temporary", meta = (ClampMin = "0", Units = "s"))
+	float PortalDelaySec = 0.f;
+
+	/** 플레이어 사망 몽타주 (WorkerDeath_Montage). 비어 있으면 재생하지 않는다 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Temporary")
+	TObjectPtr<UAnimMontage> DeathMontage;
+
+	/** 사망부터 EndRun(실패)까지 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Temporary", meta = (ClampMin = "0", Units = "s"))
+	float DeathEndRunDelaySec = 0.f;
+
+	/** 클리어 EndRun 뒤 L_Dungeon을 다시 열기까지 (결과창이 생기면 지운다) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Temporary", meta = (ClampMin = "0", Units = "s"))
+	float ClearRestartDelaySec = 0.f;
+
+private:
+	void StartFirstFloor();
+	void BeginFloor(int32 FloorIndex);
+	void GenerateCurrentFloor();
+
+	UFUNCTION()
+	void HandleGenerationFinished(const FPMGResult& Result, const TArray<FString>& SpawnErrors);
+
+	void PlacePawn(const FPMGResult& Result);
+	void PollNavigation();
+	void TryReveal();
+	void Reveal();
+
+	void UnloadFloor();
+	void DestroyFloorActors();
+
+	void HandleExitCombatFinished(ASoulPackedLevelActor* Room);
+	void SchedulePortal();
+	ASoulFloorPortal* SpawnPortal();
+	void BeginClear();
+
+	void HandlePawnDied(AActor* DeadActor);
+	void FinishDeath();
+	void RestartDungeonMap();
+
+	void LockPlayer();
+	void UnlockPlayer();
+	void ParkPawn();
+	void UnparkPawn();
+	void CurtainOut(float Duration);
+	void CurtainIn(float Duration);
+	void PrepareOpenLevel();
+	void LogFloorState(const TCHAR* Label) const;
+	void RunSelfTestStep();
+
+	APlayerController* GetPlayerController() const;
+	ASoulPackedLevelActor* FindRoomActor(int32 RoomId) const;
+	bool IsLastFloor() const;
+
+	TWeakObjectPtr<APMGMapBuilder> Builder;
+	TWeakObjectPtr<APawn> PlayerPawn;
+	TWeakObjectPtr<ASoulPackedLevelActor> ExitRoom;
+	TWeakObjectPtr<ASoulFloorPortal> Portal;
+	TArray<TWeakObjectPtr<AActor>> FloorActors;
+
+	int32 CurrentFloorIndex = INDEX_NONE;
+	int32 GenerateAttempt = 0;
+	double GenerateStartTime = 0.0;
+	double CurtainClosedTime = 0.0;
+	double NavWaitStartTime = 0.0;
+
+	bool bFirstFloor = true;
+	bool bTransitioning = false;
+	bool bClearPending = false;
+	bool bPlayerDead = false;
+	bool bNavReady = false;
+	bool bSelfTest = false;
+
+	FTimerHandle CurtainTimer;
+	FTimerHandle UnloadTimer;
+	FTimerHandle NavTimer;
+	FTimerHandle RevealTimer;
+	FTimerHandle PortalTimer;
+	FTimerHandle DeathTimer;
+	FTimerHandle RestartTimer;
+	FTimerHandle SelfTestTimer;
+};
