@@ -2836,7 +2836,7 @@ void USoulFloorDirectorComponent::RunSelfTestShots(int32 Step)
 		SoulFloorDirectorDebug::KillAllMobs(GetWorld());
 		if (IsLastFloor())
 		{
-			SoulShots::Take(TEXT("18_result"), ClearRestartDelaySec + 3.f);
+			SoulShots::Take(TEXT("18_result"), ClearRestartDelaySec + 1.f);
 			ScheduleSelfTest(8, ClearRestartDelaySec + 4.5f);
 		}
 		else
