@@ -15,6 +15,8 @@
 #include "Components/EditableText.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
+#include "Components/Image.h"
+#include "Engine/Texture2D.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
@@ -85,6 +87,19 @@ void USoulResultWidget::BuildDefaultTree()
 	BreakdownText = MakeText(Box, 18, FLinearColor(0.85f, 0.85f, 0.85f));
 	DetailText = MakeText(Box, 20, FLinearColor(0.9f, 0.9f, 0.9f));
 
+	// 사용한 의상과 무기 아이콘 (#8)
+	UHorizontalBox* IconRow = WidgetTree->ConstructWidget<UHorizontalBox>();
+	if (UVerticalBoxSlot* BoxSlot = Box->AddChildToVerticalBox(IconRow))
+	{
+		BoxSlot->SetHorizontalAlignment(HAlign_Center);
+	}
+	for (TObjectPtr<UImage>* Icon : { &Image_Costume, &Image_Weapon })
+	{
+		*Icon = WidgetTree->ConstructWidget<UImage>();
+		(*Icon)->SetDesiredSizeOverride(FVector2D(64.f, 64.f));
+		IconRow->AddChildToHorizontalBox(*Icon)->SetPadding(FMargin(8.f, 0.f));
+	}
+
 	UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
 	NameRow = Row;
 	if (UVerticalBoxSlot* BoxSlot = Box->AddChildToVerticalBox(Row))
@@ -126,6 +141,8 @@ void USoulResultWidget::NativeOnInitialized()
 	}
 	if (NameInput)
 	{
+		// 마지막 이름이 선택된 상태라 새로 치면 바뀌고 Enter만 쳐도 된다 (WBP로 다시 꾸며도 강제)
+		NameInput->SetSelectAllTextWhenFocused(true);
 		NameInput->OnTextChanged.AddUniqueDynamic(this, &ThisClass::HandleNameChanged);
 		NameInput->OnTextCommitted.AddUniqueDynamic(this, &ThisClass::HandleNameCommitted);
 	}
@@ -176,6 +193,11 @@ void USoulResultWidget::Setup(const FSoulRunSummary& InSummary, FGuid InEntryId)
 		Args.Add(TEXT("Events"), FText::AsNumber(Summary.Stats.Events));
 		DetailText->SetText(FText::Format(DetailFormat, Args));
 	}
+	UTexture2D* CostumeIcon = Catalog ? Catalog->FindCostumeIcon(Summary.CostumeId) : nullptr;
+	UTexture2D* WeaponIcon = Catalog ? Catalog->FindWeaponIcon(Summary.WeaponId) : nullptr;
+	USoulEquipmentCatalog::SetIcon(Image_Costume, CostumeIcon);
+	USoulEquipmentCatalog::SetIcon(Image_Weapon, WeaponIcon);
+	SW_LOG("[RESULT] icons costume=%s weapon=%s", CostumeIcon ? *CostumeIcon->GetName() : TEXT("none"), WeaponIcon ? *WeaponIcon->GetName() : TEXT("none"));
 	const bool bNameEntry = EntryId.IsValid();
 	if (NameRow)
 	{

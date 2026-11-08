@@ -42,6 +42,12 @@ const USoulHallOfFameRules* USoulHallOfFameSubsystem::GetRules() const
 	{
 		const USoulRunConfig* Config = USoulRunGameComponent::GetRunConfig(GetGameInstance() ? GetGameInstance()->GetWorld() : nullptr);
 		CachedRules = Config ? Config->HallOfFameRules.Get() : nullptr;
+		static bool bWarned = false;
+		if (Config && !CachedRules && !bWarned)
+		{
+			bWarned = true;
+			SW_LOG_WARNING("[HOF] DA_RunConfig.HallOfFameRules가 비어 있음 (최대 행, 이름 길이, 기본 이름 없음)");
+		}
 	}
 	return CachedRules;
 }
@@ -50,13 +56,18 @@ void USoulHallOfFameSubsystem::Load()
 {
 	LoadNotice.Reset();
 	const bool bMainExists = UGameplayStatics::DoesSaveGameExist(SlotName, 0);
-	Profile = bMainExists ? Cast<USoulHallOfFameSave>(UGameplayStatics::LoadGameFromSlot(SlotName, 0)) : nullptr;
+	auto LoadChecked = [](const TCHAR* Slot) -> USoulHallOfFameSave*
+	{
+		USoulHallOfFameSave* Loaded = Cast<USoulHallOfFameSave>(UGameplayStatics::LoadGameFromSlot(Slot, 0));
+		return Loaded && Loaded->EndMarker == USoulHallOfFameSave::EndMarkerValue ? Loaded : nullptr;
+	};
+	Profile = bMainExists ? LoadChecked(SlotName) : nullptr;
 	if (!Profile && bMainExists)
 	{
 		// 깨진 본 파일은 .corrupt.sav로 남기고 백업을 읽는다
 		const FString Dir = FPaths::ProjectSavedDir() / TEXT("SaveGames");
 		IFileManager::Get().Copy(*(Dir / TEXT("SoulProfile.corrupt.sav")), *(Dir / TEXT("SoulProfile.sav")));
-		Profile = Cast<USoulHallOfFameSave>(UGameplayStatics::LoadGameFromSlot(BackupSlotName, 0));
+		Profile = LoadChecked(BackupSlotName);
 		LoadNotice = Profile ? TEXT("세이브가 손상되어 백업에서 복구했습니다") : TEXT("세이브가 손상되어 새 프로필로 시작합니다");
 		SW_LOG_WARNING("[HOF] 본 세이브 손상, 백업 %s", Profile ? TEXT("복구") : TEXT("없음"));
 	}
@@ -74,9 +85,20 @@ void USoulHallOfFameSubsystem::Save()
 	if (!Profile)
 		return;
 	Profile->SaveVersion = USoulHallOfFameSave::CurrentVersion;
+	Profile->EndMarker = USoulHallOfFameSave::EndMarkerValue;
+	// 엔진 쓰기가 원자적이 아니라, 직전 정상본을 백업으로 돌린 뒤 본을 새로 쓴다
+	const FString Dir = FPaths::ProjectSavedDir() / TEXT("SaveGames");
+	const FString MainFile = Dir / FString(SlotName) + TEXT(".sav");
+	bool bBackup = false;
+	if (IFileManager::Get().FileExists(*MainFile))
+	{
+		bBackup = IFileManager::Get().Copy(*(Dir / FString(BackupSlotName) + TEXT(".sav")), *MainFile) == COPY_OK;
+	}
 	const bool bMain = UGameplayStatics::SaveGameToSlot(Profile, SlotName, 0);
-	// 엔진 쓰기가 원자적이 아니라 본을 쓴 뒤 백업에도 쓴다
-	const bool bBackup = bMain && UGameplayStatics::SaveGameToSlot(Profile, BackupSlotName, 0);
+	if (!bBackup && bMain)
+	{
+		bBackup = UGameplayStatics::SaveGameToSlot(Profile, BackupSlotName, 0);
+	}
 	SW_LOG("[HOF] 저장 main=%d backup=%d entries=%d", bMain, bBackup, Profile->HallOfFame.Num());
 	OnChanged.Broadcast();
 }

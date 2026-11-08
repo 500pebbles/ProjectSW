@@ -11,6 +11,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 
+const FName USoulItemLibrary::ScorePickupTag(TEXT("SoulScorePickup"));
+
 AActor* USoulItemLibrary::SpawnPickup(UObject* WorldContextObject, TSubclassOf<AItemActorBase> PickupClass, const FDataTableRowHandle& ItemRow, const FVector& Location, const FVector& NavExtent, float FallbackForward)
 {
 	UWorld* World = GEngine ? GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull) : nullptr;
@@ -44,6 +46,8 @@ AActor* USoulItemLibrary::SpawnPickup(UObject* WorldContextObject, TSubclassOf<A
 	if (!Pickup)
 		return nullptr;
 	Pickup->SetupItem(ItemRow);
+	// 런이 스폰한 것만 줍기 점수 (인벤토리에서 버린 것은 플러그인이 태그 없이 스폰)
+	Pickup->Tags.AddUnique(USoulItemLibrary::ScorePickupTag);
 	Pickup->FinishSpawning(Transform);
 
 	if (USoulFloorDirectorComponent* Director = USoulFloorDirectorComponent::Get(World))

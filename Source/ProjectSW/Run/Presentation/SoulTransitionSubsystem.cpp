@@ -154,6 +154,8 @@ void USoulTransitionSubsystem::TravelTo(UObject* WorldContextObject, TSoftObject
 	FTimerHandle Handle;
 	World->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(World, [World, Map]()
 	{
+		// 페이드 중에 연 UI의 입력 모드가 다음 맵으로 넘어가지 않게 한 번 더
+		PrepareForTravel(World->GetFirstPlayerController());
 		UGameplayStatics::OpenLevelBySoftObjectPtr(World, Map);
 	}), FMath::Max(FadeSec, 0.01f), false);
 }

@@ -41,6 +41,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Floor")
 	void RequestDescend();
 
+	/** 디버그: 지금 층에서 클리어 경로를 탄다 (soul.Run.ForceEnd Clear) */
+	void DebugForceClear();
+
 	/** 층을 바꿀 때 함께 지울 액터 (포탈, 이후 상자와 이벤트 오브젝트) */
 	UFUNCTION(BlueprintCallable, Category = "Floor")
 	void RegisterFloorActor(AActor* Actor);

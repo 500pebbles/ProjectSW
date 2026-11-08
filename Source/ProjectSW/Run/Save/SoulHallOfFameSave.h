@@ -34,4 +34,10 @@ public:
 
 	UPROPERTY(SaveGame)
 	int32 BestFloor = 0;
+
+	/** 마지막 칸. 저장 때 EndMarkerValue를 넣고, 읽은 값이 다르면 잘린 파일로 본다 (기본값 0) */
+	UPROPERTY(SaveGame)
+	int32 EndMarker = 0;
+
+	static constexpr int32 EndMarkerValue = 0x50574B21;
 };

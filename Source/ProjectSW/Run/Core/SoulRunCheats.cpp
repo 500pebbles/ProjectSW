@@ -1,5 +1,6 @@
 // 런 치트 (개발 빌드 전용)
 #include "Run/Core/SoulRunSubsystem.h"
+#include "Run/Flow/SoulFloorDirectorComponent.h"
 #include "GAS/Core/SoulAttributeSet.h"
 #include "Interface/SoulCombatInterface.h"
 #include "Utility/SoulLog.h"
@@ -62,6 +63,14 @@ static FAutoConsoleCommandWithWorldAndArgs GSoulRunForceEndCommand(
 			Run->SetForcedScore(FCString::Atoi(*Args[1]));
 		}
 		SW_LOG("[RUN] ForceEnd Clear score=%s", Args.Num() > 1 ? *Args[1] : TEXT("(계산)"));
-		Run->EndRun(true);
+		// 던전이면 정상 클리어 경로(결과창), 아니면 바로 EndRun
+		if (USoulFloorDirectorComponent* Director = USoulFloorDirectorComponent::Get(World))
+		{
+			Director->DebugForceClear();
+		}
+		else
+		{
+			Run->EndRun(true);
+		}
 	}));
 #endif

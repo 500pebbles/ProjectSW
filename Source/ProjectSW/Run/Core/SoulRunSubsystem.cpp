@@ -80,6 +80,12 @@ void USoulRunSubsystem::EndRun(bool bSuccess)
 	}
 	else
 	{
+		static bool bWarned = false;
+		if (!bWarned)
+		{
+			bWarned = true;
+			SW_LOG_WARNING("[RUN] DA_RunConfig.ScoreRules가 비어 있음: 원장 합만 점수로 쓰고 랭크 없음");
+		}
 		LastSummary.Score = GetLedgerTotal();
 		for (const TPair<FName, int32>& Pair : State.Ledger)
 		{
@@ -98,7 +104,8 @@ void USoulRunSubsystem::EndRun(bool bSuccess)
 	SW_LOG("[RUN] Summary ledger=%d forced=%d score=%d rank=%s costume=%s weapon=%s kills=%d events=%d damage=%.0f", GetLedgerTotal(), ForcedScore, LastSummary.Score,
 		*LastSummary.RankId.ToString(), *LastSummary.CostumeId.ToString(), *LastSummary.WeaponId.ToString(), LastSummary.Stats.Kills, LastSummary.Stats.Events, LastSummary.Stats.DamageTaken);
 
-	if (USoulHallOfFameSubsystem* HoF = GetGameInstance() ? GetGameInstance()->GetSubsystem<USoulHallOfFameSubsystem>() : nullptr)
+	// 치트로 덮은 점수는 실제 명예의 전당에 넣지 않는다
+	if (USoulHallOfFameSubsystem* HoF = GetGameInstance() ? GetGameInstance()->GetSubsystem<USoulHallOfFameSubsystem>() : nullptr; HoF && ForcedScore < 0)
 	{
 		HoF->SubmitRun(LastSummary);
 	}

@@ -6,6 +6,7 @@
 #include "SoulResultWidget.generated.h"
 
 class UButton;
+class UImage;
 class UEditableText;
 class UTextBlock;
 class UVerticalBox;
@@ -77,6 +78,12 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Result")
 	TObjectPtr<UTextBlock> DetailText;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Result")
+	TObjectPtr<UImage> Image_Costume;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Result")
+	TObjectPtr<UImage> Image_Weapon;
 
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "Result")
 	TObjectPtr<UWidget> NameRow;

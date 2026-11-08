@@ -331,15 +331,6 @@ void USoulFloorDirectorComponent::HandleGenerationFinished(const FPMGResult& Res
 	{
 		Run->NotifyFloorGenerated(LastGeneratedSeed);
 	}
-	if (!bDamageTracked)
-	{
-		if (UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PlayerPawn.Get()))
-		{
-			ASC->GetGameplayAttributeValueChangeDelegate(USoulAttributeSet::GetHealthAttribute()).AddUObject(this, &ThisClass::HandlePlayerHealthChanged);
-			bDamageTracked = true;
-		}
-	}
-
 	// 층 몹 배치: 방의 저작 포인트를 지우고 층 세트의 포인트를 만든다 (실제 스폰은 방 입장 때)
 	if (USoulMobEncounterSubsystem* Encounter = GetWorld()->GetSubsystem<USoulMobEncounterSubsystem>())
 	{
@@ -472,6 +463,15 @@ void USoulFloorDirectorComponent::Reveal()
 	UnparkPawn();
 	CurtainIn(CurtainFadeInSec);
 	UnlockPlayer();
+	// 받은 피해 집계는 첫 입력 복구 뒤부터 (의상 체력 감소와 초기화가 섞이지 않게)
+	if (!bDamageTracked)
+	{
+		if (UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PlayerPawn.Get()))
+		{
+			ASC->GetGameplayAttributeValueChangeDelegate(USoulAttributeSet::GetHealthAttribute()).AddUObject(this, &ThisClass::HandlePlayerHealthChanged);
+			bDamageTracked = true;
+		}
+	}
 	ApplyDescendHeal();
 	if (USoulTransitionSubsystem* Transition = USoulTransitionSubsystem::Get(this))
 	{
@@ -783,6 +783,14 @@ ASoulFloorPortal* USoulFloorDirectorComponent::SpawnPortal()
 	}
 	SW_LOG("[FLOOR] Portal spawned floor=%d at %s nearestDrop=%.0f drops=%d", CurrentFloorIndex + 1, *Location.ToCompactString(), Nearest, Drops.Num());
 	return NewPortal;
+}
+
+void USoulFloorDirectorComponent::DebugForceClear()
+{
+	if (!bClearPending && !bPlayerDead)
+	{
+		BeginClear();
+	}
 }
 
 void USoulFloorDirectorComponent::BeginClear()
@@ -1644,6 +1652,65 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 		else if (SelfTestMode == TEXT("fpath"))
 		{
 			RunSelfTestFPath(Step);
+		}
+		else if (SelfTestMode == TEXT("pickupscore"))
+		{
+			// 런 픽업을 주우면 점수, 인벤토리에서 버린 것을 다시 주우면 점수 없음 (E 리뷰 1)
+			USoulInteractionComponent* Interaction = USoulInteractionComponent::Find(PlayerPawn.Get());
+			UInventoryComponent* Inventory = Interaction ? Interaction->GetInventory() : nullptr;
+			const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this);
+			auto Ledger = [Run]() { return Run ? Run->GetLedgerTotal() : -1; };
+			if (Step == 0)
+			{
+				const USoulRunConfig* Config = USoulRunGameComponent::GetRunConfig(this);
+				FDataTableRowHandle Row;
+				Row.DataTable = Config ? Config->ItemTable : nullptr;
+				Row.RowName = TEXT("HealSmall");
+				SelfTestPickup = USoulItemLibrary::SpawnPickup(this, Config ? Config->ItemPickupClass : nullptr, Row, PlayerPawn->GetActorLocation() + PlayerPawn->GetActorForwardVector() * 150.f, FVector(400.f, 400.f, 600.f), 0.f);
+				SW_LOG("[SELFTEST] pickupscore before ledger=%d tagged=%d", Ledger(), SelfTestPickup.IsValid() && SelfTestPickup->ActorHasTag(USoulItemLibrary::ScorePickupTag));
+				ScheduleSelfTest(1, 0.5f);
+			}
+			else if (Step == 1)
+			{
+				if (Interaction && SelfTestPickup.IsValid())
+				{
+					Interaction->CollectTarget(SelfTestPickup.Get());
+				}
+				SW_LOG("[SELFTEST] pickupscore after run pickup ledger=%d", Ledger());
+				// 인벤토리 첫 항목을 버린다 (플러그인 DropItem이 태그 없는 픽업을 스폰)
+				const FStructProperty* DataProp = FindFProperty<FStructProperty>(UInventoryComponent::StaticClass(), TEXT("InventoryData"));
+				const FArrayProperty* ArrayProp = DataProp ? FindFProperty<FArrayProperty>(DataProp->Struct, TEXT("ItemDataArray")) : nullptr;
+				const FStructProperty* EntryProp = ArrayProp ? CastField<FStructProperty>(ArrayProp->Inner) : nullptr;
+				const FStructProperty* IdProp = EntryProp ? FindFProperty<FStructProperty>(EntryProp->Struct, TEXT("ID")) : nullptr;
+				if (Inventory && IdProp)
+				{
+					FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(DataProp->ContainerPtrToValuePtr<void>(Inventory)));
+					if (Helper.Num() > 0)
+					{
+						Inventory->DropItem(*IdProp->ContainerPtrToValuePtr<FGuid>(Helper.GetRawPtr(0)), 1);
+					}
+				}
+				ScheduleSelfTest(2, 0.5f);
+			}
+			else if (Step == 2)
+			{
+				AActor* Dropped = nullptr;
+				for (TActorIterator<AItemActorBase> It(GetWorld()); It; ++It)
+				{
+					Dropped = *It;
+				}
+				SW_LOG("[SELFTEST] pickupscore dropped=%s tagged=%d", Dropped ? *Dropped->GetName() : TEXT("none"), Dropped && Dropped->ActorHasTag(USoulItemLibrary::ScorePickupTag));
+				if (Interaction && Dropped)
+				{
+					Interaction->CollectTarget(Dropped);
+				}
+				ScheduleSelfTest(3, 0.5f);
+			}
+			else
+			{
+				SW_LOG("[SELFTEST] pickupscore after re-pickup ledger=%d", Ledger());
+				FinishSelfTest();
+			}
 		}
 		else if (SelfTestMode == TEXT("bossskip"))
 		{

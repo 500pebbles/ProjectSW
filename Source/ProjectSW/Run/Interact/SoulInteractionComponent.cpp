@@ -3,6 +3,7 @@
 #include "Run/Equipment/SoulEquipmentComponent.h"
 #include "Run/Equipment/SoulEquipmentCatalog.h"
 #include "Run/Core/SoulRunSubsystem.h"
+#include "Run/Interact/SoulItemLibrary.h"
 #include "Utility/SoulLog.h"
 
 #include "Components/Widget.h"
@@ -108,13 +109,14 @@ void USoulInteractionComponent::HandleCollect(AActor* Target)
 		// 주운 행 (플러그인 ItemRow는 반사로 읽는다)
 		const FStructProperty* RowProp = FindFProperty<FStructProperty>(ItemComp->GetClass(), TEXT("ItemRow"));
 		const FName ItemRow = RowProp ? RowProp->ContainerPtrToValuePtr<FDataTableRowHandle>(ItemComp)->RowName : NAME_None;
+		const bool bScorePickup = Target->ActorHasTag(USoulItemLibrary::ScorePickupTag);
 		Inventory->CollectItem(Target);
 		// 추가에 성공하면 플러그인이 액터를 지운다
 		if (!IsValid(Target) || Target->IsActorBeingDestroyed())
 		{
 			OnItemCollected.Broadcast(Target);
 			// 줍기 점수 (포션 행, 무기 첫 획득)
-			if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this))
+			if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this); Run && bScorePickup)
 			{
 				const USoulEquipmentComponent* EquipmentForScore = USoulEquipmentComponent::Find(GetOwner());
 				const bool bWeapon = EquipmentForScore && EquipmentForScore->GetCatalog() && EquipmentForScore->GetCatalog()->FindWeaponByRow(ItemRow);
