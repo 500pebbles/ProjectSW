@@ -387,7 +387,9 @@ void USoulMobComponent::HandleDied(AActor* DeadActor)
 	// 정예 붉은 기운은 죽으면 바로 뗀다 (시체가 남는 동안 정예처럼 보이지 않게)
 	if (bTough)
 	{
-		SW_LOG("[MOB] tough overlay off %s meshes=%d", *Enemy->GetName(), ApplyToughOverlay(false));
+		// 로그가 꺼진 빌드에서도 떼도록 로그 인자 밖에서 부른다
+		const int32 Removed = ApplyToughOverlay(false);
+		SW_LOG("[MOB] tough overlay off %s meshes=%d", *Enemy->GetName(), Removed);
 	}
 
 	if (!bRagdollOnDeath)
