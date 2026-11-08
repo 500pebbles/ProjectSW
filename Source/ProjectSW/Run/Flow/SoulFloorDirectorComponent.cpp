@@ -2,9 +2,12 @@
 #include "Run/Flow/SoulDungeonFlowData.h"
 #include "Run/Flow/SoulFloorPortal.h"
 #include "Run/Core/SoulRunSubsystem.h"
+#include "Run/Mob/SoulMobComponent.h"
+#include "Run/Mob/SoulMobEncounterSubsystem.h"
 #include "Actor/SoulProjectileBase.h"
 #include "Character/SoulCharacterBase.h"
 #include "Character/SoulCharacterEnemy.h"
+#include "Interface/SoulCombatInterface.h"
 #include "GAS/Core/SoulAttributeSet.h"
 #include "Map/SoulPackedLevelActor.h"
 #include "Player/SoulPlayerController.h"
@@ -42,6 +45,27 @@ namespace SoulFloorDirector
 
 	/** 셀프 테스트에서 층이 준비된 뒤 다음 단계까지 (디버그 전용) */
 	static constexpr float SelfTestStepDelaySec = 3.f;
+}
+
+namespace SoulFloorDirectorDebug
+{
+	/** 디버그: 살아 있는 적을 모두 죽인다. 팀 Die 경로(OnDied → 방 전투 종료, 몹 사망 몽타주)를 그대로 탄다 */
+	static void KillAllMobs(UWorld* World)
+	{
+		TArray<ASoulCharacterEnemy*> Targets;
+		for (TActorIterator<ASoulCharacterEnemy> It(World); It; ++It)
+		{
+			if (IsValid(*It) && !ISoulCombatInterface::Execute_IsDead(*It))
+			{
+				Targets.Add(*It);
+			}
+		}
+		for (ASoulCharacterEnemy* Enemy : Targets)
+		{
+			Enemy->Die();
+		}
+		SW_LOG("[SELFTEST] KillAll count=%d", Targets.Num());
+	}
 }
 
 USoulFloorDirectorComponent::USoulFloorDirectorComponent()
@@ -204,6 +228,15 @@ void USoulFloorDirectorComponent::HandleGenerationFinished(const FPMGResult& Res
 	}
 
 	PlacePawn(Result);
+	LastResult = Result;
+
+	// 층 몹 배치: 방의 저작 포인트를 지우고 층 세트의 포인트를 만든다 (실제 스폰은 방 입장 때)
+	if (USoulMobEncounterSubsystem* Encounter = GetWorld()->GetSubsystem<USoulMobEncounterSubsystem>())
+	{
+		const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this);
+		const int32 Seed = (Run ? Run->GetState().RunSeed : 0) * 31 + CurrentFloorIndex + 1;
+		Encounter->BeginFloor(FlowData->Floors[CurrentFloorIndex].MobRules, Result, CurrentFloorIndex + 1, Seed, Builder->Settings->CellSize, Builder->GetActorLocation());
+	}
 
 	ExitRoom = FindRoomActor(Result.ExitRoomId);
 	if (ExitRoom.IsValid())
@@ -362,6 +395,10 @@ void USoulFloorDirectorComponent::UnloadFloor()
 
 	ParkPawn();
 	ExitRoom.Reset();
+	if (USoulMobEncounterSubsystem* Encounter = GetWorld()->GetSubsystem<USoulMobEncounterSubsystem>())
+	{
+		Encounter->EndFloor();
+	}
 	DestroyFloorActors();
 	Builder->Clear();
 	UKismetSystemLibrary::CollectGarbage();
@@ -753,6 +790,53 @@ void USoulFloorDirectorComponent::DebugGoToPortal()
 	PlayerPawn->TeleportTo(TargetPortal->GetActorLocation() + FVector(0.f, 0.f, 100.f), PlayerPawn->GetActorRotation(), false, true);
 }
 
+void USoulFloorDirectorComponent::DebugGoToBossRoom()
+{
+	ASoulPackedLevelActor* Room = ExitRoom.Get();
+	if (bTransitioning || !PlayerPawn.IsValid() || !Room)
+	{
+		SW_LOG("[FLOOR] DebugGoToBossRoom 무시: transitioning=%d pawn=%d exit=%d", bTransitioning, PlayerPawn.IsValid(), Room != nullptr);
+		return;
+	}
+
+	const FVector Location = Room->GetActorTransform().TransformPosition(FVector(0.f, -900.f, 150.f));
+	SW_LOG("[FLOOR] DebugGoToBossRoom floor=%d", CurrentFloorIndex + 1);
+	PlayerPawn->TeleportTo(Location, PlayerPawn->GetActorRotation(), false, true);
+}
+
+void USoulFloorDirectorComponent::DebugGoToCombatRoom()
+{
+	if (bTransitioning || !PlayerPawn.IsValid())
+		return;
+
+	// 폰에서 가장 가까운, 아직 안 들어간 전투방 (Exit 제외)
+	ASoulPackedLevelActor* Best = nullptr;
+	float BestDistance = TNumericLimits<float>::Max();
+	for (TActorIterator<ASoulPackedLevelActor> It(GetWorld()); It; ++It)
+	{
+		if (!IsValid(*It) || !It->HasCombat() || *It == ExitRoom.Get() || It->IsVisited())
+			continue;
+		const float Distance = FVector::Dist(It->GetActorLocation(), PlayerPawn->GetActorLocation());
+		if (Distance < BestDistance)
+		{
+			BestDistance = Distance;
+			Best = *It;
+		}
+	}
+
+	if (!Best)
+	{
+		SW_LOG_WARNING("[FLOOR] DebugGoToCombatRoom: 전투방 없음");
+		return;
+	}
+
+	SW_LOG("[FLOOR] DebugGoToCombatRoom room=%d", Best->GetRoomId());
+	PlayerPawn->TeleportTo(Best->GetActorLocation() + FVector(0.f, 0.f, 150.f), PlayerPawn->GetActorRotation(), false, true);
+}
+
+static TAutoConsoleVariable<FString> CVarSoulFloorSelfTestMode(TEXT("soul.Floor.SelfTestMode"), TEXT(""),
+	TEXT("셀프 테스트 모드: 비우면 floors(Next와 포탈로 3층), mob(1층 전투방 몹 E2E), boss(층마다 보스 처치 후 포탈, 3층 클리어)"));
+
 void USoulFloorDirectorComponent::StartSelfTest()
 {
 	bSelfTest = true;
@@ -763,11 +847,60 @@ void USoulFloorDirectorComponent::StartSelfTest()
 	}
 }
 
+void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
+{
+	FTimerDelegate Delegate = FTimerDelegate::CreateWeakLambda(this, [this, Step]()
+	{
+		if (SelfTestMode == TEXT("mob"))
+		{
+			RunSelfTestMob(Step);
+		}
+		else if (SelfTestMode == TEXT("boss"))
+		{
+			RunSelfTestBoss(Step);
+		}
+		else
+		{
+			RunSelfTestFloors();
+		}
+	});
+	GetWorld()->GetTimerManager().SetTimer(SelfTestTimer, Delegate, FMath::Max(Delay, 0.01f), false);
+}
+
 void USoulFloorDirectorComponent::RunSelfTestStep()
 {
-	const int32 Floor = CurrentFloorIndex + 1;
-	SW_LOG("[SELFTEST] step floor=%d", Floor);
+	SelfTestMode = CVarSoulFloorSelfTestMode.GetValueOnGameThread();
+	if (SelfTestMode.IsEmpty())
+	{
+		FParse::Value(FCommandLine::Get(), TEXT("SoulFloorSelfTestMode="), SelfTestMode);
+	}
+	SW_LOG("[SELFTEST] floor=%d mode=%s", CurrentFloorIndex + 1, SelfTestMode.IsEmpty() ? TEXT("floors") : *SelfTestMode);
+	ScheduleSelfTest(0, 0.f);
+}
 
+void USoulFloorDirectorComponent::LogPlayerHealth(const TCHAR* Label) const
+{
+	const UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(const_cast<APawn*>(PlayerPawn.Get()));
+	int32 Alive = 0;
+	for (TActorIterator<ASoulCharacterEnemy> It(GetWorld()); It; ++It)
+	{
+		Alive += (IsValid(*It) && !ISoulCombatInterface::Execute_IsDead(*It)) ? 1 : 0;
+	}
+	SW_LOG("[SELFTEST] %s floor=%d playerHp=%.0f/%.0f aliveMobs=%d", Label, CurrentFloorIndex + 1,
+		ASC ? ASC->GetNumericAttribute(USoulAttributeSet::GetHealthAttribute()) : -1.f,
+		ASC ? ASC->GetNumericAttribute(USoulAttributeSet::GetMaxHealthAttribute()) : -1.f, Alive);
+}
+
+void USoulFloorDirectorComponent::FinishSelfTest()
+{
+	SW_LOG("[SELFTEST] DONE floor=%d", CurrentFloorIndex + 1);
+	GetWorld()->GetTimerManager().ClearTimer(RestartTimer);
+	UKismetSystemLibrary::QuitGame(this, GetPlayerController(), EQuitPreference::Quit, false);
+}
+
+void USoulFloorDirectorComponent::RunSelfTestFloors()
+{
+	const int32 Floor = CurrentFloorIndex + 1;
 	if (Floor == 1)
 	{
 		SW_LOG("[SELFTEST] soul.Floor.Next");
@@ -782,8 +915,57 @@ void USoulFloorDirectorComponent::RunSelfTestStep()
 	{
 		SW_LOG("[SELFTEST] 마지막 층에서 Next (무시되어야 함)");
 		RequestDescend();
-		SW_LOG("[SELFTEST] DONE floor=%d", Floor);
-		UKismetSystemLibrary::QuitGame(this, GetPlayerController(), EQuitPreference::Quit, false);
+		FinishSelfTest();
+	}
+}
+
+void USoulFloorDirectorComponent::RunSelfTestMob(int32 Step)
+{
+	switch (Step)
+	{
+	case 0:
+		DebugGoToCombatRoom();
+		ScheduleSelfTest(1, 12.f);
+		break;
+	case 1:
+		LogPlayerHealth(TEXT("mob after fight"));
+		SoulFloorDirectorDebug::KillAllMobs(GetWorld());
+		ScheduleSelfTest(2, 4.f);
+		break;
+	default:
+		LogPlayerHealth(TEXT("mob after kill"));
+		FinishSelfTest();
+		break;
+	}
+}
+
+void USoulFloorDirectorComponent::RunSelfTestBoss(int32 Step)
+{
+	switch (Step)
+	{
+	case 0:
+		DebugGoToBossRoom();
+		ScheduleSelfTest(1, 10.f);
+		break;
+	case 1:
+		LogPlayerHealth(TEXT("boss after fight"));
+		SoulFloorDirectorDebug::KillAllMobs(GetWorld());
+		// 마지막 층은 클리어 확정을 본 뒤 끝낸다
+		ScheduleSelfTest(2, IsLastFloor() ? 2.f : PortalDelaySec + 1.5f);
+		break;
+	default:
+		if (IsLastFloor())
+		{
+			const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this);
+			SW_LOG("[SELFTEST] clear=%d runEnded=%d", bClearPending, Run ? Run->GetState().bRunEnded : -1);
+			FinishSelfTest();
+		}
+		else
+		{
+			SW_LOG("[SELFTEST] portal exists=%d", Portal.IsValid());
+			DebugGoToPortal();
+		}
+		break;
 	}
 }
 
@@ -824,5 +1006,24 @@ static FAutoConsoleCommandWithWorld GSoulFloorSelfTestCommand(
 		{
 			Director->StartSelfTest();
 		}
+	}));
+
+static FAutoConsoleCommandWithWorld GSoulFloorGoBossCommand(
+	TEXT("soul.Floor.GoBoss"),
+	TEXT("폰을 Exit 방(보스 방)으로 옮긴다"),
+	FConsoleCommandWithWorldDelegate::CreateLambda([](UWorld* World)
+	{
+		if (USoulFloorDirectorComponent* Director = USoulFloorDirectorComponent::Get(World))
+		{
+			Director->DebugGoToBossRoom();
+		}
+	}));
+
+static FAutoConsoleCommandWithWorld GSoulMobKillAllCommand(
+	TEXT("soul.Mob.KillAll"),
+	TEXT("살아 있는 적을 모두 사망 처리한다 (사망 몽타주, 방 전투 종료 경로를 탄다)"),
+	FConsoleCommandWithWorldDelegate::CreateLambda([](UWorld* World)
+	{
+		SoulFloorDirectorDebug::KillAllMobs(World);
 	}));
 #endif

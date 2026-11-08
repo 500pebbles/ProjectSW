@@ -62,8 +62,14 @@ public:
 	/** 디버그: 포탈이 없으면 지금 Exit 방에 세우고, 폰을 포탈 위로 옮긴다 (soul.Floor.Portal) */
 	void DebugGoToPortal();
 
-	/** 디버그: 층이 준비될 때마다 Next → 포탈 → 종료 순서로 스스로 진행한다 (soul.Floor.SelfTest) */
+	/** 디버그: 층이 준비될 때마다 스스로 진행한다 (soul.Floor.SelfTest, 모드는 soul.Floor.SelfTestMode) */
 	void StartSelfTest();
+
+	/** 디버그: 폰을 Exit 방(보스 방) 안으로 옮긴다 (soul.Floor.GoBoss) */
+	void DebugGoToBossRoom();
+
+	/** 디버그: 폰을 가장 가까운 몹 전투방 안으로 옮긴다 */
+	void DebugGoToCombatRoom();
 
 protected:
 	virtual void BeginPlay() override;
@@ -141,6 +147,12 @@ private:
 	void PrepareOpenLevel();
 	void LogFloorState(const TCHAR* Label) const;
 	void RunSelfTestStep();
+	void RunSelfTestFloors();
+	void RunSelfTestMob(int32 Step);
+	void RunSelfTestBoss(int32 Step);
+	void ScheduleSelfTest(int32 Step, float Delay);
+	void LogPlayerHealth(const TCHAR* Label) const;
+	void FinishSelfTest();
 
 	APlayerController* GetPlayerController() const;
 	ASoulPackedLevelActor* FindRoomActor(int32 RoomId) const;
@@ -164,6 +176,8 @@ private:
 	bool bPlayerDead = false;
 	bool bNavReady = false;
 	bool bSelfTest = false;
+	FString SelfTestMode;
+	FPMGResult LastResult;
 
 	FTimerHandle CurtainTimer;
 	FTimerHandle UnloadTimer;

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Run/Mob/SoulMobTypes.h"
 #include "SoulDungeonFlowData.generated.h"
 
 class UPMGSettings;
@@ -15,6 +16,10 @@ struct PROJECTSW_API FSoulFloorDefinition
 	/** 이 층의 맵 생성 설정 (DA_PMGSettings_Fn). 비어 있으면 그 층을 시작하지 못한다 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Floor")
 	TObjectPtr<UPMGSettings> MapSettings;
+
+	/** 이 층의 몹 세트, 수, 레벨, 보스 위치, 배율 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Floor")
+	FSoulMobFloorRules MobRules;
 };
 
 /**
