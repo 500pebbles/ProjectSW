@@ -37,6 +37,17 @@ void USoulKeyHintWidget::SetHint(const FText& InText, FLinearColor InColor)
 	}
 }
 
+void USoulKeyHintWidget::SetFontSize(int32 InSize)
+{
+	FontSize = FMath::Max(InSize, 8);
+	if (Text_Hint)
+	{
+		FSlateFontInfo Font = Text_Hint->GetFont();
+		Font.Size = FontSize;
+		Text_Hint->SetFont(Font);
+	}
+}
+
 FText USoulKeyHintWidget::GetActionKeyText(const APlayerController* PC, const UInputAction* Action, const FText& Fallback)
 {
 	const UEnhancedInputLocalPlayerSubsystem* Input = PC && PC->GetLocalPlayer() ? PC->GetLocalPlayer()->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>() : nullptr;

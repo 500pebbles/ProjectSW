@@ -8,6 +8,7 @@
 class UAnimSequenceBase;
 class UNiagaraSystem;
 class USoundBase;
+class USoulKeyHintWidget;
 class UTexture2D;
 class USoulRunLoadingScreenWidget;
 class USoulBannerWidget;
@@ -158,6 +159,17 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
 	FLinearColor MapKeyHintColor = FLinearColor(0.9f, 0.9f, 0.9f);
+
+	/** 지도 키 안내 위젯 (WBP로 바꿀 때). 비우면 코드 기본 위젯 USoulKeyHintWidget */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
+	TSubclassOf<USoulKeyHintWidget> MapKeyHintClass;
+
+	/** 글자 크기. 0이면 위젯 기본값 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map", meta = (ClampMin = "0"))
+	int32 MapKeyHintFontSize = 16;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
+	int32 MapKeyHintZOrder = 5;
 
 	/** 배경음 (D39). 마을에 들어오면. 비우면 조용히. 지금은 합성 드론 임시 SW_BGM_*_Temp라 파일을 받으면 이 칸만 바꾼다 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BGM")

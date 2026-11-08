@@ -856,17 +856,22 @@ void USoulFloorDirectorComponent::ShowMapKeyHint()
 		return;
 	if (!MapKeyHint)
 	{
-		MapKeyHint = CreateWidget<USoulKeyHintWidget>(PC, USoulKeyHintWidget::StaticClass());
+		const TSubclassOf<USoulKeyHintWidget> HintClass = Data->MapKeyHintClass ? Data->MapKeyHintClass : TSubclassOf<USoulKeyHintWidget>(USoulKeyHintWidget::StaticClass());
+		MapKeyHint = CreateWidget<USoulKeyHintWidget>(PC, HintClass);
 		if (!MapKeyHint)
 			return;
-		MapKeyHint->FontSize = 16;
+		// 위젯 트리는 CreateWidget 안에서 이미 만들어지므로 크기는 만든 뒤에 다시 넣는다
+		if (Data->MapKeyHintFontSize > 0)
+		{
+			MapKeyHint->SetFontSize(Data->MapKeyHintFontSize);
+		}
 	}
 	FFormatNamedArguments Args;
 	const FText Key = USoulKeyHintWidget::GetActionKeyText(PC, GetMapAction(), INVTEXT("M"));
 	Args.Add(TEXT("Key"), Key);
 	if (!MapKeyHint->IsInViewport())
 	{
-		MapKeyHint->AddToViewport(5);
+		MapKeyHint->AddToViewport(Data->MapKeyHintZOrder);
 	}
 	MapKeyHint->SetHint(FText::Format(Data->MapKeyHintFormat, Args), Data->MapKeyHintColor);
 	// SetPositionInViewport가 앵커를 왼쪽 위로 되돌리므로 자리 다음에 앵커와 정렬을 넣는다

@@ -22,6 +22,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Hint")
 	void SetHint(const FText& InText, FLinearColor InColor);
 
+	/** 글자 크기를 바꾼다 (생성 뒤에도 다시 적용) */
+	UFUNCTION(BlueprintCallable, Category = "Hint")
+	void SetFontSize(int32 InSize);
+
 	/** 액션에 매핑된 첫 키 이름. 없으면 Fallback */
 	static FText GetActionKeyText(const APlayerController* PC, const UInputAction* Action, const FText& Fallback);
 
