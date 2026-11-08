@@ -409,6 +409,10 @@ void ASoulTownDirector::BeginPlay()
 		Arrival = ESoulTownArrival::Relaunch;
 	}
 	OnTownArrived(Arrival);
+	if (USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this); Pres && Pres->GetData())
+	{
+		Pres->PlayBgm(Pres->GetData()->TownBgm);
+	}
 	if (USoulTransitionSubsystem* Transition = USoulTransitionSubsystem::Get(this))
 	{
 		Transition->HideLoading();

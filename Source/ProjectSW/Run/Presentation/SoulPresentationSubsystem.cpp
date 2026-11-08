@@ -89,6 +89,47 @@ void USoulPresentationSubsystem::SetIntroStage(ESoulBossIntroStage Stage)
 	OnIntroStage.Broadcast(Stage);
 }
 
+void USoulPresentationSubsystem::PlayBgm(USoundBase* Sound)
+{
+	if (!Sound)
+	{
+		StopBgm();
+		return;
+	}
+	if (Sound == BgmSound && IsValid(BgmComponent) && BgmComponent->IsPlaying())
+		return;
+
+	const USoulPresentationData* Data = GetData();
+	StopBgm();
+	BgmComponent = UGameplayStatics::CreateSound2D(GetWorld(), Sound, Data ? Data->BgmVolume : 0.5f, 1.f, 0.f, nullptr, false, true);
+	if (BgmComponent)
+	{
+		BgmComponent->FadeIn(Data ? Data->BgmFadeInSec : 1.f, 1.f);
+		BgmSound = Sound;
+	}
+	SW_LOG("[PRES] bgm %s", *Sound->GetName());
+}
+
+void USoulPresentationSubsystem::StopBgm(float FadeOutSec)
+{
+	if (IsValid(BgmComponent))
+	{
+		const USoulPresentationData* Data = GetData();
+		const float Fade = FadeOutSec >= 0.f ? FadeOutSec : (Data ? Data->BgmFadeOutSec : 1.f);
+		if (Fade > 0.f)
+		{
+			BgmComponent->FadeOut(Fade, 0.f);
+		}
+		else
+		{
+			BgmComponent->Stop();
+		}
+		SW_LOG("[PRES] bgm stop %s", BgmSound ? *BgmSound->GetName() : TEXT("?"));
+	}
+	BgmComponent = nullptr;
+	BgmSound = nullptr;
+}
+
 void USoulPresentationSubsystem::PlayBossIntro(ASoulCharacterEnemy* Boss)
 {
 	const USoulPresentationData* Data = GetData();
@@ -98,6 +139,7 @@ void USoulPresentationSubsystem::PlayBossIntro(ASoulCharacterEnemy* Boss)
 		return;
 
 	IntroBoss = Boss;
+	StopBgm();
 	if (!Boss->OnDied.IsBoundToObject(this))
 	{
 		Boss->OnDied.AddUObject(this, &ThisClass::HandleBossDied);
@@ -363,6 +405,10 @@ void USoulPresentationSubsystem::FinishIntro(bool bRestoreInput)
 	}
 	bIntroPlaying = false;
 	bReturning = false;
+	if (bRestoreInput && GetData())
+	{
+		PlayBgm(GetData()->BossBgm);
+	}
 	SetIntroStage(ESoulBossIntroStage::Finished);
 	SW_LOG("[PRES] boss intro done skipped=%d input=%d", bSkipped, PC && PC->InputEnabled());
 }

@@ -504,6 +504,10 @@ void USoulFloorDirectorComponent::Reveal()
 	bTransitioning = false;
 	bFirstFloor = false;
 	ShowMapKeyHint();
+	if (USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this); Pres && Pres->GetData())
+	{
+		Pres->PlayBgm(Pres->GetData()->DungeonBgm);
+	}
 
 	LogFloorState(TEXT("Ready"));
 	FloorReadyTime = GetWorld()->GetTimeSeconds();
@@ -679,6 +683,10 @@ void USoulFloorDirectorComponent::HandleExitCombatFinished(ASoulPackedLevelActor
 		return;
 
 	SW_LOG("[FLOOR] Exit 방 전투 종료 floor=%d", CurrentFloorIndex + 1);
+	if (USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this))
+	{
+		Pres->StopBgm();
+	}
 
 	if (const USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this); Pres && Pres->GetData())
 	{
@@ -918,6 +926,10 @@ void USoulFloorDirectorComponent::HandlePawnDied(AActor* DeadActor)
 		return;
 
 	bPlayerDead = true;
+	if (USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this))
+	{
+		Pres->StopBgm();
+	}
 	SW_LOG("[FLOOR] Player died floor=%d", CurrentFloorIndex + 1);
 
 	// 전환 중에 죽으면 다음 층이 생성되지 않게 전환 타이머를 멈춘다

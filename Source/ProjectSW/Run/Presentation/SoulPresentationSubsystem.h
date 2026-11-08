@@ -58,6 +58,14 @@ public:
 	/** 층을 지울 때: 보스 HP 바와 보스 참조를 정리한다 */
 	void ClearBoss();
 
+	/** 배경음을 바꾼다. 같은 소리가 이미 나오면 그대로 둔다. 비면 멈춘다 */
+	void PlayBgm(USoundBase* Sound);
+
+	/** 배경음을 줄여 멈춘다. FadeOutSec가 음수면 DA 값 */
+	void StopBgm(float FadeOutSec = -1.f);
+
+	USoundBase* GetCurrentBgm() const { return BgmSound; }
+
 	UPROPERTY(BlueprintAssignable, Category = "Presentation")
 	FSoulBossIntroStageSignature OnIntroStage;
 
@@ -95,4 +103,10 @@ private:
 	TArray<TObjectPtr<UAudioComponent>> IntroSounds;
 
 	bool bWarnedSkipKeys = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAudioComponent> BgmComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<USoundBase> BgmSound;
 };

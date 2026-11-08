@@ -159,6 +159,27 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
 	FLinearColor MapKeyHintColor = FLinearColor(0.9f, 0.9f, 0.9f);
 
+	/** 배경음 (D39). 마을에 들어오면. 비우면 조용히. 지금은 합성 드론 임시 SW_BGM_*_Temp라 파일을 받으면 이 칸만 바꾼다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BGM")
+	TObjectPtr<USoundBase> TownBgm;
+
+	/** 던전 층이 준비되면 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BGM")
+	TObjectPtr<USoundBase> DungeonBgm;
+
+	/** 보스 인트로가 끝나면 (인트로 동안과 보스 처치 뒤에는 멈춤) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BGM")
+	TObjectPtr<USoundBase> BossBgm;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BGM", meta = (ClampMin = "0", ClampMax = "2"))
+	float BgmVolume = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BGM", meta = (ClampMin = "0", Units = "s"))
+	float BgmFadeInSec = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BGM", meta = (ClampMin = "0", Units = "s"))
+	float BgmFadeOutSec = 1.f;
+
 	/** 게이트 F (입장) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
 	TObjectPtr<USoundBase> EntrySound;
