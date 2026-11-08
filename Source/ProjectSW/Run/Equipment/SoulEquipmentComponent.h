@@ -7,12 +7,17 @@
 #include "SoulEquipmentComponent.generated.h"
 
 class USoulEquipmentCatalog;
+class USoulCostumeDefinition;
+class UGameplayEffect;
+class UNiagaraSystem;
+class USoundBase;
 class USoulEquipmentDefinition;
 class UInventoryComponent;
 class USkeletalMesh;
 class UStaticMesh;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSoulWeaponChangedSignature, USoulEquipmentDefinition*, Weapon);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSoulCostumeChangedSignature, USoulCostumeDefinition*, Costume);
 
 /**
  * 런 폰의 눈에 보이는 장비와 전투 수치 (BP_RunPlayerCharacter에만 붙는다).
@@ -56,6 +61,21 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Equipment")
 	FSoulWeaponChangedSignature OnWeaponChanged;
 
+	/** 의상을 입는다: 옛 GE 제거, 새 GE, 이동 배율, 체력 채움, 잠시 뒤 몸 메시. bRemember면 런 상태와 세이브에 남긴다 */
+	UFUNCTION(BlueprintCallable, Category = "Equipment")
+	void EquipCostume(USoulCostumeDefinition* Costume, bool bRemember = true);
+
+	/** 폰 초기화 때: 런 상태의 선택 의상, 없으면 카탈로그 기본 의상 (Progression이 레벨 스탯 뒤에 부른다) */
+	void ApplySelectedCostume();
+
+	UFUNCTION(BlueprintPure, Category = "Equipment")
+	USoulCostumeDefinition* GetCurrentCostume() const { return EquippedCostume; }
+
+	FName GetCurrentCostumeId() const;
+
+	UPROPERTY(BlueprintAssignable, Category = "Equipment")
+	FSoulCostumeChangedSignature OnCostumeChanged;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -73,6 +93,21 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Equipment")
 	float ElementDamageScale = 1.f;
 
+	/** 의상을 바꾼 뒤 체력을 채우는 GE. 비면 Health = MaxHealth로 채운다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Costume")
+	TSubclassOf<UGameplayEffect> RefillEffect;
+
+	/** 몸 메시를 바꾸기까지 (연출 FX와 맞춤) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Costume", meta = (ClampMin = "0", Units = "s"))
+	float MeshSwapDelay = 0.f;
+
+	/** 마을에서 갈아입을 때 연출 (맵 입장 적용에는 안 나온다) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Costume")
+	TObjectPtr<UNiagaraSystem> ChangeFX;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Costume")
+	TObjectPtr<USoundBase> ChangeSound;
+
 private:
 	void ApplyVisuals(USkeletalMesh* WeaponMesh, UStaticMesh* SheathMesh);
 	void ApplyExtraEffect(const USoulEquipmentDefinition* Weapon);
@@ -87,4 +122,10 @@ private:
 	TObjectPtr<UStaticMesh> DefaultSheathMesh;
 
 	FActiveGameplayEffectHandle ExtraEffectHandle;
+
+	UPROPERTY()
+	TObjectPtr<USoulCostumeDefinition> EquippedCostume;
+
+	TArray<FActiveGameplayEffectHandle> CostumeEffectHandles;
+	FTimerHandle MeshSwapTimer;
 };

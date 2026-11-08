@@ -1,4 +1,5 @@
 #include "Run/Progression/SoulProgressionComponent.h"
+#include "Run/Equipment/SoulEquipmentComponent.h"
 #include "Run/Progression/SoulLevelBarWidget.h"
 #include "Run/Progression/SoulProgressionData.h"
 #include "Run/Core/SoulRunConfig.h"
@@ -129,6 +130,12 @@ void USoulProgressionComponent::InitializeProgression()
 	if (UAbilitySystemComponent* ASC = GetASC())
 	{
 		ASC->SetNumericAttributeBase(USoulAttributeSet::GetHealthAttribute(), ASC->GetNumericAttribute(USoulAttributeSet::GetMaxHealthAttribute()));
+	}
+
+	// 레벨 스탯 다음에 의상 (GE, 이동 배율, 체력 채움, 메시. 2.3 폰 초기화 순서)
+	if (USoulEquipmentComponent* Equipment = USoulEquipmentComponent::Find(GetOwner()))
+	{
+		Equipment->ApplySelectedCostume();
 	}
 
 	const USoulProgressionData* Data = GetData();

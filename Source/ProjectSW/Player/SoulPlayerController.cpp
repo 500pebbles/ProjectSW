@@ -142,13 +142,8 @@ void ASoulPlayerController::AbilityInputTagPressed(const FGameplayTag InputTag)
 	// 대시 키를 누르면 질주 속도로 변경 (0.25초 대시 종료 후에도 키를 누르고 있으면 빠른 속도로 계속 달림)
 	if (InputTag.MatchesTagExact(SoulTags::InputTags::Dash))
 	{
-		if (ACharacter* ControlledCharacter = GetCharacter())
-		{
-			if (UCharacterMovementComponent* MoveComp = ControlledCharacter->GetCharacterMovement())
-			{
-				MoveComp->MaxWalkSpeed = SprintSpeed;
-			}
-		}
+		bSprintHeld = true;
+		RefreshMoveSpeed();
 	}
 	
 	// 입력 정책 : 누른 순간 1회 발동, 실행 중이면 입력만 전달 (콤보 입력). Held 연사 없음.
@@ -161,13 +156,8 @@ void ASoulPlayerController::AbilityInputTagReleased(const FGameplayTag InputTag)
 	// 대시 키에서 손을 떼면 기본 이동 속도로 복구
 	if (InputTag.MatchesTagExact(SoulTags::InputTags::Dash))
 	{
-		if (ACharacter* ControlledCharacter = GetCharacter())
-		{
-			if (UCharacterMovementComponent* MoveComp = ControlledCharacter->GetCharacterMovement())
-			{
-				MoveComp->MaxWalkSpeed = WalkSpeed;
-			}
-		}
+		bSprintHeld = false;
+		RefreshMoveSpeed();
 	}
 	
 	if (!IsValid(GetASC())) return;
@@ -232,6 +222,24 @@ void ASoulPlayerController::ShowDamageText_Implementation(float DamageAmount, AC
 	DamageText->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 	if (bStackAbove) DamageText->AddWorldOffset(ElementTextOffset * (bIsCriticalHit ? ElementTextCritScale : 1.f));
 	DamageText->SetDamageText(DamageAmount, bIsCriticalHit, DamageType);
+}
+
+void ASoulPlayerController::SetMoveSpeedMultiplier(float Multiplier)
+{
+	MoveSpeedMultiplier = Multiplier;
+	RefreshMoveSpeed();
+}
+
+void ASoulPlayerController::RefreshMoveSpeed()
+{
+	// 대시 키 상태에 따라 걷기 또는 질주 속도에 의상 배율을 곱한다
+	if (ACharacter* ControlledCharacter = GetCharacter())
+	{
+		if (UCharacterMovementComponent* MoveComp = ControlledCharacter->GetCharacterMovement())
+		{
+			MoveComp->MaxWalkSpeed = (bSprintHeld ? SprintSpeed : WalkSpeed) * MoveSpeedMultiplier;
+		}
+	}
 }
 
 FVector ASoulPlayerController::ConsumeAttackInputDirection()

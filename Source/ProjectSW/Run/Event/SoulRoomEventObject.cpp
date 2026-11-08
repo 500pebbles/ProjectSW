@@ -92,9 +92,13 @@ void ASoulRoomEventObject::FinishCharge()
 	{
 		Progression->AddExp(ExpReward, TEXT("Event"));
 	}
-	if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this); Run && ScoreReward > 0)
+	if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this))
 	{
-		Run->AddScore(TEXT("Event"), ScoreReward);
+		Run->AddEventUsed();
+		if (ScoreReward > 0)
+		{
+			Run->AddScore(TEXT("Event"), ScoreReward);
+		}
 	}
 	SW_LOG("[EVENT] %s applied magnitude=%.2f exp=%d score=%d", *GetClass()->GetName(), Magnitude, ExpReward, ScoreReward);
 	if (USoulFloorDirectorComponent* Director = USoulFloorDirectorComponent::Get(this))

@@ -39,6 +39,25 @@ public:
 	/** Director가 층을 시작할 때 부른다 */
 	void SetFloor(int32 NewFloor);
 
+	/** 층 생성이 끝났을 때 (시드 기록, 층 시간 시작) */
+	void NotifyFloorGenerated(int32 Seed);
+
+	/** 통계 */
+	void AddKill() { ++State.Stats.Kills; }
+	void AddDamageTaken(float Amount) { State.Stats.DamageTaken += Amount; }
+	void AddEventUsed() { ++State.Stats.Events; }
+
+	/** 아이템을 주웠을 때 (DA_ScoreRules의 줍기 점수, 무기 첫 획득 점수) */
+	void NotifyItemPickup(FName ItemRow, bool bWeapon);
+
+	/** 마을 석상에서 고른 의상 (DA 이름). BeginRun이 지우지 않는다 */
+	UFUNCTION(BlueprintPure, Category = "Run")
+	FName GetSelectedCostume() const { return SelectedCostume; }
+	void SetSelectedCostume(FName CostumeId) { SelectedCostume = CostumeId; }
+
+	/** 바로 앞 런의 정산 (결과창) */
+	const FSoulRunSummary& GetLastSummary() const { return LastSummary; }
+
 	/** 레벨과 현재 레벨 안 경험치 (USoulProgressionComponent가 쓴다) */
 	void SetLevelExp(int32 NewLevel, int32 NewExp);
 
@@ -65,4 +84,9 @@ private:
 	FSoulRunState State;
 
 	int32 ForcedScore = -1;
+
+	UPROPERTY()
+	FSoulRunSummary LastSummary;
+
+	FName SelectedCostume;
 };

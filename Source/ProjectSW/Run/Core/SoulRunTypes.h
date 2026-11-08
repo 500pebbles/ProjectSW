@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Run/Save/SoulHallOfFameTypes.h"
 #include "SoulRunTypes.generated.h"
 
 /**
@@ -45,4 +46,19 @@ struct PROJECTSW_API FSoulRunState
 	/** EndRun이 한 번 실행되면 true. 이후 EndRun은 무시한다 */
 	UPROPERTY(BlueprintReadOnly, Category = "Run")
 	bool bRunEnded = false;
+
+	/** 처치, 받은 피해, 이벤트, 층별 시간 */
+	UPROPERTY(BlueprintReadOnly, Category = "Run")
+	FSoulRunStats Stats;
+
+	/** 층마다 실제로 생성한 시드 */
+	UPROPERTY(BlueprintReadOnly, Category = "Run")
+	TArray<int32> FloorSeeds;
+
+	/** 첫 획득 점수를 받은 무기 행 */
+	UPROPERTY(BlueprintReadOnly, Category = "Run")
+	TArray<FName> ScoredWeapons;
+
+	/** 지금 층 시작 시각 (실시간) */
+	double FloorStartRealTime = 0.0;
 };

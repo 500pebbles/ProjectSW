@@ -88,6 +88,10 @@ public:
 	// 지금 누르고 있는 이동 입력 방향(카메라 기준). 공격 중에도 갱신되고, 키를 떼면 ZeroVector. (회피 GA가 대시 방향으로 사용)
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Combat")
 	FVector GetMoveInputDirection() const;
+
+	/** 런 의상 이동 배율 (걷기와 달리기에 곱함, 기본 1이라 팀 폰은 그대로) */
+	void SetMoveSpeedMultiplier(float Multiplier);
+	void RefreshMoveSpeed();
 	
 private:
 	FVector AttackInputDirection = FVector::ZeroVector;
@@ -100,6 +104,9 @@ private:
     // 대시 키(LeftShift) 유지 시 질주 이동 속도
     UPROPERTY(EditDefaultsOnly, Category = "Setup|Movement")
     float SprintSpeed = 1000.0f;
+
+	float MoveSpeedMultiplier = 1.f;
+	bool bSprintHeld = false;
 	
 /* GAS Core Section */
 private:

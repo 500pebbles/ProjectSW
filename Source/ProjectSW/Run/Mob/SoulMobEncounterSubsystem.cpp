@@ -192,6 +192,10 @@ void USoulMobEncounterSubsystem::NotifyMobKilled(ASoulCharacterEnemy* Enemy, con
 	{
 		Run->AddScore(Mob->GetRole() == ESoulMobRole::Boss ? FName(TEXT("Boss")) : FName(TEXT("Kill")), Mob->GetScoreValue());
 	}
+	if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this); Run && Mob->GetRole() != ESoulMobRole::Summon)
+	{
+		Run->AddKill();
+	}
 	OnMobKilled.Broadcast(Enemy, Mob);
 }
 

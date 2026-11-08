@@ -2,6 +2,15 @@
 #include "Run/Equipment/SoulEquipmentCatalog.h"
 #include "Run/Equipment/SoulEquipmentDefinition.h"
 #include "Run/Equipment/SoulEquipmentTags.h"
+#include "Run/Equipment/SoulCostumeDefinition.h"
+#include "Run/Actor/SoulTownActors.h"
+#include "Run/Core/SoulRunSubsystem.h"
+#include "Run/Save/SoulHallOfFameSubsystem.h"
+#include "GAS/Core/SoulAttributeSet.h"
+#include "Player/SoulPlayerController.h"
+#include "GameFramework/Character.h"
+#include "NiagaraFunctionLibrary.h"
+#include "TimerManager.h"
 #include "Utility/SoulGameplayTags.h"
 #include "Utility/SoulLog.h"
 
@@ -150,6 +159,120 @@ void USoulEquipmentComponent::AppendWeaponDamage(const FGameplayEffectSpecHandle
 	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, Weapon->ElementTag, Existing + Physical * Weapon->ElementRatio * ElementDamageScale);
 }
 
+FName USoulEquipmentComponent::GetCurrentCostumeId() const
+{
+	return EquippedCostume ? EquippedCostume->GetFName() : NAME_None;
+}
+
+void USoulEquipmentComponent::ApplySelectedCostume()
+{
+	const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this);
+	USoulCostumeDefinition* Costume = Catalog && Run ? Catalog->FindCostumeByName(Run->GetSelectedCostume().ToString()) : nullptr;
+	if (!Costume && Catalog)
+	{
+		Costume = Catalog->DefaultCostume;
+	}
+	if (Costume)
+	{
+		EquipCostume(Costume, false);
+	}
+}
+
+void USoulEquipmentComponent::EquipCostume(USoulCostumeDefinition* Costume, bool bRemember)
+{
+	if (!Costume)
+		return;
+	APawn* Pawn = Cast<APawn>(GetOwner());
+	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Pawn);
+	if (!ASC)
+	{
+		SW_LOG_WARNING("[COSTUME] ASC 없음, %s 못 입음", *Costume->GetName());
+		return;
+	}
+
+	// 1. 옛 GE 제거, 새 GE
+	for (const FActiveGameplayEffectHandle& Handle : CostumeEffectHandles)
+	{
+		ASC->RemoveActiveGameplayEffect(Handle);
+	}
+	CostumeEffectHandles.Reset();
+	for (const TSubclassOf<UGameplayEffect>& Effect : Costume->EquipEffects)
+	{
+		if (!Effect)
+			continue;
+		FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
+		Context.AddSourceObject(Pawn);
+		const FGameplayEffectSpecHandle Spec = ASC->MakeOutgoingSpec(Effect, 1.f, Context);
+		if (Spec.IsValid())
+		{
+			CostumeEffectHandles.Add(ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get()));
+		}
+	}
+	EquippedCostume = Costume;
+	ElementDamageScale = Costume->ElementDamageMultiplier;
+
+	// 이동 배율 (속성이 없어 컨트롤러가 걷기와 달리기에 곱한다)
+	if (ASoulPlayerController* PC = Pawn ? Cast<ASoulPlayerController>(Pawn->GetController()) : nullptr)
+	{
+		PC->SetMoveSpeedMultiplier(Costume->MoveSpeedMultiplier);
+	}
+
+	// 2. 체력 채움 (MaxHealth가 바뀌어도 Health는 자동으로 안 바뀐다)
+	if (RefillEffect)
+	{
+		FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
+		Context.AddSourceObject(Pawn);
+		const FGameplayEffectSpecHandle Spec = ASC->MakeOutgoingSpec(RefillEffect, 1.f, Context);
+		if (Spec.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+		}
+	}
+	else
+	{
+		ASC->SetNumericAttributeBase(USoulAttributeSet::GetHealthAttribute(), ASC->GetNumericAttribute(USoulAttributeSet::GetMaxHealthAttribute()));
+	}
+
+	// 3. 잠시 뒤 몸 메시 (8종 모두 기본 스켈레톤이라 AnimInstance, 소켓, 몽타주가 유지된다)
+	TWeakObjectPtr<USoulCostumeDefinition> WeakCostume = Costume;
+	auto SwapMesh = [this, WeakCostume]()
+	{
+		ACharacter* Character = Cast<ACharacter>(GetOwner());
+		if (Character && WeakCostume.IsValid() && WeakCostume->BodyMesh)
+		{
+			Character->GetMesh()->SetSkeletalMeshAsset(WeakCostume->BodyMesh);
+		}
+	};
+	if (bRemember && MeshSwapDelay > 0.f)
+	{
+		GetWorld()->GetTimerManager().SetTimer(MeshSwapTimer, FTimerDelegate::CreateWeakLambda(this, SwapMesh), MeshSwapDelay, false);
+	}
+	else
+	{
+		SwapMesh();
+	}
+
+	// 4. 기록, 저장, 석상 틴트
+	if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this))
+	{
+		Run->SetSelectedCostume(Costume->GetFName());
+	}
+	if (bRemember)
+	{
+		if (USoulHallOfFameSubsystem* HoF = USoulHallOfFameSubsystem::Get(this))
+		{
+			HoF->SetLastCostume(Costume->GetFName());
+		}
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ChangeFX, GetOwner()->GetActorLocation());
+		UGameplayStatics::PlaySoundAtLocation(this, ChangeSound, GetOwner()->GetActorLocation());
+	}
+	ASoulCostumeStatue::RefreshAll(GetWorld());
+	SW_LOG("[COSTUME] equip %s effects=%d move=%.2f hp=%.0f/%.0f atk=%.1f def=%.1f", *Costume->GetName(), CostumeEffectHandles.Num(), Costume->MoveSpeedMultiplier,
+		ASC->GetNumericAttribute(USoulAttributeSet::GetHealthAttribute()), ASC->GetNumericAttribute(USoulAttributeSet::GetMaxHealthAttribute()),
+		ASC->GetNumericAttribute(USoulAttributeSet::GetAttackPowerAttribute()), ASC->GetNumericAttribute(USoulAttributeSet::GetDefenseAttribute()));
+	OnCostumeChanged.Broadcast(Costume);
+}
+
 bool USoulEquipmentComponent::TryAutoEquipFromInventory(UInventoryComponent* Inventory, FName ItemRow) const
 {
 	if (!Catalog || !Catalog->FindWeaponByRow(ItemRow))
@@ -185,6 +308,21 @@ bool USoulEquipmentComponent::TryAutoEquipFromInventory(UInventoryComponent* Inv
 }
 
 #if !UE_BUILD_SHIPPING
+static FAutoConsoleCommandWithWorldAndArgs GSoulCostumeEquip(
+	TEXT("soul.Costume.Equip"),
+	TEXT("soul.Costume.Equip <DA 이름 끝부분> : 석상과 같은 경로로 의상을 입는다"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		USoulEquipmentComponent* Equipment = USoulEquipmentComponent::Find(UGameplayStatics::GetPlayerPawn(World, 0));
+		USoulCostumeDefinition* Costume = Equipment && Equipment->GetCatalog() && Args.Num() > 0 ? Equipment->GetCatalog()->FindCostumeByName(Args[0]) : nullptr;
+		if (!Costume)
+		{
+			SW_LOG_WARNING("soul.Costume.Equip : 의상을 찾지 못함");
+			return;
+		}
+		Equipment->EquipCostume(Costume);
+	}));
+
 static FAutoConsoleCommandWithWorldAndArgs GSoulWeaponEquip(
 	TEXT("soul.Weapon.Equip"),
 	TEXT("soul.Weapon.Equip <DA 이름 끝부분 또는 DT 행> : 인벤토리를 거치지 않고 무기 메시와 속성을 바꾼다. 인자가 없으면 기본 무기"),

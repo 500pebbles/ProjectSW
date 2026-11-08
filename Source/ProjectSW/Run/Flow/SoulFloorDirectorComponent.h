@@ -151,7 +151,11 @@ private:
 
 	void HandlePawnDied(AActor* DeadActor);
 	void FinishDeath();
-	void RestartDungeonMap();
+	/** 런이 끝난 뒤: 결과창 → 마을 (결과창 클래스가 없으면 바로 마을) */
+	void ShowRunResult();
+	void HandlePlayerHealthChanged(const struct FOnAttributeChangeData& Data);
+	int32 LastGeneratedSeed = 0;
+	bool bDamageTracked = false;
 
 	void LockPlayer();
 	void DisableInputAfterFrame(TWeakObjectPtr<APlayerController> WeakPC, uint64 LockFrame);
@@ -233,6 +237,9 @@ protected:
 	FTimerHandle SelfTestWatchdog;
 	FTimerHandle SelfTestHealTimer;
 	TWeakObjectPtr<AActor> SelfTestPickup;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class USoulResultWidget> ResultWidget;
 	FTimerHandle SelfTestInputTimer;
 	int32 SelfTestRepeat = 0;
 };

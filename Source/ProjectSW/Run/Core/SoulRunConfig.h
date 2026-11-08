@@ -8,6 +8,10 @@ class USoulDungeonFlowData;
 class USoulProgressionData;
 class UDataTable;
 class AItemActorBase;
+class USoulScoreRules;
+class USoulHallOfFameRules;
+class USoulEquipmentCatalog;
+class USoulResultWidget;
 
 /**
  * 런 진입점 (DA_RunConfig). BP_RunGameMode와 이후 BP_TitleGameMode의 USoulRunGameComponent가 하드 참조해 쿡 루트가 된다.
@@ -45,4 +49,24 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	TSubclassOf<AItemActorBase> WeaponPickupClass;
+
+	/** 의상과 무기 목록 (DA_EquipmentCatalog) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment")
+	TObjectPtr<USoulEquipmentCatalog> EquipmentCatalog;
+
+	/** 점수 정산과 랭크 (DA_ScoreRules) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Record")
+	TObjectPtr<USoulScoreRules> ScoreRules;
+
+	/** 기록 규칙 (DA_HallOfFameRules) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Record")
+	TObjectPtr<USoulHallOfFameRules> HallOfFameRules;
+
+	/** 런이 끝났을 때 결과창 (WBP_Result). 비면 바로 마을로 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Record")
+	TSubclassOf<USoulResultWidget> ResultWidgetClass;
+
+	/** 맵 이동 직전 페이드 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Run", meta = (ClampMin = "0", Units = "s"))
+	float TravelFadeSec = 0.f;
 };

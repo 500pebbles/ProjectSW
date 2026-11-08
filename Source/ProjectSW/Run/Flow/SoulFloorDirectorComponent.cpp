@@ -9,6 +9,9 @@
 #include "Run/Interact/SoulInteractionComponent.h"
 #include "Run/Interact/SoulInteractableComponent.h"
 #include "Run/Interact/SoulItemLibrary.h"
+#include "Run/Presentation/SoulTransitionSubsystem.h"
+#include "Run/Save/SoulHallOfFameSubsystem.h"
+#include "Run/UI/SoulResultWidget.h"
 #include "Run/Equipment/SoulEquipmentComponent.h"
 #include "Run/Equipment/SoulEquipmentDefinition.h"
 #include "Run/Equipment/SoulEquipmentCatalog.h"
@@ -263,7 +266,7 @@ void USoulFloorDirectorComponent::GenerateCurrentFloor()
 			{
 				Run->EndRun(false);
 			}
-			RestartDungeonMap();
+			ShowRunResult();
 		}
 		return;
 	}
@@ -280,6 +283,7 @@ void USoulFloorDirectorComponent::GenerateCurrentFloor()
 	SW_LOG("[FLOOR] Generate floor=%d seed=%d attempt=%d settings=%s", CurrentFloorIndex + 1, Seed, GenerateAttempt, *Settings->GetName());
 	GenerateStartTime = FPlatformTime::Seconds();
 	bNavReady = false;
+	LastGeneratedSeed = Seed;
 	Builder->Generate(Seed);
 }
 
@@ -309,18 +313,30 @@ void USoulFloorDirectorComponent::HandleGenerationFinished(const FPMGResult& Res
 			return;
 		}
 
-		// 단계 E에서 타운 복귀로 바꾼다. 그 전에는 런을 끝내고 L_Dungeon을 다시 연다
+		// 런 실패로 끝내고 결과창 → 마을
 		SW_LOG_ERROR("[FLOOR] 생성 실패, 재시도 소진: %s", *Result.FailReason);
 		if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this))
 		{
 			Run->EndRun(false);
 		}
-		RestartDungeonMap();
+		ShowRunResult();
 		return;
 	}
 
 	PlacePawn(Result);
 	LastResult = Result;
+	if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this))
+	{
+		Run->NotifyFloorGenerated(LastGeneratedSeed);
+	}
+	if (!bDamageTracked)
+	{
+		if (UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PlayerPawn.Get()))
+		{
+			ASC->GetGameplayAttributeValueChangeDelegate(USoulAttributeSet::GetHealthAttribute()).AddUObject(this, &ThisClass::HandlePlayerHealthChanged);
+			bDamageTracked = true;
+		}
+	}
 
 	// 층 몹 배치: 방의 저작 포인트를 지우고 층 세트의 포인트를 만든다 (실제 스폰은 방 입장 때)
 	if (USoulMobEncounterSubsystem* Encounter = GetWorld()->GetSubsystem<USoulMobEncounterSubsystem>())
@@ -735,7 +751,7 @@ void USoulFloorDirectorComponent::BeginClear()
 		{
 			Run->EndRun(true);
 		}
-		GetWorld()->GetTimerManager().SetTimer(RestartTimer, this, &ThisClass::RestartDungeonMap, FMath::Max(ClearRestartDelaySec, 0.01f), false);
+		GetWorld()->GetTimerManager().SetTimer(RestartTimer, this, &ThisClass::ShowRunResult, FMath::Max(ClearRestartDelaySec, 0.01f), false);
 	}));
 }
 
@@ -778,15 +794,25 @@ void USoulFloorDirectorComponent::FinishDeath()
 		Run->EndRun(false);
 	}
 
-	// 결과창(단계 E) 전까지 임시로 L_Dungeon을 다시 연다
-	RestartDungeonMap();
+	ShowRunResult();
 }
 
-void USoulFloorDirectorComponent::RestartDungeonMap()
+void USoulFloorDirectorComponent::HandlePlayerHealthChanged(const FOnAttributeChangeData& Data)
 {
-	SW_LOG("[FLOOR] Restart dungeon map (임시)");
+	if (Data.NewValue < Data.OldValue)
+	{
+		if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this))
+		{
+			Run->AddDamageTaken(Data.OldValue - Data.NewValue);
+		}
+	}
+}
+
+void USoulFloorDirectorComponent::ShowRunResult()
+{
+	SW_LOG("[FLOOR] Run result floor=%d", CurrentFloorIndex + 1);
 #if !UE_BUILD_SHIPPING
-	if (bSelfTest)
+	if (bSelfTest && SelfTestMode != TEXT("result"))
 	{
 		// 셀프 테스트는 재시작 요청까지만 확인하고 끝낸다 (다시 열면 테스트가 처음부터 돈다)
 		SW_LOG("[SELFTEST] restart requested");
@@ -803,15 +829,35 @@ void USoulFloorDirectorComponent::RestartDungeonMap()
 		return;
 	}
 #endif
-	PrepareOpenLevel();
 	const USoulRunConfig* Config = USoulRunGameComponent::GetRunConfig(this);
-	if (Config && !Config->DungeonMap.IsNull())
+	const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this);
+	const USoulHallOfFameSubsystem* HoF = USoulHallOfFameSubsystem::Get(this);
+	APlayerController* PC = GetPlayerController();
+	if (Config && Config->ResultWidgetClass && PC && Run)
 	{
-		UGameplayStatics::OpenLevelBySoftObjectPtr(this, Config->DungeonMap);
+		USoulTransitionSubsystem::PrepareForTravel(PC);
+		ResultWidget = USoulResultWidget::ShowResult(PC, Config->ResultWidgetClass, Run->GetLastSummary(), HoF ? HoF->GetLastSubmittedId() : FGuid());
+#if !UE_BUILD_SHIPPING
+		if (bSelfTest && ResultWidget)
+		{
+			// 결과창을 2초 보여 주고 이름을 넣어 귀환 (마을의 TownDirector 자체 확인이 이어 받는다)
+			GetWorld()->GetTimerManager().SetTimer(SelfTestTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
+			{
+				GetWorld()->GetTimerManager().ClearTimer(SelfTestWatchdog);
+				if (ResultWidget)
+				{
+					ResultWidget->SetNameForTest(TEXT("  자동확인테스터이름길다  "));
+					ResultWidget->ReturnToTown();
+				}
+			}), 2.f, false);
+		}
+#endif
+		return;
 	}
-	else
+	// 결과창이 없으면 바로 마을로
+	if (USoulTransitionSubsystem* Transition = USoulTransitionSubsystem::Get(this))
 	{
-		UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this, true)));
+		Transition->TravelToTown(this);
 	}
 }
 
@@ -893,6 +939,11 @@ void USoulFloorDirectorComponent::UnlockPlayer()
 		return;
 
 	PC->EnableInput(PC);
+	// 층 이동 뒤에도 의상 이동 배율과 대시 키 상태를 다시 맞춘다
+	if (ASoulPlayerController* SoulPC = Cast<ASoulPlayerController>(PC))
+	{
+		SoulPC->RefreshMoveSpeed();
+	}
 	if (APawn* Pawn = PC->GetPawn())
 	{
 		Pawn->EnableInput(PC);
@@ -1503,6 +1554,25 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 		else if (SelfTestMode == TEXT("fpath"))
 		{
 			RunSelfTestFPath(Step);
+		}
+		else if (SelfTestMode == TEXT("result"))
+		{
+			// 1층 몹 몇을 잡고 바로 클리어 경로 (BeginClear → EndRun → 결과창 → 마을)
+			if (Step == 0)
+			{
+				DebugGoToCombatRoom();
+				ScheduleSelfTest(1, 3.f);
+			}
+			else if (Step == 1)
+			{
+				SoulFloorDirectorDebug::KillAllMobs(GetWorld());
+				ScheduleSelfTest(2, 1.f);
+			}
+			else
+			{
+				BeginClear();
+				ArmSelfTestWatchdog(TEXT("result"));
+			}
 		}
 		else
 		{

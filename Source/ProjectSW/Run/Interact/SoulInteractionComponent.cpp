@@ -1,6 +1,8 @@
 #include "Run/Interact/SoulInteractionComponent.h"
 #include "Run/Interact/SoulInteractableComponent.h"
 #include "Run/Equipment/SoulEquipmentComponent.h"
+#include "Run/Equipment/SoulEquipmentCatalog.h"
+#include "Run/Core/SoulRunSubsystem.h"
 #include "Utility/SoulLog.h"
 
 #include "Components/Widget.h"
@@ -111,6 +113,13 @@ void USoulInteractionComponent::HandleCollect(AActor* Target)
 		if (!IsValid(Target) || Target->IsActorBeingDestroyed())
 		{
 			OnItemCollected.Broadcast(Target);
+			// 줍기 점수 (포션 행, 무기 첫 획득)
+			if (USoulRunSubsystem* Run = USoulRunSubsystem::Get(this))
+			{
+				const USoulEquipmentComponent* EquipmentForScore = USoulEquipmentComponent::Find(GetOwner());
+				const bool bWeapon = EquipmentForScore && EquipmentForScore->GetCatalog() && EquipmentForScore->GetCatalog()->FindWeaponByRow(ItemRow);
+				Run->NotifyItemPickup(ItemRow, bWeapon);
+			}
 			// 무기 칸이 비었으면 바로 장착 (런 폰만 켠다)
 			if (bAutoEquipOnPickup)
 			{
