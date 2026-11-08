@@ -1486,16 +1486,34 @@ void USoulFloorDirectorComponent::DebugGoToPortal()
 
 	SW_LOG("[FLOOR] DebugGoToPortal floor=%d", CurrentFloorIndex + 1);
 	DebugFace(TargetPortal, 250.f, PlayerPawn->GetActorLocation() - TargetPortal->GetActorLocation());
-	// 다음 틱에 트레이스가 포탈을 잡은 뒤 F
-	GetWorld()->GetTimerManager().SetTimer(SelfTestHealTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
+	// 다음 틱에 트레이스가 포탈을 잡은 뒤 F (보스 인트로로 입력이 잠겨 있으면 먼저 건너뛴다)
+	DebugPressPortal(3);
+}
+
+void USoulFloorDirectorComponent::DebugPressPortal(int32 Tries)
+{
+	GetWorld()->GetTimerManager().SetTimer(SelfTestHealTimer, FTimerDelegate::CreateWeakLambda(this, [this, Tries]()
 	{
+		if (USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this); Pres && Pres->IsIntroPlaying() && Tries > 0)
+		{
+			Pres->SkipIntro();
+			DebugPressPortal(Tries - 1);
+			return;
+		}
+		if (Portal.IsValid())
+		{
+			DebugFace(Portal.Get(), 250.f, PlayerPawn.IsValid() ? PlayerPawn->GetActorLocation() - Portal->GetActorLocation() : FVector::ForwardVector);
+		}
 		if (USoulInteractionComponent* Interaction = USoulInteractionComponent::Find(PlayerPawn.Get()))
 		{
-			const AActor* Target = Interaction->GetTraceTarget();
-			SW_LOG("[FLOOR] DebugGoToPortal trace=%s", Target ? *Target->GetName() : TEXT("none"));
-			Interaction->DebugPressInteract();
+			GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this, Interaction]()
+			{
+				const AActor* Target = Interaction->GetTraceTarget();
+				SW_LOG("[FLOOR] DebugGoToPortal trace=%s", Target ? *Target->GetName() : TEXT("none"));
+				Interaction->DebugPressInteract();
+			}));
 		}
-	}), 0.5f, false);
+	}), 0.8f, false);
 }
 
 void USoulFloorDirectorComponent::DebugGoToBossRoom()

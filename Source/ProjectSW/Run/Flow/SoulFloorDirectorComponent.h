@@ -201,6 +201,7 @@ protected:
 	void RunSelfTestSummon(int32 Step);
 	void RunSelfTestFPath(int32 Step);
 	void DebugFace(const AActor* Target, float Distance, const FVector& FromDirection);
+	void DebugPressPortal(int32 Tries);
 
 	TWeakObjectPtr<APMGMapBuilder> Builder;
 	TWeakObjectPtr<APawn> PlayerPawn;
