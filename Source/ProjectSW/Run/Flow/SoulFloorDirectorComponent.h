@@ -59,6 +59,13 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Floor")
 	FSoulFloorEventSignature OnDescendStarted;
 
+	/** 지금 층 맵 결과와 좌표 (순간이동, 지뢰) */
+	const FPMGResult& GetLastResult() const { return LastResult; }
+	float GetCellSize() const;
+	FVector GetBuilderOrigin() const;
+	int32 GetRoomIdAt(const FVector& Location) const;
+	ASoulPackedLevelActor* FindRoomActor(int32 RoomId) const;
+
 	/** 디버그: 포탈이 없으면 지금 Exit 방에 세우고, 폰을 포탈 위로 옮긴다 (soul.Floor.Portal) */
 	void DebugGoToPortal();
 
@@ -171,8 +178,12 @@ private:
 	void FinishSelfTest();
 
 	APlayerController* GetPlayerController() const;
-	ASoulPackedLevelActor* FindRoomActor(int32 RoomId) const;
 	bool IsLastFloor() const;
+	void SpawnFloorObjects(const FPMGResult& Result);
+	void SpawnFloorMines(const FPMGResult& Result);
+	void ApplyDescendHeal();
+	void RunSelfTestEvents(int32 Step);
+	void RunSelfTestItems(int32 Step);
 
 	TWeakObjectPtr<APMGMapBuilder> Builder;
 	TWeakObjectPtr<APawn> PlayerPawn;
@@ -194,6 +205,7 @@ private:
 	bool bPlayerDead = false;
 	bool bNavReady = false;
 	bool bSelfTest = false;
+	bool bDescendHealPending = false;
 	FString SelfTestMode;
 	FPMGResult LastResult;
 
@@ -207,4 +219,5 @@ private:
 	FTimerHandle SelfTestTimer;
 	FTimerHandle SelfTestWatchdog;
 	FTimerHandle SelfTestHealTimer;
+	TWeakObjectPtr<AActor> SelfTestPickup;
 };

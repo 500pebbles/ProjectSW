@@ -1,2 +1,7 @@
 #include "Run/Flow/SoulDungeonFlowData.h"
 #include "Data/PMGSettings.h"
+#include "GameplayEffect.h"
+#include "Run/Event/SoulRoomEventObject.h"
+#include "Run/Event/SoulFloorMine.h"
+#include "Run/Actor/SoulTreasureChest.h"
+#include "Run/Mob/SoulSpawnPatternData.h"

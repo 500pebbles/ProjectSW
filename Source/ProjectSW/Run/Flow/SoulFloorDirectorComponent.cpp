@@ -6,6 +6,14 @@
 #include "Run/Core/SoulRunConfig.h"
 #include "Run/Core/SoulRunTags.h"
 #include "Run/Progression/SoulProgressionComponent.h"
+#include "Run/Interact/SoulInteractionComponent.h"
+#include "Run/Interact/SoulInteractableComponent.h"
+#include "Run/Interact/SoulItemLibrary.h"
+#include "Run/Event/SoulRoomEventObject.h"
+#include "Run/Event/SoulRoomEvent_Effect.h"
+#include "Run/Event/SoulFloorMine.h"
+#include "Run/Actor/SoulTreasureChest.h"
+#include "Run/Mob/SoulSpawnPatternData.h"
 #include "GAS/Core/SoulAbilitySystemComponent.h"
 #include "Run/Mob/SoulMobComponent.h"
 #include "Run/Mob/SoulMobEncounterSubsystem.h"
@@ -26,6 +34,8 @@
 #include "Animation/AnimMontage.h"
 #include "Blueprint/UserWidget.h"
 #include "Build/PMGMapBuilder.h"
+#include "Inventory/Player/InventoryComponent.h"
+#include "Item/ItemActorBase.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -268,6 +278,10 @@ void USoulFloorDirectorComponent::HandleGenerationFinished(const FPMGResult& Res
 		Encounter->BeginFloor(FlowData->Floors[CurrentFloorIndex].MobRules, Result, CurrentFloorIndex + 1, Seed, Builder->Settings->CellSize, Builder->GetActorLocation());
 	}
 
+	// 이벤트 오브젝트, 상자, 지뢰 (폰은 아직 공중에 세워져 있다)
+	SpawnFloorObjects(Result);
+	SpawnFloorMines(Result);
+
 	ExitRoom = FindRoomActor(Result.ExitRoomId);
 	if (ExitRoom.IsValid())
 	{
@@ -387,6 +401,7 @@ void USoulFloorDirectorComponent::Reveal()
 	UnparkPawn();
 	CurtainIn(CurtainFadeInSec);
 	UnlockPlayer();
+	ApplyDescendHeal();
 
 	bTransitioning = false;
 	bFirstFloor = false;
@@ -427,6 +442,7 @@ void USoulFloorDirectorComponent::RequestDescend()
 	SW_LOG("[FLOOR] Descend %d -> %d", CurrentFloorIndex + 1, CurrentFloorIndex + 2);
 	LogTelemetry(FString::Printf(TEXT("floor_end floorSec=%.1f"), GetWorld()->GetTimeSeconds() - FloorReadyTime));
 	bTransitioning = true;
+	bDescendHealPending = true;
 	if (bSelfTest)
 	{
 		ArmSelfTestWatchdog(TEXT("descend"));
@@ -712,6 +728,11 @@ void USoulFloorDirectorComponent::LockPlayer()
 	{
 		ASC->CancelAllAbilities();
 	}
+	// 인벤토리와 장비창도 닫는다 (플랜 2.3 공통 규칙)
+	if (USoulInteractionComponent* Interaction = USoulInteractionComponent::Find(PC->GetPawn()))
+	{
+		Interaction->CloseInventoryUI();
+	}
 
 	PC->FlushPressedKeys();
 
@@ -868,6 +889,268 @@ ASoulPackedLevelActor* USoulFloorDirectorComponent::FindRoomActor(int32 RoomId) 
 		}
 	}
 	return nullptr;
+}
+
+float USoulFloorDirectorComponent::GetCellSize() const
+{
+	return Builder.IsValid() && Builder->Settings ? Builder->Settings->CellSize : 0.f;
+}
+
+FVector USoulFloorDirectorComponent::GetBuilderOrigin() const
+{
+	return Builder.IsValid() ? Builder->GetActorLocation() : FVector::ZeroVector;
+}
+
+int32 USoulFloorDirectorComponent::GetRoomIdAt(const FVector& Location) const
+{
+	const float CellSize = GetCellSize();
+	if (CellSize <= 0.f)
+		return INDEX_NONE;
+	const FVector Origin = GetBuilderOrigin();
+	const FIntPoint Cell(FMath::FloorToInt((Location.X - Origin.X) / CellSize), FMath::FloorToInt((Location.Y - Origin.Y) / CellSize));
+	for (const FPMGResultRoom& Room : LastResult.Rooms)
+	{
+		if (Room.bConnected && Room.Bounds.Contains(Cell))
+			return Room.Id;
+	}
+	return INDEX_NONE;
+}
+
+void USoulFloorDirectorComponent::SpawnFloorObjects(const FPMGResult& Result)
+{
+	const FSoulFloorDefinition& Floor = FlowData->Floors[CurrentFloorIndex];
+	const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this);
+	FRandomStream Stream((Run ? Run->GetState().RunSeed : 0) * 17 + CurrentFloorIndex + 1);
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	// 이벤트: 보장 개수를 먼저 채우고 남는 방은 가중치. 방 순서는 층 시드로 섞는다
+	TArray<int32> EventRooms;
+	for (const FPMGResultRoom& Room : Result.Rooms)
+	{
+		if (Room.bConnected && !FlowData->EventRoomType.IsNone() && Room.RoomType == FlowData->EventRoomType)
+			EventRooms.Add(Room.Id);
+	}
+	TArray<const FSoulEventRow*> Picks;
+	for (const FSoulEventRow& Row : Floor.EventRows)
+	{
+		for (int32 i = 0; i < Row.GuaranteedCount; ++i)
+			Picks.Add(&Row);
+	}
+	while (Picks.Num() < EventRooms.Num())
+	{
+		float Total = 0.f;
+		for (const FSoulEventRow& Row : Floor.EventRows)
+			Total += Row.Weight;
+		if (Total <= 0.f)
+			break;
+		float Pick = Stream.FRandRange(0.f, Total);
+		for (const FSoulEventRow& Row : Floor.EventRows)
+		{
+			Pick -= Row.Weight;
+			if (Pick <= 0.f)
+			{
+				Picks.Add(&Row);
+				break;
+			}
+		}
+	}
+	for (int32 i = Picks.Num() - 1; i > 0; --i)
+	{
+		Picks.Swap(i, Stream.RandRange(0, i));
+	}
+	if (!Floor.EventRows.IsEmpty() && EventRooms.IsEmpty())
+	{
+		SW_LOG_ERROR("[EVENT] floor=%d 이벤트 행은 있는데 %s 방이 0개", CurrentFloorIndex + 1, *FlowData->EventRoomType.ToString());
+	}
+
+	int32 Spawned = 0;
+	for (int32 i = 0; i < FMath::Min(EventRooms.Num(), Picks.Num()); ++i)
+	{
+		const FSoulEventRow* Row = Picks[i];
+		if (!Row->ObjectClass)
+			continue;
+		const FTransform RoomTransform = PMG::GetRoomSpawnTransform(Result.Rooms[EventRooms[i]], GetCellSize(), GetBuilderOrigin());
+		ASoulRoomEventObject* Object = GetWorld()->SpawnActor<ASoulRoomEventObject>(Row->ObjectClass, RoomTransform, Params);
+		if (Object)
+		{
+			Object->Configure(Row->Magnitude, Row->ExpReward, Row->ScoreReward);
+			RegisterFloorActor(Object);
+			++Spawned;
+			SW_LOG("[EVENT] floor=%d room=%d %s", CurrentFloorIndex + 1, EventRooms[i], *Object->GetClass()->GetName());
+		}
+	}
+
+	// 상자: Treasure 방, 중앙의 화로를 피해 로컬 오프셋
+	if (Floor.TreasureChestClass && !FlowData->TreasureRoomType.IsNone())
+	{
+		for (const FPMGResultRoom& Room : Result.Rooms)
+		{
+			if (!Room.bConnected || Room.RoomType != FlowData->TreasureRoomType)
+				continue;
+			const FTransform RoomTransform = PMG::GetRoomSpawnTransform(Room, GetCellSize(), GetBuilderOrigin());
+			const FTransform ChestTransform(RoomTransform.GetRotation(), RoomTransform.TransformPosition(FlowData->TreasureChestLocal));
+			if (ASoulTreasureChest* Chest = GetWorld()->SpawnActor<ASoulTreasureChest>(Floor.TreasureChestClass, ChestTransform, Params))
+			{
+				Chest->SetScoreValue(Floor.ChestScore);
+				RegisterFloorActor(Chest);
+				SW_LOG("[CHEST] floor=%d room=%d", CurrentFloorIndex + 1, Room.Id);
+			}
+		}
+	}
+	SW_LOG("[EVENT] floor=%d events=%d/%d", CurrentFloorIndex + 1, Spawned, EventRooms.Num());
+}
+
+void USoulFloorDirectorComponent::SpawnFloorMines(const FPMGResult& Result)
+{
+	const FSoulFloorDefinition& Floor = FlowData->Floors[CurrentFloorIndex];
+	if (Floor.MineRows.IsEmpty() || !FlowData->MinePatterns)
+		return;
+
+	const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this);
+	FRandomStream Stream((Run ? Run->GetState().RunSeed : 0) * 29 + CurrentFloorIndex + 1);
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	// 제비: 놓을 수 있는 방마다 칸 수만큼 (넓은 방에 많이)
+	TArray<int32> Tickets;
+	for (const FPMGResultRoom& Room : Result.Rooms)
+	{
+		if (!Room.bConnected || !FlowData->MineRoomTypes.Contains(Room.RoomType))
+			continue;
+		const int32 Cells = Room.Bounds.Area();
+		for (int32 i = 0; i < Cells; ++i)
+			Tickets.Add(Room.Id);
+	}
+
+	TArray<FVector> Placed;
+	TArray<FVector> Objects;
+	for (const TWeakObjectPtr<AActor>& Actor : FloorActors)
+	{
+		if (Actor.IsValid())
+			Objects.Add(Actor->GetActorLocation());
+	}
+
+	for (const FSoulMineRow& Row : Floor.MineRows)
+	{
+		int32 Done = 0;
+		for (int32 i = Tickets.Num() - 1; i > 0; --i)
+		{
+			Tickets.Swap(i, Stream.RandRange(0, i));
+		}
+		for (int32 t = 0; t < Tickets.Num() && Done < Row.Count; ++t)
+		{
+			const FPMGResultRoom& Room = Result.Rooms[Tickets[t]];
+			const FTransform RoomTransform = PMG::GetRoomSpawnTransform(Room, GetCellSize(), GetBuilderOrigin());
+			const TArray<FVector>* Candidates = &FlowData->MinePatterns->SingleRoom;
+			if (Room.Shape == EPMGRoomShape::DualHorizontal || Room.Shape == EPMGRoomShape::DualVertical)
+				Candidates = &FlowData->MinePatterns->DualRoom;
+			else if (Room.Shape == EPMGRoomShape::Quad)
+				Candidates = &FlowData->MinePatterns->QuadRoom;
+			TArray<FVector> Pool = *Candidates;
+			for (int32 i = Pool.Num() - 1; i > 0; --i)
+			{
+				Pool.Swap(i, Stream.RandRange(0, i));
+			}
+			const TArray<FTransform> Openings = PMG::GetRoomOpeningTransforms(Room.Shape, GetCellSize(), RoomTransform.GetLocation());
+
+			for (const FVector& Local : Pool)
+			{
+				const FVector World = RoomTransform.TransformPosition(Local);
+				const bool bNearDoor = Openings.ContainsByPredicate([&](const FTransform& O) { return FVector::Dist2D(O.GetLocation(), World) < FlowData->MineDoorClearance; });
+				const bool bNearObject = Objects.ContainsByPredicate([&](const FVector& O) { return FVector::Dist2D(O, World) < FlowData->MineObjectClearance; });
+				const bool bNearMine = Placed.ContainsByPredicate([&](const FVector& O) { return FVector::Dist2D(O, World) < FlowData->MineSpacing; });
+				const bool bBlocked = GetWorld()->OverlapBlockingTestByChannel(World + FVector(0.f, 0.f, 130.f), FQuat::Identity, ECC_Pawn, FCollisionShape::MakeSphere(120.f));
+				if (bNearDoor || bNearObject || bNearMine || bBlocked)
+					continue;
+
+				if (ASoulFloorMine* Mine = GetWorld()->SpawnActor<ASoulFloorMine>(Row.MineClass, FTransform(RoomTransform.GetRotation(), World), Params))
+				{
+					Mine->SetDamageRatio(Row.DamageRatio);
+					RegisterFloorActor(Mine);
+					Placed.Add(World);
+					++Done;
+				}
+				break;
+			}
+		}
+		SW_LOG("[MINE] floor=%d placed=%d/%d", CurrentFloorIndex + 1, Done, Row.Count);
+	}
+}
+
+void USoulFloorDirectorComponent::ApplyDescendHeal()
+{
+	if (!bDescendHealPending)
+		return;
+	bDescendHealPending = false;
+	if (!FlowData || FlowData->DescendHealRatio <= 0.f || !FlowData->DescendHealEffect)
+		return;
+
+	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PlayerPawn.Get());
+	if (!ASC)
+		return;
+	const float Before = ASC->GetNumericAttribute(USoulAttributeSet::GetHealthAttribute());
+	const float Amount = ASC->GetNumericAttribute(USoulAttributeSet::GetMaxHealthAttribute()) * FlowData->DescendHealRatio;
+	ASoulRoomEvent_Effect::ApplyMagnitudeEffect(ASC, FlowData->DescendHealEffect, SoulRunTags::Magnitude_Heal, Amount);
+	SW_LOG("[FLOOR] descend heal hp %.0f -> %.0f", Before, ASC->GetNumericAttribute(USoulAttributeSet::GetHealthAttribute()));
+}
+
+void USoulFloorDirectorComponent::RunSelfTestEvents(int32 Step)
+{
+#if !UE_BUILD_SHIPPING
+	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PlayerPawn.Get());
+	auto SetHealth = [ASC](float Value) { if (ASC) ASC->SetNumericAttributeBase(USoulAttributeSet::GetHealthAttribute(), Value); };
+	// 2층 준비 뒤에는 RunSelfTestStep이 0부터 다시 부르므로 2층 단계로 넘긴다
+	if (Step == 0 && CurrentFloorIndex >= 1)
+	{
+		Step = 5;
+	}
+	switch (Step)
+	{
+	case 0:
+		SetHealth(400.f);
+		LogPlayerHealth(TEXT("events start"));
+		GEngine->Exec(GetWorld(), TEXT("soul.Event.Force Heal"));
+		ScheduleSelfTest(1, 2.f);
+		break;
+	case 1:
+		LogPlayerHealth(TEXT("after heal"));
+		GEngine->Exec(GetWorld(), TEXT("soul.Event.Force Heal"));
+		GEngine->Exec(GetWorld(), TEXT("soul.Event.Force Teleport"));
+		ScheduleSelfTest(2, 2.5f);
+		break;
+	case 2:
+		LogPlayerHealth(TEXT("after teleport"));
+		SoulFloorDirectorDebug::KillAllMobs(GetWorld());
+		GEngine->Exec(GetWorld(), TEXT("soul.Mine.Trigger"));
+		ScheduleSelfTest(3, 1.5f);
+		break;
+	case 3:
+		LogPlayerHealth(TEXT("after mine"));
+		GEngine->Exec(GetWorld(), TEXT("soul.Chest.Open"));
+		ScheduleSelfTest(4, 1.f);
+		break;
+	case 4:
+		SetHealth(500.f);
+		LogPlayerHealth(TEXT("before descend"));
+		RequestDescend();
+		break;
+	case 5:
+		LogPlayerHealth(TEXT("floor 2 ready"));
+		SetHealth(1.f);
+		GEngine->Exec(GetWorld(), TEXT("soul.Event.Force Trap"));
+		ScheduleSelfTest(6, 2.f);
+		break;
+	default:
+		LogPlayerHealth(TEXT("after trap at hp 1"));
+		if (const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this))
+		{
+			SW_LOG("[SELFTEST] ledger=%d", Run->GetLedgerTotal());
+		}
+		FinishSelfTest();
+		break;
+	}
+#endif
 }
 
 bool USoulFloorDirectorComponent::IsLastFloor() const
@@ -1042,6 +1325,14 @@ void USoulFloorDirectorComponent::ScheduleSelfTest(int32 Step, float Delay)
 		else if (SelfTestMode == TEXT("stats"))
 		{
 			RunSelfTestStats(Step);
+		}
+		else if (SelfTestMode == TEXT("events"))
+		{
+			RunSelfTestEvents(Step);
+		}
+		else if (SelfTestMode == TEXT("items"))
+		{
+			RunSelfTestItems(Step);
 		}
 		else
 		{
@@ -1305,6 +1596,93 @@ void USoulFloorDirectorComponent::RunSelfTestStats(int32 Step)
 #endif
 }
 
+#if !UE_BUILD_SHIPPING
+// FInventoryDataArray는 export되지 않아 반사로 개수만 읽는다
+static int32 CountInventoryEntries(const UInventoryComponent* Inventory)
+{
+	const FStructProperty* DataProp = Inventory ? FindFProperty<FStructProperty>(UInventoryComponent::StaticClass(), TEXT("InventoryData")) : nullptr;
+	const FArrayProperty* ArrayProp = DataProp ? FindFProperty<FArrayProperty>(DataProp->Struct, TEXT("ItemDataArray")) : nullptr;
+	if (!ArrayProp)
+		return -1;
+	FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(DataProp->ContainerPtrToValuePtr<void>(Inventory)));
+	return Helper.Num();
+}
+
+static int32 CountPickups(UWorld* World)
+{
+	int32 Count = 0;
+	for (TActorIterator<AItemActorBase> It(World); It; ++It)
+	{
+		++Count;
+	}
+	return Count;
+}
+#endif
+
+void USoulFloorDirectorComponent::RunSelfTestItems(int32 Step)
+{
+#if !UE_BUILD_SHIPPING
+	APawn* Pawn = PlayerPawn.Get();
+	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Pawn);
+	USoulInteractionComponent* Interaction = USoulInteractionComponent::Find(Pawn);
+	UInventoryComponent* Inventory = Interaction ? Interaction->GetInventory() : nullptr;
+	switch (Step)
+	{
+	case 0:
+	{
+		// 층 1: 포션을 앞에 떨어뜨리고 F 경로로 줍고 퀵슬롯으로 쓴다
+		if (ASC)
+		{
+			ASC->SetNumericAttributeBase(USoulAttributeSet::GetHealthAttribute(), 300.f);
+		}
+		const USoulRunConfig* Config = USoulRunGameComponent::GetRunConfig(this);
+		if (Config && Config->ItemTable && Pawn)
+		{
+			FDataTableRowHandle Row;
+			Row.DataTable = Config->ItemTable;
+			Row.RowName = TEXT("HealSmall");
+			SelfTestPickup = USoulItemLibrary::SpawnPickup(this, Config->ItemPickupClass, Row, Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * 150.f);
+		}
+		SW_LOG("[SELFTEST] items spawn pickup=%s inventory=%s", SelfTestPickup.IsValid() ? *SelfTestPickup->GetName() : TEXT("none"), Inventory ? *Inventory->GetName() : TEXT("none"));
+		ScheduleSelfTest(1, 0.5f);
+		break;
+	}
+	case 1:
+		if (Interaction && SelfTestPickup.IsValid())
+		{
+			Interaction->CollectTarget(SelfTestPickup.Get());
+		}
+		ScheduleSelfTest(2, 0.5f);
+		break;
+	case 2:
+		SW_LOG("[SELFTEST] items after collect pickupAlive=%d entries=%d", SelfTestPickup.IsValid() ? 1 : 0, CountInventoryEntries(Inventory));
+		LogPlayerHealth(TEXT("items before use"));
+		if (Inventory)
+		{
+			Inventory->UseQuickSlotItem();
+		}
+		ScheduleSelfTest(3, 0.5f);
+		break;
+	case 3:
+		LogPlayerHealth(TEXT("items after use"));
+		SW_LOG("[SELFTEST] items after use entries=%d", CountInventoryEntries(Inventory));
+		// 보스 드랍 (DA_Loot_Boss 큰 포션 100%)
+		DebugGoToBossRoom();
+		ScheduleSelfTest(4, 3.f);
+		break;
+	case 4:
+		SW_LOG("[SELFTEST] items pickups before boss kill=%d", CountPickups(GetWorld()));
+		SoulFloorDirectorDebug::KillAllMobs(GetWorld());
+		ScheduleSelfTest(5, 2.f);
+		break;
+	default:
+		SW_LOG("[SELFTEST] items pickups after boss kill=%d", CountPickups(GetWorld()));
+		FinishSelfTest();
+		break;
+	}
+#endif
+}
+
 void USoulFloorDirectorComponent::RunSelfTestBossFront(int32 Step)
 {
 #if !UE_BUILD_SHIPPING
@@ -1451,5 +1829,66 @@ static FAutoConsoleCommandWithWorldAndArgs GSoulMobSpawnCommand(
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 		AActor* Spawned = World->SpawnActor<ASoulCharacterEnemy>(Class, Location, FRotator(0.f, Rotation.Yaw, 0.f), Params);
 		SW_LOG("[MOB] spawn %s", Spawned ? *Spawned->GetName() : TEXT("failed"));
+	}));
+
+static FAutoConsoleCommandWithWorldAndArgs GSoulEventForce(
+	TEXT("soul.Event.Force"),
+	TEXT("soul.Event.Force <Heal|Trap|Teleport> : 이 층의 해당 이벤트 오브젝트를 바로 발동한다"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+	{
+		APawn* Pawn = UGameplayStatics::GetPlayerPawn(World, 0);
+		const FString Kind = Args.Num() > 0 ? Args[0] : TEXT("");
+		for (TActorIterator<ASoulRoomEventObject> It(World); It; ++It)
+		{
+			if (It->GetClass()->GetName().Contains(Kind) && It->GetState() == ESoulRoomEventState::Idle)
+			{
+				It->ForceActivate(Pawn);
+				return;
+			}
+		}
+		SW_LOG_WARNING("soul.Event.Force : %s 오브젝트 없음 (또는 이미 씀)", *Kind);
+	}));
+
+static FAutoConsoleCommandWithWorld GSoulMineTrigger(
+	TEXT("soul.Mine.Trigger"),
+	TEXT("폰을 가장 가까운 지뢰 위로 옮기고 밟은 것처럼 발동한다"),
+	FConsoleCommandWithWorldDelegate::CreateLambda([](UWorld* World)
+	{
+		APawn* Pawn = UGameplayStatics::GetPlayerPawn(World, 0);
+		ASoulFloorMine* Best = nullptr;
+		float BestDistance = TNumericLimits<float>::Max();
+		for (TActorIterator<ASoulFloorMine> It(World); It; ++It)
+		{
+			const float Distance = Pawn ? FVector::Dist(It->GetActorLocation(), Pawn->GetActorLocation()) : 0.f;
+			if (Distance < BestDistance)
+			{
+				BestDistance = Distance;
+				Best = *It;
+			}
+		}
+		if (!Best || !Pawn)
+		{
+			SW_LOG_WARNING("soul.Mine.Trigger : 지뢰 없음");
+			return;
+		}
+		Pawn->TeleportTo(Best->GetActorLocation() + FVector(0.f, 0.f, Pawn->GetDefaultHalfHeight() + 20.f), Pawn->GetActorRotation(), false, true);
+		Best->ForceTrigger();
+	}));
+
+static FAutoConsoleCommandWithWorld GSoulChestOpen(
+	TEXT("soul.Chest.Open"),
+	TEXT("이 층의 보물상자를 연다"),
+	FConsoleCommandWithWorldDelegate::CreateLambda([](UWorld* World)
+	{
+		APawn* Pawn = UGameplayStatics::GetPlayerPawn(World, 0);
+		for (TActorIterator<ASoulTreasureChest> It(World); It; ++It)
+		{
+			if (USoulInteractableComponent* Interactable = It->FindComponentByClass<USoulInteractableComponent>())
+			{
+				Interactable->Interact(Pawn);
+				return;
+			}
+		}
+		SW_LOG_WARNING("soul.Chest.Open : 상자 없음");
 	}));
 #endif

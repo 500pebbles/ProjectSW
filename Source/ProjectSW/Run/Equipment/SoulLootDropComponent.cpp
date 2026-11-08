@@ -1,0 +1,36 @@
+#include "Run/Equipment/SoulLootDropComponent.h"
+#include "Run/Equipment/SoulLootTable.h"
+#include "Run/Flow/SoulFloorDirectorComponent.h"
+#include "Character/SoulCharacterBase.h"
+
+USoulLootDropComponent::USoulLootDropComponent()
+{
+	PrimaryComponentTick.bCanEverTick = false;
+}
+
+void USoulLootDropComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (bDropOnDeath && GetWorld()->IsGameWorld())
+	{
+		if (ASoulCharacterBase* Character = Cast<ASoulCharacterBase>(GetOwner()))
+		{
+			Character->OnDied.AddUObject(this, &ThisClass::HandleDied);
+		}
+	}
+}
+
+void USoulLootDropComponent::HandleDied(AActor* DeadActor)
+{
+	DropLoot();
+}
+
+void USoulLootDropComponent::DropLoot()
+{
+	// 던전 밖(팀 맵)에서는 드랍하지 않는다
+	const USoulFloorDirectorComponent* Director = USoulFloorDirectorComponent::Get(this);
+	if (!LootTable || !Director)
+		return;
+	LootTable->SpawnLoot(GetWorld(), GetOwner()->GetActorLocation(), Director->GetCurrentFloor(), ScatterRadius);
+}

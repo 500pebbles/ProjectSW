@@ -6,6 +6,8 @@
 
 class USoulDungeonFlowData;
 class USoulProgressionData;
+class UDataTable;
+class AItemActorBase;
 
 /**
  * 런 진입점 (DA_RunConfig). BP_RunGameMode와 이후 BP_TitleGameMode의 USoulRunGameComponent가 하드 참조해 쿡 루트가 된다.
@@ -32,4 +34,15 @@ public:
 	/** 레벨과 경험치 (DA_Progression) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Run")
 	TObjectPtr<USoulProgressionData> Progression;
+
+	/** 런 아이템 표 (DT_RunItems) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	TObjectPtr<UDataTable> ItemTable;
+
+	/** 포션 픽업 (BP_ItemPickup)과 무기 픽업 (BP_WeaponPickup) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	TSubclassOf<AItemActorBase> ItemPickupClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	TSubclassOf<AItemActorBase> WeaponPickupClass;
 };
