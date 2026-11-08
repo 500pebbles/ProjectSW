@@ -9,6 +9,7 @@ class AController;
 class APawn;
 class UInventoryComponent;
 class UInventoryInputComponent;
+class UInputAction;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSoulItemCollectedSignature, AActor*, ItemActor);
 
@@ -39,6 +40,9 @@ public:
 
 	/** 아이템 트레이스가 지금 잡은 대상 */
 	AActor* GetTraceTarget() const { return TraceTarget.Get(); }
+
+	/** 팀 인벤토리 입력의 상호작용(F) 액션. 키 안내 문구용 */
+	const UInputAction* GetInteractAction() const;
 
 	/** 디버그: F 입력 액션을 주입한다 (실제 트레이스와 F 경로를 그대로 탄다) */
 	bool DebugPressInteract();

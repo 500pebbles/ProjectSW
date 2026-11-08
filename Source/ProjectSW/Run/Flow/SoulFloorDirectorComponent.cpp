@@ -47,6 +47,7 @@
 #include "InputKeyEventArgs.h"
 #include "Run/Combat/SoulCombatFeelSubsystem.h"
 #include "Run/UI/SoulPresentationWidgets.h"
+#include "Run/UI/SoulKeyHintWidget.h"
 #include "Build/PMGMapBuilder.h"
 #include "AIController.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
@@ -797,8 +798,30 @@ ASoulFloorPortal* USoulFloorDirectorComponent::SpawnPortal()
 	{
 		Pres->PlayAt(Pres->GetData()->PortalSound, Pres->GetData()->PortalFX, Location);
 	}
+	ShowPortalGuide(NewPortal);
 	SW_LOG("[FLOOR] Portal spawned floor=%d at %s nearestDrop=%.0f drops=%d", CurrentFloorIndex + 1, *Location.ToCompactString(), Nearest, Drops.Num());
 	return NewPortal;
+}
+
+void USoulFloorDirectorComponent::ShowPortalGuide(ASoulFloorPortal* InPortal) const
+{
+	const USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this);
+	const USoulPresentationData* Data = Pres ? Pres->GetData() : nullptr;
+	if (!Data || !InPortal)
+		return;
+
+	const USoulInteractionComponent* Interaction = USoulInteractionComponent::Find(PlayerPawn.Get());
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Key"), USoulKeyHintWidget::GetActionKeyText(GetPlayerController(), Interaction ? Interaction->GetInteractAction() : nullptr, INVTEXT("F")));
+	if (!Data->PortalOpenText.IsEmpty())
+	{
+		Pres->ShowBanner(Data->PortalOpenText, FText::Format(Data->PortalOpenSubtitleFormat, Args), Data->PortalBannerColor);
+	}
+	if (!Data->PortalMarkerFormat.IsEmpty())
+	{
+		InPortal->ShowMarker(FText::Format(Data->PortalMarkerFormat, Args), Data->PortalBannerColor);
+	}
+	SW_LOG("[FLOOR] portal guide banner=\"%s / %s\"", *Data->PortalOpenText.ToString(), *FText::Format(Data->PortalOpenSubtitleFormat, Args).ToString());
 }
 
 void USoulFloorDirectorComponent::DebugForceClear()

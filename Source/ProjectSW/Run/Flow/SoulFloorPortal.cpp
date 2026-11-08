@@ -4,6 +4,8 @@
 #include "Components/SphereComponent.h"
 #include "Run/Interact/SoulInteractableComponent.h"
 #include "Run/Interact/SoulHighlightComponent.h"
+#include "Run/UI/SoulKeyHintWidget.h"
+#include "Components/WidgetComponent.h"
 #include "Utility/SoulLog.h"
 
 ASoulFloorPortal::ASoulFloorPortal()
@@ -20,6 +22,26 @@ ASoulFloorPortal::ASoulFloorPortal()
 	Interactable->bOneShot = true;
 
 	Highlight = CreateDefaultSubobject<USoulHighlightComponent>(TEXT("Highlight"));
+
+	Marker = CreateDefaultSubobject<UWidgetComponent>(TEXT("Marker"));
+	Marker->SetupAttachment(Trigger);
+	Marker->SetWidgetSpace(EWidgetSpace::Screen);
+	Marker->SetDrawAtDesiredSize(true);
+	Marker->SetWidgetClass(USoulKeyHintWidget::StaticClass());
+	Marker->SetRelativeLocation(FVector(0.f, 0.f, 260.f));
+	Marker->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Marker->SetHiddenInGame(true);
+}
+
+void ASoulFloorPortal::ShowMarker(const FText& InText, const FLinearColor& InColor)
+{
+	Marker->InitWidget();
+	if (USoulKeyHintWidget* Widget = Cast<USoulKeyHintWidget>(Marker->GetUserWidgetObject()))
+	{
+		Widget->SetHint(InText, InColor);
+	}
+	Marker->SetHiddenInGame(false);
+	SW_LOG("[FLOOR] portal marker \"%s\" widget=%d", *InText.ToString(), Marker->GetUserWidgetObject() != nullptr);
 }
 
 void ASoulFloorPortal::HandleInteracted(APawn* User)
@@ -45,6 +67,7 @@ void ASoulFloorPortal::EnterPortal()
 	}
 
 	SW_LOG("[FLOOR] Portal entered: %s", *GetName());
+	Marker->SetHiddenInGame(true);
 	Director->RequestDescend();
 }
 

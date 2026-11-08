@@ -7,6 +7,7 @@
 class USphereComponent;
 class USoulInteractableComponent;
 class USoulHighlightComponent;
+class UWidgetComponent;
 class APawn;
 
 /**
@@ -28,6 +29,9 @@ public:
 
 	USphereComponent* GetTrigger() const { return Trigger; }
 
+	/** 멀리서도 보이는 화면 표시 (벽에 가리지 않는다). Director가 포탈을 세울 때 DA 문구로 켠다 */
+	void ShowMarker(const FText& InText, const FLinearColor& InColor);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -42,6 +46,10 @@ protected:
 	/** 하이라이트 (색과 세기는 BP) */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
 	TObjectPtr<USoulHighlightComponent> Highlight;
+
+	/** 화면 공간 표시 (USoulKeyHintWidget). 높이는 BP */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
+	TObjectPtr<UWidgetComponent> Marker;
 
 	/** 켜져 있으면 플레이어가 닿는 순간 들어간다 (단계 B 임시. 지금은 끄고 F로 들어간다) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Portal")

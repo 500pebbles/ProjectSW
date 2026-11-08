@@ -134,6 +134,11 @@ void USoulInteractionComponent::HandleCollect(AActor* Target)
 	}
 }
 
+const UInputAction* USoulInteractionComponent::GetInteractAction() const
+{
+	return SoulInteraction::ReadObjectProperty<UInputAction>(InventoryInput, TEXT("InventoryInteractAction"));
+}
+
 bool USoulInteractionComponent::DebugPressInteract()
 {
 	const APawn* Pawn = Cast<APawn>(GetOwner());

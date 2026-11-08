@@ -150,6 +150,9 @@ private:
 	void LogTelemetry(const FString& Event) const;
 	void SchedulePortal();
 	ASoulFloorPortal* SpawnPortal();
+
+	/** 포탈 배너, 포탈 위 표시 (DA_Presentation 문구, 키 이름은 입력 매핑) */
+	void ShowPortalGuide(ASoulFloorPortal* InPortal) const;
 	void BeginClear();
 
 	void HandlePawnDied(AActor* DeadActor);

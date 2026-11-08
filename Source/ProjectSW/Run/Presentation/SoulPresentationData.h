@@ -129,6 +129,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Banner")
 	FLinearColor FailedBannerColor = FLinearColor(0.9f, 0.2f, 0.2f);
 
+	/** 포탈이 열릴 때 배너 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal")
+	FText PortalOpenText = NSLOCTEXT("SoulRun", "PortalOpen", "포탈이 열렸습니다");
+
+	/** 포탈 배너 아랫줄. {Key}는 상호작용 키 이름 (예: {Key} 다음 층) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal")
+	FText PortalOpenSubtitleFormat = NSLOCTEXT("SoulRun", "PortalOpenSub", "{Key} 다음 층");
+
+	/** 포탈 위 화면 표시. {Key}는 상호작용 키 이름 (예: 포탈 · {Key}) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal")
+	FText PortalMarkerFormat = NSLOCTEXT("SoulRun", "PortalMarker", "포탈 · {Key}");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal")
+	FLinearColor PortalBannerColor = FLinearColor(0.75f, 0.45f, 1.f);
+
 	/** 게이트 F (입장) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
 	TObjectPtr<USoundBase> EntrySound;
