@@ -21,6 +21,7 @@
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/GameModeBase.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameplayEffect.h"
 #include "HAL/IConsoleManager.h"
@@ -64,6 +65,11 @@ bool SoulRunCheck::Log(const UObject* WorldContextObject, const TCHAR* Where)
 		PS ? PS->GetPlayerLevel() : -1);
 
 	if (!bRun)
+		return true;
+
+	// 폰을 두지 않는 런 맵(L_Title, BP_TitleGameMode의 기본 폰 없음)은 검사할 폰이 없다
+	const AGameModeBase* GameMode = World->GetAuthGameMode();
+	if (!Pawn && GameMode && !GameMode->DefaultPawnClass)
 		return true;
 
 	// 런 월드에서는 팀 폰의 런 컴포넌트와 카탈로그가 있어야 하고, 카메라 랙이 DA_CombatFeel 값이어야 한다
