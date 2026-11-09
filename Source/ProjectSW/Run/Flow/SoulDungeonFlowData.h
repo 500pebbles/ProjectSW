@@ -55,6 +55,35 @@ struct PROJECTSW_API FSoulMineRow
 	float DamageRatio = 0.f;
 };
 
+/**
+ * 층 조명 (방 BP에 붙은 조명 컴포넌트의 색).
+ * bOverride가 false면 방 BP에 저작된 색을 그대로 쓴다 (1층).
+ */
+USTRUCT(BlueprintType)
+struct PROJECTSW_API FSoulFloorLighting
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lighting")
+	bool bOverride = false;
+
+	/** 목표 색 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lighting", meta = (EditCondition = "bOverride", HideAlphaChannel))
+	FLinearColor Color = FLinearColor::White;
+
+	/** 0 = 원래 색, 1 = Color로 완전히 교체. 0.8 정도면 조명마다의 차이가 조금 남는다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lighting", meta = (EditCondition = "bOverride", ClampMin = "0", ClampMax = "1"))
+	float Strength = 1.f;
+
+	/** 원래 밝기 x 이 값. 보라처럼 어둡게 보이는 색을 보정한다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lighting", meta = (EditCondition = "bOverride", ClampMin = "0"))
+	float IntensityScale = 1.f;
+
+	/** 이 태그가 붙은 조명은 건드리지 않는다 (예: 원래 색을 유지할 제단 빛). 비면 모두 바꾼다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lighting", meta = (EditCondition = "bOverride"))
+	FName KeepTag;
+};
+
 /** 층 하나의 설정. 몹 규칙, 이벤트, 지뢰, 로딩 항목은 다음 단계에서 이 구조체에 붙는다 */
 USTRUCT(BlueprintType)
 struct PROJECTSW_API FSoulFloorDefinition
@@ -83,6 +112,10 @@ struct PROJECTSW_API FSoulFloorDefinition
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Floor", meta = (ClampMin = "0"))
 	int32 ChestScore = 0;
+
+	/** 이 층의 방 조명색 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Floor")
+	FSoulFloorLighting Lighting;
 };
 
 /**
