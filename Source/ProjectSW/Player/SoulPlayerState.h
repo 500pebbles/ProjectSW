@@ -35,6 +35,7 @@ protected:
 /* Player Stat Section */	
 public:
 	FORCEINLINE int32 GetPlayerLevel() const { return Level; }
+	void SetPlayerLevel(int32 InLevel) { Level = InLevel; } // 런 레벨업
 
 protected:
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_Level)

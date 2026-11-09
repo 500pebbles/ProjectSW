@@ -11,6 +11,8 @@
 #include "Player/SoulPlayerController.h"
 #include "Utility/SoulGameplayTags.h"
 #include "Utility/SoulLog.h"
+#include "GAS/Core/SoulAttributeSet.h"
+#include "GAS/GA/SoulSkillCooldownEffect.h"
 
 USoulSkillAbility::USoulSkillAbility()
 {
@@ -31,6 +33,8 @@ USoulSkillAbility::USoulSkillAbility()
 	// 사망 또는 대시 중에는 발동 불가
 	ActivationBlockedTags.AddTag(SoulTags::States::Dead);
 	ActivationBlockedTags.AddTag(SoulTags::States::Dashing);
+
+	SkillCooldownEffectClass = USoulSkillCooldownEffect::StaticClass();
 }
 
 void USoulSkillAbility::SetChainRuntimeInfo(const FGameplayTag& InSlotTag, int32 InChainStep, bool bInIsChainFinisher)
@@ -80,14 +84,17 @@ const FGameplayTagContainer* USoulSkillAbility::GetCooldownTags() const
 
 void USoulSkillAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const
 {
-	UGameplayEffect* CooldownGE = GetCooldownGameplayEffect();
+	const TSubclassOf<UGameplayEffect> EffectClass = SkillCooldownEffectClass ? SkillCooldownEffectClass : CooldownGameplayEffectClass;
 	const float BaseDuration = CooldownDuration.GetValueAtLevel(GetAbilityLevel());
-	if (!CooldownGE || !CooldownTag.IsValid() || BaseDuration <= 0.0f) return;
+	if (!EffectClass || !CooldownTag.IsValid() || BaseDuration <= 0.0f) return;
 
-	const FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(Handle, ActorInfo, ActivationInfo, CooldownGameplayEffectClass, GetAbilityLevel());
+	const FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(Handle, ActorInfo, ActivationInfo, EffectClass, GetAbilityLevel());
 	if (!SpecHandle.IsValid()) return;
 
-	const float FinalDuration = bIsChainFinisher ? (BaseDuration * ChainFinisherCooldownMultiplier) : BaseDuration;
+	// 쿨감(%)은 0과 상한 사이로 자른다
+	const UAbilitySystemComponent* OwnerASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
+	const float Reduction = OwnerASC ? FMath::Clamp(OwnerASC->GetNumericAttribute(USoulAttributeSet::GetCooldownReductionAttribute()), 0.f, MaxCooldownReductionPercent) : 0.f;
+	const float FinalDuration = (bIsChainFinisher ? (BaseDuration * ChainFinisherCooldownMultiplier) : BaseDuration) * (1.f - Reduction / 100.f);
 	SpecHandle.Data->DynamicGrantedTags.AddTag(CooldownTag);
 	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, SoulTags::Cooldown::Duration, FinalDuration);
 
