@@ -8,6 +8,7 @@
 #include "Data/PMGSettings.h"
 #include "Utility/SoulLog.h"
 #include "EngineUtils.h"
+#include "GameFramework/Pawn.h"
 
 void USoulMapSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
@@ -157,4 +158,32 @@ void USoulMapSubsystem::SetRoomDoorsClosed(int32 RoomId, bool bClosed)
 const ASoulPackedLevelActor* USoulMapSubsystem::FindRoom(int32 RoomId) const
 {
 	return Rooms.FindRef(RoomId);
+}
+
+bool USoulMapSubsystem::TeleportPlayerToRoom(APawn* Pawn, int32 RoomId)
+{
+	if (!IsValid(Pawn))
+		return false;
+
+	const ASoulPackedLevelActor* CurrentRoom = Rooms.FindRef(CurrentRoomId);
+	if (CurrentRoom && CurrentRoom->IsInCombat())
+	{
+		SW_LOG("전투 중 웨이포인트 사용");
+		return false;
+	}
+
+	const ASoulPackedLevelActor* TargetRoom = Rooms.FindRef(RoomId);
+	if (!TargetRoom || !TargetRoom->HasWaypoint() || !TargetRoom->IsVisited() || RoomId == CurrentRoomId)
+	{
+		return false;
+	}
+
+	const FVector Dest = TargetRoom->GetWaypointLocation(Pawn->GetSimpleCollisionHalfHeight());
+	if (!Pawn->TeleportTo(Dest, Pawn->GetActorRotation()))
+	{
+		SW_LOG_WARNING("USoulMapSubsystem::TeleportPlayerToRoom : 방 %d에서 이동할 자리를 찾지 못함", RoomId);
+		return false;
+	}
+	
+	return true;
 }

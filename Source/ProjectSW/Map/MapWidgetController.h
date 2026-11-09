@@ -34,6 +34,9 @@ struct FSoulMapRoomView
 
 	UPROPERTY(BlueprintReadOnly)
 	FName RoomType;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bHasWaypoint = false;
 };
 
 USTRUCT(BlueprintType)
@@ -62,6 +65,8 @@ public:
 	void Init(APlayerController* InPlayerController);
 
 	bool GetUsedCellBounds(FIntRect& OutBounds) const;
+
+	bool RequestTeleport(int32 RoomId);
 
 	TArray<FSoulMapRoomView> GetRoomViews() const;
 	TArray<FSoulMapDoorView> GetDoorViews() const;

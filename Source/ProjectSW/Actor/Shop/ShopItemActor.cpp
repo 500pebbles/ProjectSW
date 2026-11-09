@@ -120,6 +120,11 @@ void AShopItemActor::OnInventoryFocusBegin(UInventoryComponent* PlayerInvCompone
 	}
 	
 	InfoWidget->SetShopItemInfo(ItemComp->GetItemData(), CostItemRow, CostItemCount);
+	
+	// 위젯 위치 설정
+	InfoWidget->SetPositionInViewport(FVector2D(60.f, 0.f), false);
+	InfoWidget->SetAnchorsInViewport(FAnchors(0.5f, 0.5f));
+	InfoWidget->SetAlignmentInViewport(FVector2D(0.f, 0.5f));
 	InfoWidget->AddToViewport(4);
 }
 

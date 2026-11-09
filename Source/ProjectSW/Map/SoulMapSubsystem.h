@@ -10,6 +10,7 @@
 class APMGMapBuilder;
 class ASoulPackedLevelActor;
 class ASoulRoomDoor;
+class APawn;
 
 /**
  * 
@@ -23,6 +24,8 @@ public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 
 	const ASoulPackedLevelActor* FindRoom(int32 RoomId) const;
+
+	bool TeleportPlayerToRoom(APawn* Pawn, int32 RoomId);
 
 	FORCEINLINE bool HasMapData() const { return !Rooms.IsEmpty(); }
 	FORCEINLINE const FPMGResult& GetMapResult() const { return MapResult; }

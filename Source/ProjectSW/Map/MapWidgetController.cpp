@@ -36,6 +36,12 @@ bool UMapWidgetController::GetUsedCellBounds(FIntRect& OutBounds) const
 	return bHasRoom;
 }
 
+bool UMapWidgetController::RequestTeleport(int32 RoomId)
+{
+	USoulMapSubsystem* MapSubsystem = PlayerController->GetWorld()->GetSubsystem<USoulMapSubsystem>();
+	return MapSubsystem && MapSubsystem->TeleportPlayerToRoom(PlayerController->GetPawn(), RoomId);
+}
+
 TArray<FSoulMapRoomView> UMapWidgetController::GetRoomViews() const
 {
 	const USoulMapSubsystem* MapSubsystem = GetMapSubsystem();
@@ -82,6 +88,7 @@ TArray<FSoulMapRoomView> UMapWidgetController::GetRoomViews() const
 		View.CellBounds = Room.Bounds;
 		View.State = State;
 		View.RoomType = Room.RoomType;
+		View.bHasWaypoint = RoomActor->HasWaypoint() && State != ESoulMapRoomState::Adjacent;
 	}
 
 	return Views;
