@@ -16,6 +16,8 @@ class PROJECTSW_API ASoulCharacterPlayer : public ASoulCharacterBase
 public:
 	ASoulCharacterPlayer();
 	
+	virtual void BeginPlay() override;
+	
 public:
 	virtual void PossessedBy(AController* NewController) override;
 	

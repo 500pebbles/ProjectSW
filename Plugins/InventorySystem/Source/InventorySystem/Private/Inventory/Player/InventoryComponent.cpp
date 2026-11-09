@@ -185,10 +185,10 @@ int32 UInventoryComponent::DropItem(const FGuid& InID, int32 Count)
 	if (!Entry || !Entry->GetItem()) { return 0; }
 
 	// 제거 전에 필요한 값을 복사해 둔다. 이후 Entry 포인터는 쓰지 않는다.
-	const FDataTableRowHandle ItemRow = Entry->GetItem()->GetRowHandle(); // 가정
+	UItemData* DroppedItem = Entry->GetItem();
 	const int32 DropQuantity = FMath::Min(Count, Entry->GetQuantity());
 
-	if (!SpawnDroppedItem(ItemRow))
+	if (!SpawnDroppedItem(DroppedItem))
 	{
 		return 0; // 스폰 실패 시 인벤토리는 그대로
 	}
@@ -231,11 +231,11 @@ bool UInventoryComponent::TryApplyChange(const TArray<FInventoryItemRequirement>
 	return true;
 }
 
-bool UInventoryComponent::SpawnDroppedItem(const FDataTableRowHandle& InItemRow)
+bool UInventoryComponent::SpawnDroppedItem(UItemData* InItem)
 {
 	UWorld* World = GetWorld();
 	const AActor* OwnerActor = GetOwner();
-	if (!World || !OwnerActor || InItemRow.IsNull())
+	if (!World || !OwnerActor || InItem->GetRowHandle().IsNull())
 	{
 		return false;
 	}
@@ -251,7 +251,7 @@ bool UInventoryComponent::SpawnDroppedItem(const FDataTableRowHandle& InItemRow)
 		return false;
 	}
 
-	Spawned->SetupItem(InItemRow);
+	Spawned->SetupItem(InItem);
 	Spawned->FinishSpawning(SpawnTransform);
 	return true;
 }
@@ -673,7 +673,7 @@ bool UInventoryComponent::DropEquippedItem(const FGameplayTag& EquipmentTag)
 		return false;
 	}
 	
-	if (!SpawnDroppedItem(CurrentEquippedItem->GetRowHandle()))
+	if (!SpawnDroppedItem(CurrentEquippedItem))
 	{
 		return false;
 	}

@@ -17,6 +17,14 @@ ASoulCharacterPlayer::ASoulCharacterPlayer()
 	Camera->SetupAttachment(SpringArm);
 }
 
+void ASoulCharacterPlayer::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	int32 Level = GetCharacterLevel();
+	UE_LOG(LogTemp, Log, TEXT("LEVEL: %d"), Level);
+}
+
 void ASoulCharacterPlayer::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);

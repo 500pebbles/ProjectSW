@@ -41,4 +41,7 @@ private:
 	
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UTextBlock> Text_ItemEffect;
+	
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_LevelLimit;
 };
