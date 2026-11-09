@@ -210,6 +210,8 @@ private:
 	bool IsLastFloor() const;
 	void SpawnFloorObjects(const FPMGResult& Result);
 	void SpawnFloorMines(const FPMGResult& Result);
+	/** 지금 층의 Lighting을 모든 방에 적용한다. 생성 완료 뒤, 커튼이 걷히기 전에 부른다 */
+	void ApplyFloorLighting();
 	void ApplyDescendHeal();
 
 public:
