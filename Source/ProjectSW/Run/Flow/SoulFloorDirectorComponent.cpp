@@ -4,6 +4,7 @@
 #include "Run/Core/SoulRunSubsystem.h"
 #include "Run/Core/SoulRunGameComponent.h"
 #include "Run/Core/SoulRunConfig.h"
+#include "Run/Core/SoulRunCheck.h"
 #include "Run/Core/SoulRunTags.h"
 #include "Run/Progression/SoulProgressionComponent.h"
 #include "Run/Interact/SoulInteractionComponent.h"
@@ -431,7 +432,14 @@ void USoulFloorDirectorComponent::PlacePawn(const FPMGResult& Result)
 		}
 		if (Pawn)
 		{
-			SW_LOG("[FLOOR] Pawn spawned: %s", *Pawn->GetName());
+			// 런 컴포넌트는 팀 폰 BP_WorkerPlayerCharacter에 있다. 팀 GM 기본 폰이 바뀌거나 컴포넌트가 지워지면 여기서 보인다
+			const bool bEq = USoulEquipmentComponent::Find(Pawn) != nullptr;
+			const bool bProg = USoulProgressionComponent::Find(Pawn) != nullptr;
+			SW_LOG("[FLOOR] Pawn spawned: %s eq=%d prog=%d", *Pawn->GetName(), bEq, bProg);
+			if (!bEq || !bProg)
+			{
+				SW_LOG_ERROR("[FLOOR] 폰에 Equipment나 Progression 없음 (BP_WorkerPlayerCharacter의 런 컴포넌트, 팀 GM 기본 폰 확인)");
+			}
 		}
 		else
 		{
@@ -539,6 +547,7 @@ void USoulFloorDirectorComponent::Reveal()
 
 	if (bSelfTest)
 	{
+		SoulRunCheck::Log(this, *FString::Printf(TEXT("floor %d ready"), CurrentFloorIndex + 1));
 		GetWorld()->GetTimerManager().SetTimer(SelfTestTimer, this, &ThisClass::RunSelfTestStep, SoulFloorDirector::SelfTestStepDelaySec, false);
 	}
 }

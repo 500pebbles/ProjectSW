@@ -15,6 +15,7 @@
 #include "Animation/AnimSequence.h"
 #include "Utility/SoulLog.h"
 #include "Run/Core/SoulShots.h"
+#include "Run/Core/SoulRunCheck.h"
 #include "GameFramework/Character.h"
 
 #include "Components/SkeletalMeshComponent.h"
@@ -446,6 +447,7 @@ void ASoulTownDirector::RunTownSelfTest(ESoulTownArrival Arrival)
 			const APlayerController* PC = Pawn ? Cast<APlayerController>(Pawn->GetController()) : nullptr;
 			SW_LOG("[SELFTEST] town return costume=%s inputEnabled=%d cursor=%d", Equipment ? *Equipment->GetCurrentCostumeId().ToString() : TEXT("none"),
 				Pawn ? Pawn->InputEnabled() : -1, PC ? PC->bShowMouseCursor : -1);
+			SoulRunCheck::Log(this, TEXT("town return"));
 			SW_LOG("[SELFTEST] DONE town");
 			UKismetSystemLibrary::QuitGame(this, nullptr, EQuitPreference::Quit, false);
 		}), 2.f, false);
@@ -468,6 +470,7 @@ void ASoulTownDirector::RunTownSelfTest(ESoulTownArrival Arrival)
 		}
 		Statues.Sort([](const ASoulCostumeStatue& A, const ASoulCostumeStatue& B) { return A.GetActorLocation().X > B.GetActorLocation().X; });
 		SW_LOG("[SELFTEST] town statues=%d", Statues.Num());
+		SoulRunCheck::Log(this, TEXT("town arrive"));
 		if (Statues.Num() > 4)
 		{
 			Statues[4]->ShowCard(true);
@@ -504,6 +507,7 @@ void ASoulTownDirector::RunTownSelfTest(ESoulTownArrival Arrival)
 			{
 				SW_LOG("[SELFTEST] town walkSpeed=%.0f", Move->MaxWalkSpeed);
 			}
+			SoulRunCheck::Log(this, TEXT("town statue"));
 			for (TActorIterator<ASoulDungeonGate> It(GetWorld()); It; ++It)
 			{
 				if (USoulInteractableComponent* Interactable = It->FindComponentByClass<USoulInteractableComponent>())

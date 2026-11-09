@@ -136,4 +136,14 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Poise")
 	TMap<EEnemyType, FSoulPoiseProfile> PoiseProfiles;
+
+	/** 플레이어 카메라 추격 랙. 런 월드에서만 폰 BeginPlay(Progression)가 SpringArm에 넣는다. 팀 폰 BP 값은 안 바꾼다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera")
+	bool bCameraLag = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta = (ClampMin = "0", EditCondition = "bCameraLag"))
+	float CameraLagSpeed = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta = (ClampMin = "0", Units = "cm", EditCondition = "bCameraLag"))
+	float CameraLagMaxDistance = 0.f;
 };

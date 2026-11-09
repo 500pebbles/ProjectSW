@@ -1,4 +1,5 @@
 #include "Run/Progression/SoulProgressionComponent.h"
+#include "Run/Combat/SoulCombatFeelData.h"
 #include "Run/Equipment/SoulEquipmentComponent.h"
 #include "Run/Progression/SoulLevelBarWidget.h"
 #include "Run/Progression/SoulProgressionData.h"
@@ -17,6 +18,7 @@
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
@@ -68,9 +70,11 @@ void USoulProgressionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// 접기 게이트: 팀 맵은 컨트롤러 구독, 처치 경험치, 다음 틱 초기화(레벨 GE, 치명 20, 체력 채움, 의상), 카메라 랙을 하지 않는다
 	APawn* Pawn = Cast<APawn>(GetOwner());
-	if (!Pawn || !GetWorld()->IsGameWorld())
+	if (!Pawn || !GetWorld()->IsGameWorld() || !USoulRunGameComponent::IsRunWorld(this))
 		return;
+	ApplyRunCamera();
 
 	if (Pawn->GetController())
 	{
@@ -102,6 +106,19 @@ void USoulProgressionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason
 		LevelBar = nullptr;
 	}
 	Super::EndPlay(EndPlayReason);
+}
+
+void USoulProgressionComponent::ApplyRunCamera() const
+{
+	// 팀 C++ SpringArm(SoulCharacterPlayer)에 런 카메라 랙을 넣는다. 랙은 매 틱 위치를 따라가므로 도중에 켜도 화면이 튀지 않는다
+	const USoulRunConfig* Config = USoulRunGameComponent::GetRunConfig(this);
+	const USoulCombatFeelData* Feel = Config ? Config->CombatFeel.Get() : nullptr;
+	USpringArmComponent* Arm = GetOwner() ? GetOwner()->FindComponentByClass<USpringArmComponent>() : nullptr;
+	if (!Feel || !Feel->bCameraLag || !Arm)
+		return;
+	Arm->bEnableCameraLag = true;
+	Arm->CameraLagSpeed = Feel->CameraLagSpeed;
+	Arm->CameraLagMaxDistance = Feel->CameraLagMaxDistance;
 }
 
 void USoulProgressionComponent::HandleControllerChanged(APawn* Pawn, AController* OldController, AController* NewController)
@@ -185,8 +202,9 @@ void USoulProgressionComponent::ApplyLevel(int32 Level, bool bLevelUp)
 		const float Heal = FMath::Max(0.f, NewMax - OldMax) + NewMax * Data->LevelUpHealRatio;
 		const float Health = ASC->GetNumericAttribute(USoulAttributeSet::GetHealthAttribute());
 		ASC->SetNumericAttributeBase(USoulAttributeSet::GetHealthAttribute(), FMath::Min(Health + Heal, NewMax));
-		SW_LOG("[LEVEL] up %d hp=%.0f/%.0f ap=%.0f def=%.0f", Level, ASC->GetNumericAttribute(USoulAttributeSet::GetHealthAttribute()), NewMax,
-			ASC->GetNumericAttribute(USoulAttributeSet::GetAttackPowerAttribute()), ASC->GetNumericAttribute(USoulAttributeSet::GetDefenseAttribute()));
+		SW_LOG("[LEVEL] up %d hp=%.0f/%.0f ap=%.0f def=%.0f crit=%.0f", Level, ASC->GetNumericAttribute(USoulAttributeSet::GetHealthAttribute()), NewMax,
+			ASC->GetNumericAttribute(USoulAttributeSet::GetAttackPowerAttribute()), ASC->GetNumericAttribute(USoulAttributeSet::GetDefenseAttribute()),
+			ASC->GetNumericAttribute(USoulAttributeSet::GetCriticalRateAttribute()));
 		OnLevelUp.Broadcast(Level);
 	}
 }
@@ -250,16 +268,18 @@ void USoulProgressionComponent::Broadcast()
 void USoulProgressionComponent::DumpToLog() const
 {
 	const UAbilitySystemComponent* ASC = GetASC();
-	SW_LOG("[LEVEL] dump lv=%d exp=%d/%d hp=%.0f/%.0f ap=%.0f def=%.0f stamina=%.0f/%.0f", GetLevel(), GetExp(), GetExpToNext(),
+	SW_LOG("[LEVEL] dump lv=%d exp=%d/%d hp=%.0f/%.0f ap=%.0f def=%.0f stamina=%.0f/%.0f crit=%.0f", GetLevel(), GetExp(), GetExpToNext(),
 		ASC ? ASC->GetNumericAttribute(USoulAttributeSet::GetHealthAttribute()) : -1.f, ASC ? ASC->GetNumericAttribute(USoulAttributeSet::GetMaxHealthAttribute()) : -1.f,
 		ASC ? ASC->GetNumericAttribute(USoulAttributeSet::GetAttackPowerAttribute()) : -1.f, ASC ? ASC->GetNumericAttribute(USoulAttributeSet::GetDefenseAttribute()) : -1.f,
-		ASC ? ASC->GetNumericAttribute(USoulAttributeSet::GetStaminaAttribute()) : -1.f, ASC ? ASC->GetNumericAttribute(USoulAttributeSet::GetMaxStaminaAttribute()) : -1.f);
+		ASC ? ASC->GetNumericAttribute(USoulAttributeSet::GetStaminaAttribute()) : -1.f, ASC ? ASC->GetNumericAttribute(USoulAttributeSet::GetMaxStaminaAttribute()) : -1.f,
+		ASC ? ASC->GetNumericAttribute(USoulAttributeSet::GetCriticalRateAttribute()) : -1.f);
 }
 
 #if !UE_BUILD_SHIPPING
 static USoulProgressionComponent* FindPlayerProgression(UWorld* World)
 {
-	return USoulProgressionComponent::Find(UGameplayStatics::GetPlayerPawn(World, 0));
+	// 팀 맵은 레벨 치트 출력이 새로 생기지 않게 런 월드에서만 찾는다
+	return USoulRunGameComponent::IsRunWorld(World) ? USoulProgressionComponent::Find(UGameplayStatics::GetPlayerPawn(World, 0)) : nullptr;
 }
 
 static FAutoConsoleCommandWithWorldAndArgs GSoulProgSetLevel(TEXT("soul.Prog.SetLevel"), TEXT("soul.Prog.SetLevel N : 런 레벨을 N으로"),

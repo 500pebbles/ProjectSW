@@ -4,6 +4,7 @@
 #include "Run/Equipment/SoulEquipmentTags.h"
 #include "Run/Equipment/SoulCostumeDefinition.h"
 #include "Run/Actor/SoulTownActors.h"
+#include "Run/Core/SoulRunGameComponent.h"
 #include "Run/Core/SoulRunSubsystem.h"
 #include "Run/Save/SoulHallOfFameSubsystem.h"
 #include "GAS/Core/SoulAttributeSet.h"
@@ -53,9 +54,19 @@ USoulEquipmentComponent* USoulEquipmentComponent::Find(const AActor* Actor)
 	return Actor ? Actor->FindComponentByClass<USoulEquipmentComponent>() : nullptr;
 }
 
+USoulEquipmentCatalog* USoulEquipmentComponent::GetCatalog() const
+{
+	// 런 월드에서만 DA_RunConfig.EquipmentCatalog. 팀 맵은 null이라 장비 기능이 모두 꺼진다
+	return USoulEquipmentCatalog::GetRunCatalog(this);
+}
+
 void USoulEquipmentComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// 접기 게이트: 팀 맵은 팀 폰 BP의 Weapon과 Saya 메시를 그대로 둔다
+	if (!USoulRunGameComponent::IsRunWorld(this))
+		return;
 
 	// 기본 무기 메시는 폰 BP에 있는 그대로를 기억한다 (해제 때 돌아갈 자리)
 	if (const USkeletalMeshComponent* Weapon = SoulEquipment::FindNamedComponent<USkeletalMeshComponent>(GetOwner(), WeaponComponentName))
@@ -66,15 +77,16 @@ void USoulEquipmentComponent::BeginPlay()
 	{
 		DefaultSheathMesh = Sheath->GetStaticMesh();
 	}
-	if (Catalog && Catalog->DefaultWeapon)
+	const USoulEquipmentCatalog* RunCatalog = GetCatalog();
+	if (RunCatalog && RunCatalog->DefaultWeapon)
 	{
-		if (Catalog->DefaultWeapon->WeaponMesh)
+		if (RunCatalog->DefaultWeapon->WeaponMesh)
 		{
-			DefaultWeaponMesh = Catalog->DefaultWeapon->WeaponMesh;
+			DefaultWeaponMesh = RunCatalog->DefaultWeapon->WeaponMesh;
 		}
-		if (Catalog->DefaultWeapon->SheathMesh)
+		if (RunCatalog->DefaultWeapon->SheathMesh)
 		{
-			DefaultSheathMesh = Catalog->DefaultWeapon->SheathMesh;
+			DefaultSheathMesh = RunCatalog->DefaultWeapon->SheathMesh;
 		}
 	}
 	ApplyVisuals(DefaultWeaponMesh, DefaultSheathMesh);
@@ -84,12 +96,13 @@ USoulEquipmentDefinition* USoulEquipmentComponent::GetCurrentWeapon() const
 {
 	if (EquippedWeapon)
 		return EquippedWeapon;
-	return Catalog ? Catalog->DefaultWeapon : nullptr;
+	const USoulEquipmentCatalog* RunCatalog = GetCatalog();
+	return RunCatalog ? RunCatalog->DefaultWeapon.Get() : nullptr;
 }
 
 void USoulEquipmentComponent::EquipWeapon(USoulEquipmentDefinition* Weapon)
 {
-	if (!Weapon)
+	if (!Weapon || !USoulRunGameComponent::IsRunWorld(this))
 		return;
 
 	EquippedWeapon = Weapon;
@@ -107,7 +120,8 @@ void USoulEquipmentComponent::UnequipWeapon(USoulEquipmentDefinition* Weapon)
 	SW_LOG("[WEAPON] unequip %s", *EquippedWeapon->GetName());
 	EquippedWeapon = nullptr;
 	ApplyVisuals(DefaultWeaponMesh, DefaultSheathMesh);
-	ApplyExtraEffect(Catalog ? Catalog->DefaultWeapon.Get() : nullptr);
+	const USoulEquipmentCatalog* RunCatalog = GetCatalog();
+	ApplyExtraEffect(RunCatalog ? RunCatalog->DefaultWeapon.Get() : nullptr);
 	OnWeaponChanged.Broadcast(GetCurrentWeapon());
 }
 
@@ -167,10 +181,11 @@ FName USoulEquipmentComponent::GetCurrentCostumeId() const
 void USoulEquipmentComponent::ApplySelectedCostume()
 {
 	const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this);
-	USoulCostumeDefinition* Costume = Catalog && Run ? Catalog->FindCostumeByName(Run->GetSelectedCostume().ToString()) : nullptr;
-	if (!Costume && Catalog)
+	const USoulEquipmentCatalog* RunCatalog = GetCatalog();
+	USoulCostumeDefinition* Costume = RunCatalog && Run ? RunCatalog->FindCostumeByName(Run->GetSelectedCostume().ToString()) : nullptr;
+	if (!Costume && RunCatalog)
 	{
-		Costume = Catalog->DefaultCostume;
+		Costume = RunCatalog->DefaultCostume;
 	}
 	if (Costume)
 	{
@@ -180,8 +195,9 @@ void USoulEquipmentComponent::ApplySelectedCostume()
 
 void USoulEquipmentComponent::EquipCostume(USoulCostumeDefinition* Costume, bool bRemember)
 {
-	if (!Costume)
+	if (!Costume || !USoulRunGameComponent::IsRunWorld(this))
 		return;
+	const USoulEquipmentCatalog* RunCatalog = GetCatalog();
 	APawn* Pawn = Cast<APawn>(GetOwner());
 	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Pawn);
 	if (!ASC)
@@ -218,6 +234,11 @@ void USoulEquipmentComponent::EquipCostume(USoulCostumeDefinition* Costume, bool
 	}
 
 	// 2. 체력 채움 (MaxHealth가 바뀌어도 Health는 자동으로 안 바뀐다)
+	TSubclassOf<UGameplayEffect> RefillEffect;
+	if (RunCatalog)
+	{
+		RefillEffect = RunCatalog->RefillEffect;
+	}
 	if (RefillEffect)
 	{
 		FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
@@ -243,6 +264,7 @@ void USoulEquipmentComponent::EquipCostume(USoulCostumeDefinition* Costume, bool
 			Character->GetMesh()->SetSkeletalMeshAsset(WeakCostume->BodyMesh);
 		}
 	};
+	const float MeshSwapDelay = RunCatalog ? RunCatalog->MeshSwapDelay : 0.f;
 	if (bRemember && MeshSwapDelay > 0.f)
 	{
 		GetWorld()->GetTimerManager().SetTimer(MeshSwapTimer, FTimerDelegate::CreateWeakLambda(this, SwapMesh), MeshSwapDelay, false);
@@ -263,8 +285,14 @@ void USoulEquipmentComponent::EquipCostume(USoulCostumeDefinition* Costume, bool
 		{
 			HoF->SetLastCostume(Costume->GetFName());
 		}
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ChangeFX, GetOwner()->GetActorLocation());
-		UGameplayStatics::PlaySoundAtLocation(this, ChangeSound, GetOwner()->GetActorLocation());
+		if (RunCatalog && RunCatalog->ChangeFX)
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, RunCatalog->ChangeFX, GetOwner()->GetActorLocation());
+		}
+		if (RunCatalog && RunCatalog->ChangeSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, RunCatalog->ChangeSound, GetOwner()->GetActorLocation());
+		}
 	}
 	ASoulCostumeStatue::RefreshAll(GetWorld());
 	SW_LOG("[COSTUME] equip %s effects=%d move=%.2f hp=%.0f/%.0f atk=%.1f def=%.1f", *Costume->GetName(), CostumeEffectHandles.Num(), Costume->MoveSpeedMultiplier,
@@ -275,10 +303,12 @@ void USoulEquipmentComponent::EquipCostume(USoulCostumeDefinition* Costume, bool
 
 bool USoulEquipmentComponent::TryAutoEquipFromInventory(UInventoryComponent* Inventory, FName ItemRow) const
 {
-	if (!Catalog || !Catalog->FindWeaponByRow(ItemRow))
+	// 첫 줄은 카탈로그 검사: 팀 맵은 null이라 줍기 경로가 그대로다. 켜는 곳은 DA_EquipmentCatalog.bAutoEquipOnPickup
+	const USoulEquipmentCatalog* RunCatalog = GetCatalog();
+	if (!RunCatalog || !RunCatalog->bAutoEquipOnPickup || !RunCatalog->FindWeaponByRow(ItemRow))
 		return false;
 	const UEquipmentComponent* Slots = Inventory ? Inventory->GetEquippedItemComponent() : nullptr;
-	if (!Slots || !Catalog || const_cast<UEquipmentComponent*>(Slots)->GetEquippedItem(SoulEquipmentTags::Slot_Weapon))
+	if (!Slots || const_cast<UEquipmentComponent*>(Slots)->GetEquippedItem(SoulEquipmentTags::Slot_Weapon))
 		return false;
 
 	// 플러그인 FInventoryDataArray와 UItemData가 export되지 않아 반사로 항목을 읽는다

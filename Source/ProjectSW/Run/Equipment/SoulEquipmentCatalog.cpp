@@ -59,7 +59,7 @@ UTexture2D* USoulEquipmentCatalog::FindWeaponIcon(FName WeaponId) const
 	return Weapon ? Weapon->Icon.LoadSynchronous() : nullptr;
 }
 
-const USoulEquipmentCatalog* USoulEquipmentCatalog::GetRunCatalog(const UObject* WorldContextObject)
+USoulEquipmentCatalog* USoulEquipmentCatalog::GetRunCatalog(const UObject* WorldContextObject)
 {
 	const USoulRunConfig* Config = USoulRunGameComponent::GetRunConfig(WorldContextObject);
 	return Config ? Config->EquipmentCatalog.Get() : nullptr;

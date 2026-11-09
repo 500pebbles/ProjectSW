@@ -123,13 +123,10 @@ void USoulInteractionComponent::HandleCollect(AActor* Target)
 				const bool bWeapon = EquipmentForScore && EquipmentForScore->GetCatalog() && EquipmentForScore->GetCatalog()->FindWeaponByRow(ItemRow);
 				Run->NotifyItemPickup(ItemRow, bWeapon);
 			}
-			// 무기 칸이 비었으면 바로 장착 (런 폰만 켠다)
-			if (bAutoEquipOnPickup)
+			// 무기 칸이 비었으면 바로 장착. 켜는 곳은 DA_EquipmentCatalog.bAutoEquipOnPickup (런 월드에서만 카탈로그가 있다)
+			if (const USoulEquipmentComponent* Equipment = USoulEquipmentComponent::Find(GetOwner()))
 			{
-				if (const USoulEquipmentComponent* Equipment = USoulEquipmentComponent::Find(GetOwner()))
-				{
-					Equipment->TryAutoEquipFromInventory(Inventory, ItemRow);
-				}
+				Equipment->TryAutoEquipFromInventory(Inventory, ItemRow);
 			}
 		}
 	}

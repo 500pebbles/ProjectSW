@@ -23,7 +23,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level")
 	FName ToNextRow;
 
-	/** 레벨 스탯 GE (GE_Level_Stats, Instant Override, Spec 레벨 = 플레이어 레벨) */
+	/** 레벨 스탯 GE (GE_Level_Stats, Instant Override, Spec 레벨 = 플레이어 레벨). 런 시작 치명 20(상수 Override)도 여기서 건다.
+	 *  팀 폰의 기본 GE(GE_DefaultAttributesChii, 치명 50)는 빙의 때 걸리고, 이 GE가 다음 틱에 덮는다 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level")
 	TSubclassOf<UGameplayEffect> LevelStatsEffect;
 

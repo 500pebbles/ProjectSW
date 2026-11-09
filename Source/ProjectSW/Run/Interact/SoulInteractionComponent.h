@@ -15,7 +15,8 @@ class USoulKeyHintWidget;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSoulItemCollectedSignature, AActor*, ItemActor);
 
 /**
- * 폰의 F 라우터 (BP_WorkerPlayerCharacter에 붙어 런 폰이 상속, D8).
+ * 폰의 F 라우터 (팀 폰 BP_WorkerPlayerCharacter에 붙는다, D8. 런 월드도 같은 폰을 쓴다).
+ * 무기 자동 장착은 DA_EquipmentCatalog.bAutoEquipOnPickup이 켜고, 카탈로그가 없는 팀 맵에서는 꺼진다.
  * 컨트롤러가 생긴 다음 틱에 인벤토리 플러그인 컴포넌트 2개를 런타임 등록하고(L_Dungeon과 L_PMG의 지연 스폰 대응),
  * F 대상이 USoulInteractableComponent면 Interact, 아이템이면 인벤토리 CollectItem으로 나눈다. 플러그인 파일은 고치지 않는다.
  */
@@ -51,10 +52,6 @@ public:
 	/** 아이템을 주웠을 때 (무기 자동 장착이 여기에 붙는다) */
 	UPROPERTY(BlueprintAssignable, Category = "Interact")
 	FSoulItemCollectedSignature OnItemCollected;
-
-	/** 켜면 무기를 주울 때 무기 칸이 비어 있으면 바로 장착한다 (BP_RunPlayerCharacter에서만 켠다) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interact")
-	bool bAutoEquipOnPickup = false;
 
 protected:
 	virtual void BeginPlay() override;

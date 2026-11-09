@@ -17,3 +17,8 @@ USoulRunConfig* USoulRunGameComponent::GetRunConfig(const UObject* WorldContextO
 	const USoulRunGameComponent* Component = GameMode ? GameMode->FindComponentByClass<USoulRunGameComponent>() : nullptr;
 	return Component ? Component->RunConfig.Get() : nullptr;
 }
+
+bool USoulRunGameComponent::IsRunWorld(const UObject* WorldContextObject)
+{
+	return GetRunConfig(WorldContextObject) != nullptr;
+}

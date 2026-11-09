@@ -8,9 +8,6 @@
 
 class USoulEquipmentCatalog;
 class USoulCostumeDefinition;
-class UGameplayEffect;
-class UNiagaraSystem;
-class USoundBase;
 class USoulEquipmentDefinition;
 class UInventoryComponent;
 class USkeletalMesh;
@@ -20,9 +17,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSoulWeaponChangedSignature, USoulEq
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSoulCostumeChangedSignature, USoulCostumeDefinition*, Costume);
 
 /**
- * 런 폰의 눈에 보이는 장비와 전투 수치 (BP_RunPlayerCharacter에만 붙는다).
+ * 런의 눈에 보이는 장비와 전투 수치. 팀 폰 BP_WorkerPlayerCharacter에 값 없이 붙어 있고,
+ * 런 월드(USoulRunGameComponent::IsRunWorld)에서만 동작한다. 카탈로그와 연출 값은 DA_RunConfig.EquipmentCatalog에서 읽는다.
  * 슬롯과 아이템 수명은 플러그인 UEquipmentComponent가 맡고, 이 컴포넌트는 메시 교체와 속성 피해만 맡는다.
- * 팀 폰에는 없으므로 ApplyMeleeDamage의 FindComponentByClass가 null이라 기존 동작 그대로다.
+ * 팀 맵에서는 카탈로그가 null이라 무기가 없고, ApplyMeleeDamage의 AppendWeaponDamage가 바로 나가 기존 피해 그대로다.
  */
 UCLASS(ClassGroup = (Soul), meta = (BlueprintSpawnableComponent))
 class PROJECTSW_API USoulEquipmentComponent : public UActorComponent
@@ -42,12 +40,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
 	void UnequipWeapon(USoulEquipmentDefinition* Weapon);
 
-	/** 지금 무기. 기본 무기면 Catalog.DefaultWeapon (없으면 null) */
+	/** 지금 무기. 기본 무기면 카탈로그의 DefaultWeapon (팀 맵이면 null) */
 	UFUNCTION(BlueprintPure, Category = "Equipment")
 	USoulEquipmentDefinition* GetCurrentWeapon() const;
 
+	/** 런 월드에서만 DA_RunConfig.EquipmentCatalog. 팀 맵은 null이라 장비 기능이 모두 꺼진다 */
 	UFUNCTION(BlueprintPure, Category = "Equipment")
-	USoulEquipmentCatalog* GetCatalog() const { return Catalog; }
+	USoulEquipmentCatalog* GetCatalog() const;
 
 	/** 근접 피해 Spec에 무기 속성 몫을 더한다: 물리 x ElementRatio x ElementDamageScale */
 	void AppendWeaponDamage(const FGameplayEffectSpecHandle& SpecHandle) const;
@@ -79,9 +78,6 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment")
-	TObjectPtr<USoulEquipmentCatalog> Catalog;
-
 	/** 손 무기 스켈레탈 메시 컴포넌트 이름 (팀 캐릭터 C++의 Weapon) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment")
 	FName WeaponComponentName = TEXT("Weapon");
@@ -92,21 +88,6 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Equipment")
 	float ElementDamageScale = 1.f;
-
-	/** 의상을 바꾼 뒤 체력을 채우는 GE. 비면 Health = MaxHealth로 채운다 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Costume")
-	TSubclassOf<UGameplayEffect> RefillEffect;
-
-	/** 몸 메시를 바꾸기까지 (연출 FX와 맞춤) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Costume", meta = (ClampMin = "0", Units = "s"))
-	float MeshSwapDelay = 0.f;
-
-	/** 마을에서 갈아입을 때 연출 (맵 입장 적용에는 안 나온다) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Costume")
-	TObjectPtr<UNiagaraSystem> ChangeFX;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Costume")
-	TObjectPtr<USoundBase> ChangeSound;
 
 private:
 	void ApplyVisuals(USkeletalMesh* WeaponMesh, UStaticMesh* SheathMesh);
