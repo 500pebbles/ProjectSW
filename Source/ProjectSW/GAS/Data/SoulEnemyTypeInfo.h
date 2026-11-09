@@ -28,7 +28,14 @@ enum class EEnemyType : uint8
 	EnemyType_01,  // 근접-표준
 	EnemyType_02,  // 근접-탱커
 	EnemyType_03,  // 원거리-표준
-	EnemyType_04   // 보스
+	EnemyType_04,  // 보스
+	EnemyType_05,  // 런 몹-표준
+	EnemyType_06,  // 런 몹-탱커
+	EnemyType_07,  // 런 몹-엘리트
+	EnemyType_08,  // 런 보스 JunkKnight
+	EnemyType_09,  // 런 보스 HellBringer
+	EnemyType_10,  // 런 보스 ThePrimal
+	EnemyType_11   // 런 소환
 };
 
 USTRUCT(Blueprintable)

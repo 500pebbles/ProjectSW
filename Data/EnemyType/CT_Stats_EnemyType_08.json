@@ -1,0 +1,17 @@
+[
+	{
+		"Name": "SoulTags.Attributes.MaxHealth",
+		"1": 10700,
+		"15": 10700
+	},
+	{
+		"Name": "SoulTags.Attributes.AttackPower",
+		"1": 10,
+		"10": 72
+	},
+	{
+		"Name": "SoulTags.Attributes.Defense",
+		"1": 30,
+		"15": 30
+	}
+]

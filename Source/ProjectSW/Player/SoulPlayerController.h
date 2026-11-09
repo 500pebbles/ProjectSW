@@ -88,6 +88,10 @@ public:
 	// 지금 누르고 있는 이동 입력 방향(카메라 기준). 공격 중에도 갱신되고, 키를 떼면 ZeroVector. (회피 GA가 대시 방향으로 사용)
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Combat")
 	FVector GetMoveInputDirection() const;
+
+	/** 런 의상 이동 배율 (걷기와 달리기에 곱함, 기본 1이라 팀 폰은 그대로) */
+	void SetMoveSpeedMultiplier(float Multiplier);
+	void RefreshMoveSpeed();
 	
 private:
 	FVector AttackInputDirection = FVector::ZeroVector;
@@ -100,6 +104,9 @@ private:
     // 대시 키(LeftShift) 유지 시 질주 이동 속도
     UPROPERTY(EditDefaultsOnly, Category = "Setup|Movement")
     float SprintSpeed = 1000.0f;
+
+	float MoveSpeedMultiplier = 1.f;
+	bool bSprintHeld = false;
 	
 /* GAS Core Section */
 private:
@@ -117,11 +124,19 @@ protected:
 /* UI : DamageText */	
 public:
 	UFUNCTION(Client, Reliable)
-	void ShowDamageText(float DamageAmount, ACharacter* TargetCharacter, bool bIsCriticalHit, int32 DamageType);
+	void ShowDamageText(float DamageAmount, ACharacter* TargetCharacter, bool bIsCriticalHit, int32 DamageType, bool bStackAbove = false);
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TSubclassOf<USoulDamageTextComponent> DamageTextComponentClass;
+
+	/** 숫자를 둘로 나눌 때 두 번째(속성) 숫자를 위로 띄우는 거리 */
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	FVector ElementTextOffset = FVector(0.f, 0.f, 45.f);
+
+	/** 치명타일 때 위 거리 배율 (글자가 커짐) */
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	float ElementTextCritScale = 2.f;
 
 /* UI : Map */
 public:

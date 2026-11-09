@@ -70,6 +70,11 @@ void USoulAbilitySystemComponent::AbilityInputTagPressed(const FGameplayTag& Inp
 	{
 		return;
 	}
+	// Branch 이후(후딜) 스킬은 평타 입력으로 끊는다
+	if (USoulSkillAbility* ActiveSkill = InputTag.MatchesTagExact(SoulTags::InputTags::LMB) ? FindCurrentlyActiveSkillAbility() : nullptr; ActiveSkill && ActiveSkill->CanBeCanceledBySkill())
+	{
+		ActiveSkill->FinishForChainTransition();
+	}
 	ABILITYLIST_SCOPE_LOCK();
 	for (FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
 	{
@@ -180,7 +185,8 @@ bool USoulAbilitySystemComponent::GetSkillSlotUIData(const FGameplayTag& SlotInp
 	else
 	{
 		// 인게임 HUD 모드(-1): 쿨타임 스킵 로직이 반영된 '다음에 실제 나가는 단계' 표시
-		const int32 AvailableStep = FindAvailableChainStep(*ChainState, ChainState->CurrentStep, true);
+		// 슬롯 위젯이 매 프레임 부르므로 스킵 로그는 끈다 (단계별 쿨타임이 생긴 뒤 프레임마다 찍히던 것)
+		const int32 AvailableStep = FindAvailableChainStep(*ChainState, ChainState->CurrentStep, true, false);
 		StepToDisplay = (AvailableStep != INDEX_NONE)
 			? AvailableStep
 			: FMath::Clamp(ChainState->CurrentStep, 0, NumSteps - 1);
@@ -192,6 +198,7 @@ bool USoulAbilitySystemComponent::GetSkillSlotUIData(const FGameplayTag& SlotInp
 		if (const USoulSkillAbility* SkillAbility = Cast<USoulSkillAbility>(AbilityObject))
 		{
 			OutData.SkillIcon = SkillAbility->GetSkillIcon();
+			OutData.bCanAffordCost = SkillAbility->CheckCost(Spec->Handle, AbilityActorInfo.Get());
 			const FGameplayTag SkillCooldownTag = SkillAbility->GetSkillCooldownTag();
 			if (SkillCooldownTag.IsValid())
 			{
@@ -258,7 +265,7 @@ bool USoulAbilitySystemComponent::SwapSkillChainSteps(const FGameplayTag& SlotA,
 	return true;
 }
 
-int32 USoulAbilitySystemComponent::FindAvailableChainStep(const FSoulSkillChainRuntimeState& ChainState, int32 StartStep, bool bAllowWrapToStart) const
+int32 USoulAbilitySystemComponent::FindAvailableChainStep(const FSoulSkillChainRuntimeState& ChainState, int32 StartStep, bool bAllowWrapToStart, bool bLogSkip) const
 {
 	const int32 NumSteps = ChainState.SpecHandles.Num();
 	if (NumSteps == 0) return INDEX_NONE;
@@ -276,7 +283,7 @@ int32 USoulAbilitySystemComponent::FindAvailableChainStep(const FSoulSkillChainR
 	{
 		if (IsStepReady(Step))
 		{
-			if (Step != ClampedStart)
+			if (Step != ClampedStart && bLogSkip)
 			{
 				SW_LOG("[SkillChain] Slot %s: Step %d is on cooldown -> Auto-skipped to Step %d", *ChainState.SlotInputTag.ToString(), ClampedStart, Step);
 			}
@@ -290,7 +297,8 @@ int32 USoulAbilitySystemComponent::FindAvailableChainStep(const FSoulSkillChainR
 		{
 			if (IsStepReady(Step))
 			{
-				SW_LOG("[SkillChain] Slot %s: Remaining steps on cooldown -> Restarted at available Step %d", *ChainState.SlotInputTag.ToString(), Step);
+				if (bLogSkip)
+					SW_LOG("[SkillChain] Slot %s: Remaining steps on cooldown -> Restarted at available Step %d", *ChainState.SlotInputTag.ToString(), Step);
 				return Step;
 			}
 		}
@@ -342,6 +350,17 @@ bool USoulAbilitySystemComponent::TryActivateSlotChainStep(FSoulSkillChainRuntim
 	if (SelectedStep == INDEX_NONE)
 	{
 		SW_LOG("[SkillChain] No available skill in slot %s (all candidate steps on cooldown).", *ChainState.SlotInputTag.ToString());
+		// 쿨타임은 된 단계가 있는데 비용이 모자란 경우만 비용 부족으로 알린다
+		for (const FGameplayAbilitySpecHandle& StepHandle : ChainState.SpecHandles)
+		{
+			const FGameplayAbilitySpec* StepSpec = FindAbilitySpecFromHandle(StepHandle);
+			const UGameplayAbility* StepAbility = StepSpec ? (StepSpec->GetPrimaryInstance() ? StepSpec->GetPrimaryInstance() : StepSpec->Ability.Get()) : nullptr;
+			if (StepAbility && StepAbility->CheckCooldown(StepSpec->Handle, AbilityActorInfo.Get()) && !StepAbility->CheckCost(StepSpec->Handle, AbilityActorInfo.Get()))
+			{
+				NotifyCostDenied(StepAbility);
+				break;
+			}
+		}
 		return false;
 	}
 	FGameplayAbilitySpec* SelectedSpec = FindAbilitySpecFromHandle(ChainState.SpecHandles[SelectedStep]);

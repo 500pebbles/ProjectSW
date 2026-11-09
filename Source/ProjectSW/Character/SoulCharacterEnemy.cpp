@@ -86,6 +86,11 @@ void ASoulCharacterEnemy::InitializeDefaultAttributes() const
 {
 	
 	USoulAbilitySystemLibrary::EnemyInitializeDefaultAttributes(this, EnemyType, Level, AbilitySystemComponent);
+	// 몹 BP의 ResistanceAttributes가 있으면 공용 저항 GE를 지우고 그것을 건다 (런 몹 약점, 비면 기존 동작)
+	if (!ResistanceAttributes) return;
+	if (const USoulEnemyTypeInfo* TypeInfo = USoulAbilitySystemLibrary::GetEnemyTypeInfo(this); TypeInfo && TypeInfo->ResistanceAttributes)
+		AbilitySystemComponent->RemoveActiveGameplayEffectBySourceEffect(TypeInfo->ResistanceAttributes, nullptr);
+	ApplyEffectToSelf(ResistanceAttributes, Level);
 }
 
 int32 ASoulCharacterEnemy::GetCharacterLevel()

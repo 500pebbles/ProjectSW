@@ -92,6 +92,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill|Cooldown")
 	FScalableFloat CooldownDuration = 5.0f;
 
+	// 쿨타임에 쓰는 GE (기본 USoulSkillCooldownEffect). 엔진 Cooldown 칸은 5.8 검증이 태그 없음 오류를 내서 쓰지 않는다
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill|Cooldown")
+	TSubclassOf<UGameplayEffect> SkillCooldownEffectClass;
+
+	// 쿨타임 감소(CooldownReduction %)의 상한
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill|Cooldown", meta = (ClampMin = "0", ClampMax = "100"))
+	float MaxCooldownReductionPercent = 50.f;
+
 private:
 	// GetCooldownTags()가 반환할 임시 컨테이너
 	UPROPERTY(Transient)
