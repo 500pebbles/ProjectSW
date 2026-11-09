@@ -18,6 +18,7 @@ public:
 	USoulRoomSpawnPointComponent();		
 
 	const USoulEnemySet* GetEnemySet() const { return EnemySet.Get(); }
+	void SetEnemySet(USoulEnemySet* InEnemySet) { EnemySet = InEnemySet; } // 런 층별 세트 주입
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")

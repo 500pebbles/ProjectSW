@@ -147,7 +147,7 @@ void USoulSkillSlotWidget::RefreshSlotUI()
 			Image_SkillIcon->SetVisibility(ESlateVisibility::Hidden);
 		}
 
-		const bool bOnCooldown = (UIData.CooldownRemaining > 0.0f);
+		const bool bOnCooldown = (UIData.CooldownRemaining > 0.0f) || !UIData.bCanAffordCost;
 		Image_SkillIcon->SetColorAndOpacity(bOnCooldown
 			? FLinearColor(0.35f, 0.35f, 0.35f, 1.0f)
 			: FLinearColor::White);

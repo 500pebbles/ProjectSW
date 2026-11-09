@@ -39,6 +39,8 @@ public:
 	virtual void SetCombatTarget_Implementation(AActor* CombatTargetActor) override;
 	
 	virtual AActor* GetCombatTarget_Implementation() const override;
+	void SetLevelForSpawn(int32 InLevel) { Level = InLevel; } // 런 몹: 빙의와 BeginPlay 전에 레벨을 정한다
+	EEnemyType GetEnemyType() const { return EnemyType; }
 	
 public:
 	UPROPERTY(BlueprintReadWrite)
