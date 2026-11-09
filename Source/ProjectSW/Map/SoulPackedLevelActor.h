@@ -41,6 +41,8 @@ public:
 	bool HasCombat() const;
 	void StartCombat();
 
+	int32 ApplyLightTint(const FLinearColor& Color, float Strength, float IntensityScale, FName KeepTag);
+
 	FSoulRoomEnteredSignature OnPlayerEntered;
 	FSoulRoomCombatFinishedSignature OnCombatFinished;
 

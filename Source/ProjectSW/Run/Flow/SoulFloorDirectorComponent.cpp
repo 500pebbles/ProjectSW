@@ -366,6 +366,9 @@ void USoulFloorDirectorComponent::HandleGenerationFinished(const FPMGResult& Res
 	SpawnFloorObjects(Result);
 	SpawnFloorMines(Result);
 
+	// 방 조명색 (커튼이 닫혀 있는 동안 바꿔서 바뀌는 순간이 보이지 않게)
+	ApplyFloorLighting();
+
 	ExitRoom = FindRoomActor(Result.ExitRoomId);
 	if (ExitRoom.IsValid())
 	{
@@ -1476,6 +1479,28 @@ void USoulFloorDirectorComponent::SpawnFloorMines(const FPMGResult& Result)
 			SW_LOG_WARNING("[MINE] floor=%d 자리가 모자람 %d/%d", CurrentFloorIndex + 1, Done, Row.Count);
 		}
 	}
+}
+
+void USoulFloorDirectorComponent::ApplyFloorLighting()
+{
+	const FSoulFloorLighting& Lighting = FlowData->Floors[CurrentFloorIndex].Lighting;
+	if (!Lighting.bOverride)
+	{
+		SW_LOG("[FLOOR] Lighting floor=%d 기본 색", CurrentFloorIndex + 1);
+		return;
+	}
+
+	// 채움 방도 칠해야 하므로 PMG 결과의 방 목록이 아니라 월드의 방 액터를 모두 돈다 (이전 층 방은 Clear로 이미 지워짐)
+	int32 RoomCount = 0;
+	int32 LightCount = 0;
+	for (TActorIterator<ASoulPackedLevelActor> It(GetWorld()); It; ++It)
+	{
+		LightCount += It->ApplyLightTint(Lighting.Color, Lighting.Strength, Lighting.IntensityScale, Lighting.KeepTag);
+		++RoomCount;
+	}
+
+	SW_LOG("[FLOOR] Lighting floor=%d rooms=%d lights=%d color=%s strength=%.2f scale=%.2f",
+		CurrentFloorIndex + 1, RoomCount, LightCount, *Lighting.Color.ToString(), Lighting.Strength, Lighting.IntensityScale);
 }
 
 void USoulFloorDirectorComponent::NotifyRoomEventUsed(ASoulRoomEventObject* Object)

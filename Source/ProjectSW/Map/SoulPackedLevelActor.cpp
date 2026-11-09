@@ -3,6 +3,7 @@
 
 #include "SoulPackedLevelActor.h"
 #include "Components/BoxComponent.h"
+#include "Components/LightComponent.h"
 #include "NavigationSystem.h"
 #include "SoulRoomSpawnPointComponent.h"
 #include "Character/SoulEnemySet.h"
@@ -122,6 +123,33 @@ void ASoulPackedLevelActor::StartCombat()
 	{
 		FinishCombat();
 	}
+}
+
+int32 ASoulPackedLevelActor::ApplyLightTint(const FLinearColor& Color, float Strength, float IntensityScale, FName KeepTag)
+{
+	TArray<ULightComponent*> Lights;
+	GetComponents(Lights);
+
+	int32 ChangedCount = 0;
+	for (ULightComponent* Light : Lights)
+	{
+		if (!KeepTag.IsNone() && Light->ComponentHasTag(KeepTag))
+			continue;
+
+		if (Light->Mobility == EComponentMobility::Static)
+		{
+			SW_LOG_WARNING("ASoulPackedLevelActor::ApplyLightTint : %s의 %s가 Static이라 색을 바꾸지 못함", *GetName(), *Light->GetName());
+			continue;
+		}
+
+		// RGB가 아니라 HSV로 섞음
+		const FLinearColor Original = Light->GetLightColor();
+		Light->SetLightColor(FLinearColor::LerpUsingHSV(Original, Color, Strength));
+		Light->SetIntensity(Light->Intensity * IntensityScale);
+		++ChangedCount;
+	}
+
+	return ChangedCount;
 }
 
 void ASoulPackedLevelActor::HandleTriggerBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
