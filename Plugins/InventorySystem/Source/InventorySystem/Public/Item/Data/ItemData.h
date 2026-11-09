@@ -106,5 +106,5 @@ private:
 	
 	// 아이템 효과는 최초 1회만 로딩할 수 있도록 저장하기
 	UPROPERTY(Transient)
-	TSoftObjectPtr<const UItemUseDefinition> CachedUseDefinition;
+	TObjectPtr<const UItemUseDefinition> CachedUseDefinition;
 };
