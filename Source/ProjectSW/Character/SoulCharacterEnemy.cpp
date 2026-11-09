@@ -27,6 +27,8 @@ ASoulCharacterEnemy::ASoulCharacterEnemy()
 	
 	HealthBar = CreateDefaultSubobject<UWidgetComponent>("HealthBar");
 	HealthBar->SetupAttachment(GetRootComponent());
+	Weakness = CreateDefaultSubobject<UWidgetComponent>("Weakness");
+	Weakness->SetupAttachment(HealthBar);
 	
 	// Movement Setup.
 	GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed;
