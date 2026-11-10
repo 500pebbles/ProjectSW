@@ -107,6 +107,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Item")
 	float ScaleEffectValue(float BaseValue) const;
 	
+	UFUNCTION(BlueprintPure, Category = "Item")
+	float GetScaledEffectValue(int32 Index) const;
+	
 private:
 	FText FormatScaledText(const FText& Source, const FItemDataTable& Row) const;
 	
