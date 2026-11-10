@@ -4,6 +4,7 @@
 #include "Map/SoulMapRoomWidget.h"
 #include "Components/Button.h"
 #include "Player/SoulPlayerController.h"
+#include "Kismet/GameplayStatics.h"
 
 void USoulMapRoomWidget::InitRoomView(const FSoulMapRoomView& View)
 {
@@ -26,6 +27,16 @@ void USoulMapRoomWidget::HandleWaypointClicked()
 	if (!MapController || !MapController->RequestTeleport(RoomId))
 		return;
 
-	if (ASoulPlayerController* PC = GetOwningPlayer<ASoulPlayerController>())
+	ASoulPlayerController* PC = GetOwningPlayer<ASoulPlayerController>();
+
+	if (PC)
+	{
+		if (PC->PlayerCameraManager)
+		{
+			PC->PlayerCameraManager->StartCameraFade(1.f, 0.f, FadeTime, FLinearColor::Black, false, false);
+		}
 		PC->ToggleMap();
+	}
+
+	UGameplayStatics::PlaySound2D(this, TeleportSound);
 }
