@@ -7,6 +7,7 @@
 
 class UCameraComponent;
 class USpringArmComponent;
+class UCharacterEquipmentComponent;
 
 UCLASS()
 class PROJECTSW_API ASoulCharacterPlayer : public ASoulCharacterBase
@@ -39,5 +40,10 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
 	TObjectPtr<UCameraComponent> Camera;
+	
+	// 장비 착용 레벨 제한(플레이어 레벨과 비교). 인벤토리의 InitializeComponent가 이 컴포넌트를 찾으므로
+	// 인벤토리보다 먼저 있도록 생성자에서 만든다. 없으면 인벤토리가 레벨 제한 없는 기본 UEquipmentComponent를 붙인다
+	UPROPERTY(VisibleAnywhere, Category = "Equipment")
+	TObjectPtr<UCharacterEquipmentComponent> CharacterEquipment;
 	
 };

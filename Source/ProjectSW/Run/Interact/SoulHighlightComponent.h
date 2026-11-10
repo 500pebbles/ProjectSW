@@ -41,7 +41,7 @@ public:
 	virtual void OnItemTraced() override;
 	virtual void OffItemTraced() override;
 
-	/** 색 (회복 초록, 순간이동 파랑, 함정 붉은빛, 포탈 보라, 상자 금색) */
+	/** 색 (이벤트 3종은 구분되지 않게 같은 은백색, 포탈 보라, 상자 금색) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Highlight")
 	FLinearColor Color = FLinearColor(1.f, 0.85f, 0.4f);
 
