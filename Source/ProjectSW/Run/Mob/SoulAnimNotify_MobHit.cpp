@@ -1,13 +1,19 @@
 #include "Run/Mob/SoulAnimNotify_MobHit.h"
+#include "Run/Core/SoulRunTags.h"
 #include "Run/Mob/SoulMobComponent.h"
 #include "Utility/SoulGameplayTags.h"
+#include "Utility/SoulLog.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
+#include "Camera/CameraShakeBase.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/PlayerController.h"
 
 USoulAnimNotify_MobHit::USoulAnimNotify_MobHit()
 {
@@ -59,6 +65,11 @@ void USoulAnimNotify_MobHit::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 		return;
 	}
 
+	if (CameraShake && World)
+	{
+		PlayShake(World, ComputeOrigin(MeshComp), Owner, Animation);
+	}
+
 	if (!Owner || !UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner))
 		return;
 
@@ -67,4 +78,39 @@ void USoulAnimNotify_MobHit::Notify(USkeletalMeshComponent* MeshComp, UAnimSeque
 	Payload.Instigator = Owner;
 	Payload.OptionalObject = this;
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, Payload.EventTag, Payload);
+}
+
+void USoulAnimNotify_MobHit::PlayShake(UWorld* World, const FVector& Epicenter, const AActor* Owner, const UAnimSequenceBase* Animation) const
+{
+	// 런 타격감 끄기(SW.Feel.Enable 0)를 따른다
+	static const IConsoleVariable* FeelEnable = IConsoleManager::Get().FindConsoleVariable(TEXT("SW.Feel.Enable"));
+	if (FeelEnable && FeelEnable->GetInt() == 0)
+		return;
+
+	// 로컬 플레이어마다 폰(없으면 뷰 타깃)과 판정 원점의 거리로 세기를 줄인다
+	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* PC = It->Get();
+		if (!PC || !PC->IsLocalController() || !PC->PlayerCameraManager)
+			continue;
+		// 죽었거나 잠긴(사망 연출, 클리어, 결과창, 층 전환) 플레이어는 흔들지 않는다
+		if (const UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PC->GetPawn());
+			ASC && (ASC->HasMatchingGameplayTag(SoulTags::States::Dead) || ASC->HasMatchingGameplayTag(SoulRunTags::State_Locked)))
+			continue;
+		const AActor* Viewer = PC->GetPawn() ? static_cast<const AActor*>(PC->GetPawn()) : PC->GetViewTarget();
+		if (!Viewer)
+			continue;
+
+		const float Distance = FVector::Dist(Viewer->GetActorLocation(), Epicenter);
+		float DistanceScale = 1.f;
+		if ((ShakeInnerRadius > 0.f || ShakeOuterRadius > 0.f) && Distance > ShakeInnerRadius)
+		{
+			DistanceScale = ShakeOuterRadius > ShakeInnerRadius ? 1.f - (Distance - ShakeInnerRadius) / (ShakeOuterRadius - ShakeInnerRadius) : 0.f;
+		}
+		const float Scale = ShakeScale * FMath::Clamp(DistanceScale, 0.f, 1.f);
+		if (Scale <= KINDA_SMALL_NUMBER)
+			continue;
+		const UCameraShakeBase* Started = PC->PlayerCameraManager->StartCameraShake(CameraShake, Scale);
+		SW_LOG("[SHAKE] %s %s dist=%.0f scale=%.2f started=%d", *GetNameSafe(Owner), *GetNameSafe(Animation), Distance, Scale, Started != nullptr);
+	}
 }
