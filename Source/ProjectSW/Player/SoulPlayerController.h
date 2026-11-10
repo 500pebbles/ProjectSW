@@ -48,6 +48,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TObjectPtr<UInputAction> MapAction;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TObjectPtr<UInputAction> QuitAction;
 
 /* Actions Section */	
 protected:
@@ -66,6 +69,8 @@ protected:
 	void HoverMouse();
 	
 	void StopHoverMouse();
+	
+	void QuitMenu();
 	
 /* Tag Based Input Section */
 private:
@@ -116,10 +121,13 @@ private:
 	UPROPERTY()
 	TObjectPtr<USoulAbilitySystemComponent> SoulAbilitySystemComponent;
 	
-/* UI : Attribute */	
-public:
-	
+/* UI : Quit */	
 protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TSubclassOf<UUserWidget> QuitMenuWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UUserWidget> QuitMenuWidget;
 	
 /* UI : DamageText */	
 public:
