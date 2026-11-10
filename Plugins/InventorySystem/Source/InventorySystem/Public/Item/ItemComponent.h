@@ -31,6 +31,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Item")
 	void InitItemData();
 	
+	// 드롭 등으로 기존 아이템 인스턴스를 그대로 이어받아 설정 (레벨 제한 유지)
+	void SetItemData(UItemData* InItemData);
 	
 private:
 	UPROPERTY(Transient)
