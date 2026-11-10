@@ -14,6 +14,13 @@ void UItemCollectedUI::NativeOnInitialized()
 	Super::NativeOnInitialized();
 }
 
+void UItemCollectedUI::NativeDestruct()
+{
+	Super::NativeDestruct();
+	
+	ClearTooltip();
+}
+
 FReply UItemCollectedUI::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	//return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
@@ -98,6 +105,15 @@ void UItemCollectedUI::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
 	}
 	
 	ItemTooltip->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UItemCollectedUI::ClearTooltip()
+{
+	if (ItemTooltip)
+	{
+		ItemTooltip->RemoveFromViewport();
+		ItemTooltip = nullptr;
+	}
 }
 
 void UItemCollectedUI::SetInventoryItem(UItemData* InInventoryItem)

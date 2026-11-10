@@ -80,7 +80,19 @@ bool UEquipmentComponent::CanEquip(const UItemData* Item)
 		return false;
 	}
 	
-	return Item->GetItemType() == EItemType::Equipment && Item->GetEquipmentType().IsValid();
+	if (Item->GetItemType() != EItemType::Equipment || !Item->GetEquipmentType().IsValid())
+	{
+		return false;
+	}
+	
+	// 레벨 제한 검사 (LevelLimit이 0이면 제한 없음)
+	// EquipSlotUI::CanEquip(하이라이트)과 InventoryComponent::EquipItem -> Equip(실제 착용) 모두 이 함수를 거친다.
+	if (Item->GetLevelLimit() > GetOwnerLevel())
+	{
+		return false;
+	}
+	
+	return true;
 }
 
 UItemData* UEquipmentComponent::GetEquippedItem(const FGameplayTag& EquipmentTag)

@@ -27,6 +27,9 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 	
+	// 장비 착용 레벨 제한에 쓰일 소유자의 레벨.
+	virtual int32 GetOwnerLevel() const { return MAX_int32; }
+	
 public:
 	bool Equip(UItemData* Item, UItemData*& LastEquippedItem);
 	

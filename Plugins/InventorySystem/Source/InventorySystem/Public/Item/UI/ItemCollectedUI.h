@@ -20,6 +20,8 @@ class INVENTORYSYSTEM_API UItemCollectedUI : public UUserWidget
 	
 protected:
 	virtual void NativeOnInitialized() override;
+	virtual void NativeDestruct() override;
+	
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 	
@@ -28,6 +30,9 @@ protected:
 	
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
+	
+private:
+	void ClearTooltip();
 
 public:
 	UImage* GetImageIcon() {return ItemIcon;}
