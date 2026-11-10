@@ -7,7 +7,9 @@
 
 class ASoulCharacterEnemy;
 class UAnimMontage;
+class UCapsuleComponent;
 class UMaterialInstanceDynamic;
+class UStaticMesh;
 struct FOnAttributeChangeData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSoulMobEventSignature, ASoulCharacterEnemy*, Mob);
@@ -74,6 +76,15 @@ public:
 	/** 소환자가 소환물을 만들 때 레벨을 정한다 (InitializeComponent 전에) */
 	void SetPendingLevel(int32 InLevel) { PendingLevel = InLevel; }
 
+	/** 몹 BP 클래스에 붙은 이 컴포넌트의 기본값(자식 BP가 덮은 값 우선). 스폰 전에 값을 읽을 때 쓴다 */
+	static const USoulMobComponent* FindDefaults(const UClass* EnemyClass);
+
+	/** 방 액터에서 Center 주변(수평 Radius, 바닥에서 3m 아래)의 Meshes 인스턴스와 메시를 숨기고 효과, 조명, 소리를 끈다. 정리한 수 */
+	static int32 ClearRoomProps(AActor* Room, const FVector& Center, float FloorZ, float Radius, const TArray<TObjectPtr<UStaticMesh>>& Meshes);
+
+	float GetSpawnClearRadius() const { return SpawnClearRadius; }
+	const TArray<TObjectPtr<UStaticMesh>>& GetSpawnClearMeshes() const { return SpawnClearMeshes; }
+
 	/** 등장이 끝나 AI가 움직이기 시작할 때 */
 	UPROPERTY(BlueprintAssignable, Category = "Mob")
 	FSoulMobEventSignature OnMobSpawnFinished;
@@ -137,7 +148,31 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob|Reward", meta = (ClampMin = "0"))
 	int32 ScoreValue = 0;
 
+	/** 피격 캡슐 반지름. 0이면 없음. 몸이 이동 캡슐보다 큰 몹(보스)에 쓴다.
+	 *  맞는 판정(플레이어 공격 구와 겹침)만 하고 이동, 길찾기, 카메라, 다른 충돌과는 부딪히지 않는다. soul.Mob.DebugHit 1이면 노랗게 그린다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob|Hurtbox", meta = (ClampMin = "0", Units = "cm"))
+	float HurtboxRadius = 0.f;
+
+	/** 피격 캡슐 반높이 (반지름보다 작으면 반지름) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob|Hurtbox", meta = (ClampMin = "0", Units = "cm"))
+	float HurtboxHalfHeight = 0.f;
+
+	/** 피격 캡슐 위치 (액터 기준, X 앞) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob|Hurtbox")
+	FVector HurtboxOffset = FVector::ZeroVector;
+
+	/** 보스 스폰 포인트 주변 이 반경(수평) 안을 층 생성 때(입장 전) 정리한다. 0이면 안 함. 바닥에서 3m 아래에 있는 것만 대상이다.
+	 *  SpawnClearMeshes 메시는 숨기고(충돌도 끔), 효과(파티클, 나이아가라), 조명, 소리는 끈다. 그 밖의 바닥, 벽, 소품은 그대로 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob|Spawn", meta = (ClampMin = "0", Units = "cm"))
+	float SpawnClearRadius = 0.f;
+
+	/** SpawnClearRadius 안에서 숨길 방 메시 (예: 3층 보스방 화로 SM_Fire_Pit) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob|Spawn")
+	TArray<TObjectPtr<UStaticMesh>> SpawnClearMeshes;
+
 private:
+	void CreateHurtbox(ASoulCharacterEnemy* Enemy);
+	void DrawHurtbox() const;
 	ASoulCharacterEnemy* GetEnemy() const;
 	void HandleDied(AActor* DeadActor);
 	void HandleHealthChanged(const FOnAttributeChangeData& Data);
@@ -162,4 +197,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> ToughMID;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UCapsuleComponent> Hurtbox;
+
+	FTimerHandle HurtboxDebugTimer;
 };

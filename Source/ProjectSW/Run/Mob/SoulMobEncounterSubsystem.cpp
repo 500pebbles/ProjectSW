@@ -143,6 +143,18 @@ void USoulMobEncounterSubsystem::BeginFloor(const FSoulMobFloorRules& InRules, c
 		{
 			AddPoint(Rules.BossSpawnLocal, Rules.BossSpawnYaw, BossSet);
 			++BossPoints;
+			// 보스 몹 BP의 SpawnClearRadius: 입장 전(층 생성 중, 커튼 뒤)에 스폰 포인트 발밑 소품을 정리한다
+			const FVector Point = RoomActor->GetActorTransform().TransformPosition(Rules.BossSpawnLocal);
+			for (const TSubclassOf<ASoulCharacterEnemy>& BossClass : BossSet->GetEnemyClasses())
+			{
+				const USoulMobComponent* Defaults = BossClass ? USoulMobComponent::FindDefaults(BossClass) : nullptr;
+				if (!Defaults || Defaults->GetSpawnClearRadius() <= 0.f)
+					continue;
+				const ACharacter* BossDefaults = BossClass->GetDefaultObject<ACharacter>();
+				const float HalfHeight = BossDefaults && BossDefaults->GetCapsuleComponent() ? BossDefaults->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.f;
+				const int32 Cleared = USoulMobComponent::ClearRoomProps(RoomActor, Point, Point.Z - HalfHeight, Defaults->GetSpawnClearRadius(), Defaults->GetSpawnClearMeshes());
+				SW_LOG("[ENC] floor=%d boss room clear %s room=%s radius=%.0f cleared=%d", Floor, *BossClass->GetName(), *RoomActor->GetName(), Defaults->GetSpawnClearRadius(), Cleared);
+			}
 			continue;
 		}
 
