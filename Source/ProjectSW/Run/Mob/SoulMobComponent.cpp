@@ -14,8 +14,20 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "BrainComponent.h"
+#include "Components/AudioComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Components/LightComponent.h"
+#include "Components/ShapeComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "DrawDebugHelpers.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/InheritableComponentHandler.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/StaticMesh.h"
+#include "HAL/IConsoleManager.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Components/WidgetComponent.h"
 #include "Engine/World.h"
@@ -107,6 +119,11 @@ void USoulMobComponent::BeginPlay()
 		return;
 
 	Enemy->OnDied.AddUObject(this, &ThisClass::HandleDied);
+
+	if (HurtboxRadius > 0.f)
+	{
+		CreateHurtbox(Enemy);
+	}
 
 	UAbilitySystemComponent* ASC = Enemy->GetAbilitySystemComponent();
 	if (ASC && bBlockHitReact)
@@ -223,6 +240,127 @@ void USoulMobComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		World->GetTimerManager().ClearAllTimersForObject(this);
 	}
 	Super::EndPlay(EndPlayReason);
+}
+
+void USoulMobComponent::CreateHurtbox(ASoulCharacterEnemy* Enemy)
+{
+	// 맞는 판정만: 플레이어 칼날 스윕(MeleeTrace, Pawn 오브젝트 타입)과 겹침 판정(GetActorsWithinRadius, 동적 오브젝트 타입)은
+	// 오브젝트 타입만 보므로 Pawn 타입 + 쿼리만 + 모든 채널 무시면 공격에는 잡히고 이동, 카메라, 채널 트레이스, 겹침 이벤트에는 안 잡힌다
+	Hurtbox = NewObject<UCapsuleComponent>(Enemy, TEXT("SoulHurtbox"));
+	Hurtbox->SetupAttachment(Enemy->GetRootComponent());
+	Hurtbox->SetRelativeLocation(HurtboxOffset);
+	Hurtbox->InitCapsuleSize(HurtboxRadius, FMath::Max(HurtboxHalfHeight, HurtboxRadius));
+	Hurtbox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	Hurtbox->SetCollisionObjectType(ECC_Pawn);
+	Hurtbox->SetCollisionResponseToAllChannels(ECR_Ignore);
+	Hurtbox->SetGenerateOverlapEvents(false);
+	Hurtbox->SetCanEverAffectNavigation(false);
+	Hurtbox->CanCharacterStepUpOn = ECB_No;
+	Hurtbox->RegisterComponent();
+	SW_LOG("[MOB] hurtbox %s r=%.0f hh=%.0f", *Enemy->GetName(), Hurtbox->GetScaledCapsuleRadius(), Hurtbox->GetScaledCapsuleHalfHeight());
+
+#if !UE_BUILD_SHIPPING
+	GetWorld()->GetTimerManager().SetTimer(HurtboxDebugTimer, FTimerDelegate::CreateUObject(this, &ThisClass::DrawHurtbox), 0.1f, true);
+#endif
+}
+
+void USoulMobComponent::DrawHurtbox() const
+{
+#if !UE_BUILD_SHIPPING
+	static const IConsoleVariable* DebugHit = IConsoleManager::Get().FindConsoleVariable(TEXT("soul.Mob.DebugHit"));
+	if (!Hurtbox || !DebugHit || DebugHit->GetInt() == 0)
+		return;
+	DrawDebugCapsule(GetWorld(), Hurtbox->GetComponentLocation(), Hurtbox->GetScaledCapsuleHalfHeight(), Hurtbox->GetScaledCapsuleRadius(),
+		Hurtbox->GetComponentQuat(), FColor::Yellow, false, 0.11f);
+#endif
+}
+
+const USoulMobComponent* USoulMobComponent::FindDefaults(const UClass* EnemyClass)
+{
+	// BP에서 SCS로 붙인 컴포넌트라 CDO에는 없다. 아래 BP부터 올라가며 덮어쓴 템플릿(ICH)과 SCS 템플릿을 찾는다
+	const USoulMobComponent* Found = nullptr;
+	UBlueprintGeneratedClass::ForEachGeneratedClassInHierarchy(EnemyClass, [&Found](const UBlueprintGeneratedClass* Class)
+	{
+		if (UInheritableComponentHandler* Overrides = const_cast<UBlueprintGeneratedClass*>(Class)->GetInheritableComponentHandler(false))
+		{
+			TArray<UActorComponent*> Templates;
+			Overrides->GetAllTemplates(Templates);
+			for (UActorComponent* Template : Templates)
+			{
+				if (const USoulMobComponent* Mob = Cast<USoulMobComponent>(Template))
+				{
+					Found = Mob;
+					return false;
+				}
+			}
+		}
+		if (Class->SimpleConstructionScript)
+		{
+			for (const USCS_Node* Node : Class->SimpleConstructionScript->GetAllNodes())
+			{
+				if (const USoulMobComponent* Mob = Node ? Cast<USoulMobComponent>(Node->ComponentTemplate) : nullptr)
+				{
+					Found = Mob;
+					return false;
+				}
+			}
+		}
+		return true;
+	});
+	return Found;
+}
+
+int32 USoulMobComponent::ClearRoomProps(AActor* Room, const FVector& Center, float FloorZ, float Radius, const TArray<TObjectPtr<UStaticMesh>>& Meshes)
+{
+	// 방 액터에서 지정 메시는 숨기고, 효과, 조명, 소리는 끈다 (수평 Radius 안, 바닥에서 3m 아래)
+	if (!Room || Radius <= 0.f)
+		return 0;
+	const float MaxHeight = 300.f;
+	auto Near = [&](const FVector& Location) { return FVector::Dist2D(Location, Center) < Radius && Location.Z - FloorZ < MaxHeight; };
+	auto IsClearMesh = [&Meshes](const UStaticMesh* Mesh) { return Mesh && Meshes.Contains(Mesh); };
+
+	int32 Cleared = 0;
+	TArray<USceneComponent*> Components;
+	Room->GetComponents(Components);
+	for (USceneComponent* Component : Components)
+	{
+		if (!Component || Component == Room->GetRootComponent() || Component->IsA<UShapeComponent>())
+			continue;
+		if (UInstancedStaticMeshComponent* Instances = Cast<UInstancedStaticMeshComponent>(Component))
+		{
+			if (!IsClearMesh(Instances->GetStaticMesh()))
+				continue;
+			for (int32 Index = Instances->GetInstanceCount() - 1; Index >= 0; --Index)
+			{
+				FTransform Transform;
+				Instances->GetInstanceTransform(Index, Transform, true);
+				if (Near(Transform.GetLocation()) && Instances->RemoveInstance(Index))
+				{
+					++Cleared;
+				}
+			}
+			continue;
+		}
+		if (!Near(Component->GetComponentLocation()))
+			continue;
+		UStaticMeshComponent* Mesh = Cast<UStaticMeshComponent>(Component);
+		if (Mesh && !IsClearMesh(Mesh->GetStaticMesh()))
+			continue;
+		if (!Mesh && !Component->IsA<UFXSystemComponent>() && !Component->IsA<ULightComponent>() && !Component->IsA<UAudioComponent>())
+			continue;
+		if (UAudioComponent* Audio = Cast<UAudioComponent>(Component))
+		{
+			Audio->Stop();
+		}
+		if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
+		{
+			Primitive->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
+		Component->Deactivate();
+		Component->SetVisibility(false);
+		++Cleared;
+	}
+	return Cleared;
 }
 
 void USoulMobComponent::FinishSpawn()
@@ -390,6 +528,12 @@ void USoulMobComponent::HandleDied(AActor* DeadActor)
 		// 로그가 꺼진 빌드에서도 떼도록 로그 인자 밖에서 부른다
 		const int32 Removed = ApplyToughOverlay(false);
 		SW_LOG("[MOB] tough overlay off %s meshes=%d", *Enemy->GetName(), Removed);
+	}
+
+	if (Hurtbox)
+	{
+		Hurtbox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		GetWorld()->GetTimerManager().ClearTimer(HurtboxDebugTimer);
 	}
 
 	if (!bRagdollOnDeath)

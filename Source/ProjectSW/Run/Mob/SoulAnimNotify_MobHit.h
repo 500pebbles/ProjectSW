@@ -5,6 +5,7 @@
 #include "SoulAnimNotify_MobHit.generated.h"
 
 class ASoulMobProjectile;
+class UCameraShakeBase;
 
 /**
  * 몹 공격 판정 시점. 몽타주 편집기에서 끌어 시각을 맞추고, 프리뷰에 판정 구가 보인다.
@@ -44,4 +45,22 @@ public:
 	/** 비어 있으면 근접 판정. 있으면 판정 원점에서 대상 쪽으로 이 탄을 쏜다 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit")
 	TSubclassOf<ASoulMobProjectile> ProjectileClass;
+
+	/** 타격 순간 화면 흔들림 (보스 광역기 등). 비우면 없음. 플레이어가 맞지 않아도 판정 원점과의 거리로 세기를 줄여 흔든다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shake")
+	TSubclassOf<UCameraShakeBase> CameraShake;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shake", meta = (ClampMin = "0"))
+	float ShakeScale = 1.f;
+
+	/** 판정 원점에서 이 거리 안이면 최대 세기 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shake", meta = (ClampMin = "0", Units = "cm"))
+	float ShakeInnerRadius = 0.f;
+
+	/** 이 거리에서 세기가 0이 된다. 안쪽과 바깥 반경이 둘 다 0이면 거리와 상관없이 최대 세기 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shake", meta = (ClampMin = "0", Units = "cm"))
+	float ShakeOuterRadius = 0.f;
+
+private:
+	void PlayShake(UWorld* World, const FVector& Epicenter, const AActor* Owner, const UAnimSequenceBase* Animation) const;
 };
