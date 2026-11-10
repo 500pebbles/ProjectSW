@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GAS/Core/SoulAbilitySystemComponent.h"
+#include "Item/CharacterEquipmentComponent.h"
 #include "Player/SoulPlayerController.h"
 #include "Player/SoulPlayerState.h"
 #include "UI/HUD/SoulHUD.h"
@@ -15,6 +16,8 @@ ASoulCharacterPlayer::ASoulCharacterPlayer()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	SpringArm->SetupAttachment(RootComponent);
 	Camera->SetupAttachment(SpringArm);
+	
+	CharacterEquipment = CreateDefaultSubobject<UCharacterEquipmentComponent>(TEXT("CharacterEquipment"));
 }
 
 void ASoulCharacterPlayer::BeginPlay()
