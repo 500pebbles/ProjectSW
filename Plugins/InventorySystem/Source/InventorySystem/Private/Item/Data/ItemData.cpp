@@ -7,6 +7,17 @@
 void UItemData::Initialize(const FDataTableRowHandle& InRowHandle)
 {
 	ItemRowHandle = InRowHandle;
+	
+	// 장비 아이템은 최초 초기화 시 레벨 제한을 무작위로 결정
+	const FItemDataTable* Row = GetRow();
+	if (Row && Row->ItemType == EItemType::Equipment)
+	{
+		// 테이블 입력 실수(Min > Max, 0 이하)를 방어
+		const int32 MinLevel = FMath::Max(1, Row->LevelLimitMin);
+		const int32 MaxLevel = FMath::Max(MinLevel, Row->LevelLimitMax);
+		
+		LevelLimit = FMath::RandRange(MinLevel, MaxLevel);
+	}
 }
 
 bool UItemData::UseItem(AActor* User)
@@ -70,6 +81,34 @@ bool UItemData::IsConsumedOnUse() const
 	return CachedUseDefinition && CachedUseDefinition->bIsConsumable;
 }
 
+float UItemData::ScaleEffectValue(float BaseValue) const
+{
+	if (LevelLimit <= 1)
+	{
+		return BaseValue;
+	}
+	
+	const FItemDataTable* Row = GetRow();
+	const float ScalePerLevel = Row ? Row->StatScalePerLevel : 0.0f;
+	
+	return BaseValue * (1.0f + static_cast<float>(LevelLimit - 1) * ScalePerLevel);
+}
+
+FText UItemData::FormatScaledText(const FText& Source, const FItemDataTable& Row) const
+{
+	if (Row.DescriptionValues.IsEmpty())
+	{
+		return Source;
+	}
+
+	FFormatOrderedArguments Args;
+	for (const float BaseValue : Row.DescriptionValues)
+	{
+		Args.Add(FText::AsNumber(FMath::RoundToInt(ScaleEffectValue(BaseValue))));
+	}
+	return FText::Format(Source, Args);
+}
+
 const FItemDataTable* UItemData::GetRow() const
 {
 	return ItemRowHandle.GetRow<FItemDataTable>(TEXT("UITemData::GetItemData"));
@@ -120,7 +159,7 @@ FText UItemData::GetItemDescription() const
 		return FText::GetEmpty();
 	}
 	
-	return ItemData->ItemDescription;
+	return FormatScaledText(ItemData->ItemDescription, *ItemData);
 }
 
 FText UItemData::GetItemEffectDescription() const
@@ -132,7 +171,7 @@ FText UItemData::GetItemEffectDescription() const
 		return FText::GetEmpty();
 	}
 	
-	return ItemData->ItemEffectDescription;
+	return FormatScaledText(ItemData->ItemEffectDescription, *ItemData);
 }
 
 FIntPoint UItemData::GetItemSize() const

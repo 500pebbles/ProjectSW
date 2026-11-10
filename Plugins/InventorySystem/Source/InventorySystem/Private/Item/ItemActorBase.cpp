@@ -33,6 +33,15 @@ void AItemActorBase::SetupItem(const FDataTableRowHandle& InRow)
 	}
 }
 
+void AItemActorBase::SetupItem(UItemData* InItem)
+{
+	if (ItemComponent)
+	{
+		// 행 정보와 인스턴스를 함께 이어받는다. 이후 BeginPlay의 InitItemData는 건너뛴다.
+		ItemComponent->SetItemData(InItem);
+	}
+}
+
 // Called when the game starts or when spawned
 void AItemActorBase::BeginPlay()
 {

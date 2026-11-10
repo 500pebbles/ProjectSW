@@ -73,7 +73,7 @@ public:
 	
 private:
 	// 아이템 버렸을 때 월드에 생성하는 함수
-	bool SpawnDroppedItem(const FDataTableRowHandle& InItemRow);
+	bool SpawnDroppedItem(UItemData* InItem);
 	
 	FTransform CalculateDropPosition(const AActor& OwnerActor) const;
 	

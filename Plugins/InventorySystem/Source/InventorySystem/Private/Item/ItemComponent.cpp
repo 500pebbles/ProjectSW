@@ -24,6 +24,11 @@ void UItemComponent::BeginPlay()
 
 void UItemComponent::InitItemData()
 {
+	if (ItemData)
+	{
+		return;
+	}
+	
 	if (ItemRow.IsNull())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("%s: ItemRow가 비어 있음"), *GetNameSafe(GetOwner()));
@@ -32,5 +37,16 @@ void UItemComponent::InitItemData()
 	
 	ItemData = NewObject<UItemData>(this);
 	ItemData->Initialize(ItemRow);
+}
+
+void UItemComponent::SetItemData(UItemData* InItemData)
+{
+	if (!IsValid(InItemData))
+	{
+		return;
+	}
+	
+	ItemData = InItemData;
+	ItemRow = InItemData->GetRowHandle();   // 이후 AItemActorBase::BeginPlay에서 메시/머티리얼 적용에 사용
 }
 

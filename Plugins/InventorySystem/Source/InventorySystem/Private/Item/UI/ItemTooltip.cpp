@@ -31,6 +31,23 @@ void UItemTooltip::InitItemTooltip(UItemData* InItemData)
 	Text_ItemName->SetText(InItemData->GetItemName());
 	Text_ItemDescription->SetText(InItemData->GetItemDescription());
 	Text_ItemEffect->SetText(InItemData->GetItemEffectDescription()); 
+	
+	if (Text_LevelLimit)
+	{
+		// 장비가 아니면 LevelLimit이 0이라 숨김
+		const int32 LevelLimit = InItemData->GetLevelLimit();
+		if (LevelLimit > 0)
+		{
+			Text_LevelLimit->SetText(FText::Format(
+				NSLOCTEXT("ItemTooltip", "LevelLimit", "Lv. {0}"), FText::AsNumber(LevelLimit)));
+			Text_LevelLimit->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+		else
+		{
+			Text_LevelLimit->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+	
 	bIsSet = true;
 }
 
