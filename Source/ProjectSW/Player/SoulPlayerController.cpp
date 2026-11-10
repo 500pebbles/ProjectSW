@@ -50,6 +50,7 @@ void ASoulPlayerController::SetupInputComponent()
 	EnhancedInputComponent->BindAction(HoverMouseAction, ETriggerEvent::Started, this, &ThisClass::HoverMouse);
 	EnhancedInputComponent->BindAction(HoverMouseAction, ETriggerEvent::Completed, this, &ThisClass::StopHoverMouse);
 	EnhancedInputComponent->BindAction(TabAction, ETriggerEvent::Started, this, &ThisClass::ShowStatus);
+	EnhancedInputComponent->BindAction(QuitAction, ETriggerEvent::Started, this, &ThisClass::QuitMenu);
 	EnhancedInputComponent->BindAbilityActions(InputConfig, this, &ThisClass::AbilityInputTagPressed, &ThisClass::AbilityInputTagReleased, &ThisClass::AbilityInputTagHeld);
 
 	if (MapAction)
@@ -134,6 +135,27 @@ void ASoulPlayerController::StopHoverMouse()
 	bShowMouseCursor = false;
 
 	FInputModeGameOnly InputMode;
+	SetInputMode(InputMode);
+}
+
+void ASoulPlayerController::QuitMenu()
+{
+	if (!IsValid(QuitMenuWidget))
+	{
+		if (!QuitMenuWidgetClass) return;
+		QuitMenuWidget = CreateWidget<UUserWidget>(this, QuitMenuWidgetClass);		
+	}
+	if (!IsValid(QuitMenuWidget)) return;
+
+	QuitMenuWidget->AddToViewport();
+
+	// 마우스 커서 표시
+	bShowMouseCursor = true;
+
+	// UI 입력 모드
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(QuitMenuWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(InputMode);
 }
 
@@ -232,7 +254,7 @@ void ASoulPlayerController::SetMoveSpeedMultiplier(float Multiplier)
 
 void ASoulPlayerController::RefreshMoveSpeed()
 {
-	// 대시 키 상태에 따라 걷기 또는 질주 속도에 의상 배율을 곱한다
+	// 대시 키 상태에 따라 걷기 또는 질주 속도에 의상 배율을  곱한다
 	if (ACharacter* ControlledCharacter = GetCharacter())
 	{
 		if (UCharacterMovementComponent* MoveComp = ControlledCharacter->GetCharacterMovement())

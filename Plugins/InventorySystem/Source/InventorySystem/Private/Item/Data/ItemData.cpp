@@ -94,6 +94,17 @@ float UItemData::ScaleEffectValue(float BaseValue) const
 	return BaseValue * (1.0f + static_cast<float>(LevelLimit - 1) * ScalePerLevel);
 }
 
+float UItemData::GetScaledEffectValue(int32 Index) const
+{
+	const FItemDataTable* Row = GetRow();
+	if (!Row || !Row->DescriptionValues.IsValidIndex(Index))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s: DescriptionValues[%d] 없음"), *GetNameSafe(this), Index);
+		return 0.0f;
+	}
+	return ScaleEffectValue(Row->DescriptionValues[Index]);
+}
+
 FText UItemData::FormatScaledText(const FText& Source, const FItemDataTable& Row) const
 {
 	if (Row.DescriptionValues.IsEmpty())

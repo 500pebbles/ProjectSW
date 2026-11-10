@@ -63,7 +63,7 @@ public:
 	UAttributeMenuWidgetController* GetAttributeMenuWidgetController(const FWidgetControllerParams& WCParams);
 	
 	void ToggleAttributeMenuWidget();
-	
+
 protected:
 	UPROPERTY()
 	TObjectPtr<USoulUserWidget> AttributeMenuWidget;

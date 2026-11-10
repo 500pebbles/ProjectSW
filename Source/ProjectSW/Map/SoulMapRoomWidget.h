@@ -8,6 +8,7 @@
 #include "SoulMapRoomWidget.generated.h"
 
 class UButton;
+class USoundBase;
 
 /**
  * 
@@ -36,6 +37,12 @@ private:
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Setup")
 	TMap<FName, TObjectPtr<UTexture2D>> RoomTypeIcons;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	float FadeTime = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Setup")
+	TObjectPtr<USoundBase> TeleportSound;
 
 private:
 	UPROPERTY(meta = (BindWidget))
