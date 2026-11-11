@@ -6,6 +6,7 @@
 #include "Runtime/Engine/Classes/GameFramework/Actor.h"
 #include "ItemActorBase.generated.h"
 
+class UPointLightComponent;
 class UItemData;
 class UItemComponent;
 class UItemStaticMeshComponent;
@@ -42,6 +43,10 @@ private:
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Item")
 	TObjectPtr<USceneComponent> SceneRoot;
+	
+	// 아이템 위치를 쉽게 알 수 있도록 빛기둥 표현
+	UPROPERTY(VisibleAnywhere, Category = "Item")
+	TObjectPtr<UPointLightComponent> Glow;
 
 	UPROPERTY(VisibleAnywhere, Category = "Item")
 	TObjectPtr<UItemStaticMeshComponent> ItemMeshComponent;

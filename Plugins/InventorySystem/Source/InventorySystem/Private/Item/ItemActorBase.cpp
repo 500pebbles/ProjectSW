@@ -2,6 +2,7 @@
 
 #include "Item/ItemActorBase.h"
 
+#include "Components/PointLightComponent.h"
 #include "Item/ItemComponent.h"
 #include "Item/ItemStaticMeshComponent.h"
 #include "Item/Data/ItemData.h"
@@ -14,6 +15,11 @@ AItemActorBase::AItemActorBase()
 	
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
+	
+	Glow = CreateDefaultSubobject<UPointLightComponent>(TEXT("Glow"));
+	Glow->SetupAttachment(SceneRoot);
+	Glow->Intensity = 800.0f;
+	Glow->SetCastShadows(false);
 
 	ItemMeshComponent = CreateDefaultSubobject<UItemStaticMeshComponent>(TEXT("ItemMesh"));
 	ItemMeshComponent->SetupAttachment(SceneRoot);
