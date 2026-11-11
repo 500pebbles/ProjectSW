@@ -262,6 +262,8 @@ void USoulEquipmentComponent::EquipCostume(USoulCostumeDefinition* Costume, bool
 		if (Character && WeakCostume.IsValid() && WeakCostume->BodyMesh)
 		{
 			Character->GetMesh()->SetSkeletalMeshAsset(WeakCostume->BodyMesh);
+			// 메시만 바꾸면 의상 물리(KawaiiPhysics 등 애님 동역학)가 다시 초기화되지 않아 새 의상의 머리카락·치마가 멈춰 있거나 옛 자리에서 튄다
+			Character->GetMesh()->ResetAnimInstanceDynamics(ETeleportType::ResetPhysics);
 		}
 	};
 	const float MeshSwapDelay = RunCatalog ? RunCatalog->MeshSwapDelay : 0.f;
