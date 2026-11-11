@@ -28,6 +28,9 @@ ASoulCharacterEnemy::ASoulCharacterEnemy()
 	HealthBar = CreateDefaultSubobject<UWidgetComponent>("HealthBar");
 	HealthBar->SetupAttachment(GetRootComponent());
 	
+	Weakness = CreateDefaultSubobject<UWidgetComponent>("Weakness");
+	Weakness->SetupAttachment(HealthBar);
+	
 	// Movement Setup.
 	GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed;
 
@@ -45,6 +48,10 @@ void ASoulCharacterEnemy::BeginPlay()
 	// Setup WidgetController. 
 	USoulUserWidget* SoulUserWidget = Cast<USoulUserWidget>(HealthBar->GetUserWidgetObject());
 	if (SoulUserWidget) SoulUserWidget->SetWidgetController(this);		
+	
+	USoulUserWidget* SoulWidget = Cast<USoulUserWidget>(Weakness->GetUserWidgetObject());
+	if (SoulWidget) SoulWidget->SetWidgetController(this);		
+	
 	
 	// Attribute 변경에 따른 감지 & 콜백 바인딩
 	const USoulAttributeSet* AS = CastChecked<USoulAttributeSet>(AttributeSet);
@@ -105,6 +112,8 @@ void ASoulCharacterEnemy::Die()
 	UBehaviorTreeComponent* BTComponent = Cast<UBehaviorTreeComponent>(AIController->BrainComponent);
 	if (!IsValid(BTComponent)) return;	
 	BTComponent->StopTree();
+	
+	Weakness->SetVisibility(false);
 	
 	SetLifeSpan(10.f);	
 }
