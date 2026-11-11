@@ -96,6 +96,12 @@ public:
 	const FSoulLoadingEntry* FindLoading(FName Id) const;
 	const FSoulBossIntro* FindBossIntro(const UObject* Boss) const;
 
+	/** Floor 층(1부터) 던전 배경음. 층별 칸이 비어 있으면 DungeonBgm */
+	USoundBase* GetDungeonBgm(int32 Floor) const;
+
+	/** Floor 층(1부터) 보스 배경음. 층별 칸이 비어 있으면 BossBgm */
+	USoundBase* GetBossBgm(int32 Floor) const;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Loading")
 	TArray<FSoulLoadingEntry> LoadingEntries;
 
@@ -171,17 +177,25 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
 	int32 MapKeyHintZOrder = 5;
 
-	/** 배경음 (D39). 마을에 들어오면. 비우면 조용히. 지금은 합성 드론 임시 SW_BGM_*_Temp라 파일을 받으면 이 칸만 바꾼다 */
+	/** 배경음 (D39). 마을에 들어오면. 비우면 조용히 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BGM")
 	TObjectPtr<USoundBase> TownBgm;
 
-	/** 던전 층이 준비되면 */
+	/** 던전 층이 준비되면. DungeonBgmByFloor에 그 층 칸이 없거나 비어 있을 때 쓴다 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BGM")
 	TObjectPtr<USoundBase> DungeonBgm;
 
-	/** 보스 인트로가 끝나면 (인트로 동안과 보스 처치 뒤에는 멈춤) */
+	/** 층별 던전 배경음. 0번이 1층 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BGM")
+	TArray<TObjectPtr<USoundBase>> DungeonBgmByFloor;
+
+	/** 보스 인트로가 끝나면 (인트로 동안과 보스 처치 뒤에는 멈춤). BossBgmByFloor에 그 층 칸이 없거나 비어 있을 때 쓴다 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BGM")
 	TObjectPtr<USoundBase> BossBgm;
+
+	/** 층별 보스 배경음. 0번이 1층 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BGM")
+	TArray<TObjectPtr<USoundBase>> BossBgmByFloor;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "BGM", meta = (ClampMin = "0", ClampMax = "2"))
 	float BgmVolume = 0.5f;

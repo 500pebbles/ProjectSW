@@ -38,8 +38,34 @@
 
 USoulMobComponent::USoulMobComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	// 틱은 제자리 몹 회전(TurnRate)에만 쓴다. BeginPlay에서 TurnRate가 있을 때만 켠다
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 	bWantsInitializeComponent = true;
+}
+
+void USoulMobComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	// 제자리 몹: 공격, 등장, 인트로 같은 몽타주가 없을 때만 플레이어 쪽으로 TurnRate(도/초)로 돈다
+	ASoulCharacterEnemy* Enemy = GetEnemy();
+	if (!Enemy || bDead || TurnRate <= 0.f)
+		return;
+	if (const UAnimInstance* AnimInstance = Enemy->GetMesh()->GetAnimInstance(); AnimInstance && AnimInstance->IsAnyMontagePlaying())
+		return;
+	const APawn* Target = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Target || (Target->Implements<USoulCombatInterface>() && ISoulCombatInterface::Execute_IsDead(Target)))
+		return;
+	const FVector ToTarget = (Target->GetActorLocation() - Enemy->GetActorLocation()).GetSafeNormal2D();
+	if (ToTarget.IsNearlyZero())
+		return;
+	const FRotator Current = Enemy->GetActorRotation();
+	const float NewYaw = FMath::FixedTurn(Current.Yaw, ToTarget.Rotation().Yaw, TurnRate * DeltaTime);
+	if (!FMath::IsNearlyEqual(NewYaw, Current.Yaw))
+	{
+		Enemy->SetActorRotation(FRotator(0.f, NewYaw, 0.f));
+	}
 }
 
 USoulMobComponent* USoulMobComponent::Find(const AActor* Actor)
@@ -124,6 +150,7 @@ void USoulMobComponent::BeginPlay()
 	{
 		CreateHurtbox(Enemy);
 	}
+	SetComponentTickEnabled(bStationary && TurnRate > 0.f);
 
 	UAbilitySystemComponent* ASC = Enemy->GetAbilitySystemComponent();
 	if (ASC && bBlockHitReact)

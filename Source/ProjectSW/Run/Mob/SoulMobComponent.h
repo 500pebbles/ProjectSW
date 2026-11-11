@@ -97,6 +97,7 @@ protected:
 	virtual void InitializeComponent() override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob")
 	ESoulMobRole Role = ESoulMobRole::Normal;
@@ -132,6 +133,10 @@ protected:
 	/** 켜면 제자리 몹 (NavMesh 보정과 구제 대상에서 빠진다) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob")
 	bool bStationary = false;
+
+	/** 제자리 몹이 몽타주(공격, 등장, 인트로)가 없을 때 플레이어 쪽으로 도는 속도. 0이면 처음 방향 그대로 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob", meta = (ClampMin = "0", Units = "deg", EditCondition = "bStationary"))
+	float TurnRate = 0.f;
 
 	/** 체력 임계 소환. 소환물은 방 전투 수에 들지 않고, 소환자가 죽으면 함께 사라진다 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mob")
