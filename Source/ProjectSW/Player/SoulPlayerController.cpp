@@ -271,6 +271,12 @@ FVector ASoulPlayerController::ConsumeAttackInputDirection()
 	return Direction;
 }
 
+float ASoulPlayerController::GetSprintAnimSpeedThreshold() const
+{
+	// 배율이 큰 의상은 걷기만 해도 고정 기준을 넘으므로 걷기와 질주 속도 사이로 잡는다
+	return (WalkSpeed + SprintSpeed) * 0.5f * MoveSpeedMultiplier;
+}
+
 FVector ASoulPlayerController::GetMoveInputDirection() const
 {
 	return MoveInputDirection;
