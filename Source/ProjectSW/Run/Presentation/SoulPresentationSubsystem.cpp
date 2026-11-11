@@ -3,6 +3,7 @@
 #include "Run/Presentation/SoulTransitionSubsystem.h"
 #include "Run/Core/SoulRunConfig.h"
 #include "Run/Core/SoulRunGameComponent.h"
+#include "Run/Flow/SoulFloorDirectorComponent.h"
 #include "Run/UI/SoulPresentationWidgets.h"
 #include "Run/UI/SoulKeyHintWidget.h"
 #include "Run/Progression/SoulLevelBarWidget.h"
@@ -32,6 +33,18 @@
 const FSoulLoadingEntry* USoulPresentationData::FindLoading(FName Id) const
 {
 	return LoadingEntries.FindByPredicate([Id](const FSoulLoadingEntry& Entry) { return Entry.Id == Id; });
+}
+
+USoundBase* USoulPresentationData::GetDungeonBgm(int32 Floor) const
+{
+	USoundBase* ByFloor = DungeonBgmByFloor.IsValidIndex(Floor - 1) ? DungeonBgmByFloor[Floor - 1].Get() : nullptr;
+	return ByFloor ? ByFloor : DungeonBgm.Get();
+}
+
+USoundBase* USoulPresentationData::GetBossBgm(int32 Floor) const
+{
+	USoundBase* ByFloor = BossBgmByFloor.IsValidIndex(Floor - 1) ? BossBgmByFloor[Floor - 1].Get() : nullptr;
+	return ByFloor ? ByFloor : BossBgm.Get();
 }
 
 const FSoulBossIntro* USoulPresentationData::FindBossIntro(const UObject* Boss) const
@@ -460,7 +473,9 @@ void USoulPresentationSubsystem::FinishIntro(bool bRestoreInput)
 	SetGameHudHidden(TEXT("Intro"), false);
 	if (bRestoreInput && GetData())
 	{
-		PlayBgm(GetData()->BossBgm);
+		// 런 층이 없으면(테스트 맵) 0층이라 공용 BossBgm
+		const USoulFloorDirectorComponent* Director = USoulFloorDirectorComponent::Get(this);
+		PlayBgm(GetData()->GetBossBgm(Director ? Director->GetCurrentFloor() : 0));
 	}
 	SetIntroStage(ESoulBossIntroStage::Finished);
 	SW_LOG("[PRES] boss intro done skipped=%d input=%d", bSkipped, PC && PC->InputEnabled());

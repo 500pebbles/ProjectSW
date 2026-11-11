@@ -527,7 +527,7 @@ void USoulFloorDirectorComponent::Reveal()
 	ShowMapKeyHint();
 	if (USoulPresentationSubsystem* Pres = USoulPresentationSubsystem::Get(this); Pres && Pres->GetData())
 	{
-		Pres->PlayBgm(Pres->GetData()->DungeonBgm);
+		Pres->PlayBgm(Pres->GetData()->GetDungeonBgm(GetCurrentFloor()));
 	}
 
 	LogFloorState(TEXT("Ready"));
