@@ -7,8 +7,8 @@
 #include "SoulMapWidget.generated.h"
 
 class UCanvasPanel;
+class UTextBlock;
 class USoulMapRoomWidget;
-
 class UButton;
 
 /**
@@ -40,6 +40,9 @@ private:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UCanvasPanel> RoomCanvas;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> CurrentFloorText;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TSubclassOf<USoulMapRoomWidget> RoomWidgetClass;
