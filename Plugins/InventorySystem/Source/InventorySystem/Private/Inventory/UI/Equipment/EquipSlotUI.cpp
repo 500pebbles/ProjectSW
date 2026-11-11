@@ -154,14 +154,7 @@ void UEquipSlotUI::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointe
 		return;
 	}
 	
-	if (!ItemTooltip)
-	{
-		ItemTooltip = CreateWidget<UItemTooltip>(GetOwningPlayer(), ItemTooltipClass);
-		ItemTooltip->InitItemTooltip(EquippedItem.Get());
-		ItemTooltip->SetAnchorsInViewport(FAnchors(0.f, 0.f));      // 점 앵커
-		ItemTooltip->SetAlignmentInViewport(FVector2D(0.f, 0.f));
-		ItemTooltip->AddToViewport(7);
-	}
+	UpdateTooltip(EquippedItem.Get());
 	
 	if (!ItemTooltip->GetIsSet())
 	{
@@ -205,6 +198,19 @@ void UEquipSlotUI::HandleDragCancelled(UDragDropOperation* Operation)
 	{
 		InventoryComponent->DropEquippedItem(SlotTag);
 	}
+}
+
+void UEquipSlotUI::UpdateTooltip(UItemData* Item)
+{
+	if (!ItemTooltip)
+	{
+		ItemTooltip = CreateWidget<UItemTooltip>(GetOwningPlayer(), ItemTooltipClass);
+		ItemTooltip->SetAnchorsInViewport(FAnchors(0.f, 0.f));      // 점 앵커
+		ItemTooltip->SetAlignmentInViewport(FVector2D(0.f, 0.f));
+		ItemTooltip->AddToViewport(7);
+	}
+	
+	ItemTooltip->InitItemTooltip(EquippedItem.Get());
 }
 
 void UEquipSlotUI::BindDelegates()
@@ -330,4 +336,5 @@ void UEquipSlotUI::HandleEquipmentChanged(FGameplayTag EquipmentTag, UItemData* 
 	}
 	
 	RefreshSlot(Item);
+	UpdateTooltip(Item);
 }

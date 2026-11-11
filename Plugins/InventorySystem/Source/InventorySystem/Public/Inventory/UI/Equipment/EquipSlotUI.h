@@ -63,6 +63,8 @@ private:
 	UFUNCTION()
 	void HandleDragCancelled(UDragDropOperation* Operation);
 	
+	void UpdateTooltip(UItemData* Item);
+	
 private:
 	// 해당 슬롯의 장비 슬롯 태그
 	UPROPERTY(EditAnywhere, Category="Equipment", meta=(Categories="Equipment.Slot"))
