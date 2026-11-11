@@ -23,7 +23,8 @@ class PROJECTSW_API USoulMobEncounterSubsystem : public UWorldSubsystem
 	GENERATED_BODY()
 
 public:
-	void BeginFloor(const FSoulMobFloorRules& InRules, const FPMGResult& Result, int32 InFloor, int32 Seed, float CellSize, const FVector& Origin);
+	/** bValidateNav: NavMesh 빌드가 끝났을 때 true. 후보를 문에서 걸어갈 수 있는 바닥 점만 남긴다 */
+	void BeginFloor(const FSoulMobFloorRules& InRules, const FPMGResult& Result, int32 InFloor, int32 Seed, float CellSize, const FVector& Origin, bool bValidateNav);
 	void EndFloor();
 
 	bool IsActive() const { return bActive; }
@@ -60,6 +61,27 @@ protected:
 private:
 	void RescueStuckMobs();
 	int32 FindRoomAt(const FVector& Location) const;
+
+	/** 이 방 문 하나를 방 안쪽으로 당겨 Nav에 붙인 점 (경로 검사 기준점). 문이 없거나 Nav에 붙지 않으면 false */
+	bool FindRoomAnchor(int32 RoomId, const FVector& RoomCenter, FVector& OutAnchor) const;
+
+	/** 후보(월드)를 Nav 바닥 점으로. 같은 방이고 Anchor에서 완전한 경로가 있을 때만 true */
+	bool FindSpawnSpot(int32 RoomId, const FVector& Candidate, const FVector& Anchor, FVector& OutFloor);
+
+	/** Center(실패한 후보) 주변을 반경을 늘려 가며 찾는다. 링마다 시작 각도는 Stream으로 정한다 */
+	bool FindNearbySpot(int32 RoomId, const FVector& Center, const FVector& Anchor, const TArray<FVector>& Accepted, FRandomStream& Stream, FVector& OutFloor);
+
+	/** 후보 검사 집계 (층 로그용). BeginFloor에서 초기화한다 */
+	struct FSpawnCheckStats
+	{
+		int32 Tested = 0;       // 검사한 후보 수
+		int32 NoNav = 0;        // 아래에 Nav 없음
+		int32 OtherRoom = 0;    // 투영점이 다른 방/복도
+		int32 Unreachable = 0;  // 문에서 못 감 (테이블 위, 감옥 안)
+		int32 NearbyFilled = 0; // 근처 검색으로 채운 수
+		int32 Short = 0;        // 끝내 못 채운 수
+	};
+	FSpawnCheckStats CheckStats;
 
 	FSoulMobFloorRules Rules;
 	FPMGResult MapResult;

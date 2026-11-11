@@ -109,7 +109,14 @@ void ASoulPackedLevelActor::StartCombat()
 		const TArray<TSubclassOf<ASoulCharacterEnemy>>& EnemyClasses = EnemySet->GetEnemyClasses();
 		const TSubclassOf<ASoulCharacterEnemy> EnemyClass = EnemyClasses[FMath::RandRange(0, EnemyClasses.Num() - 1)];
 
-		ASoulCharacterEnemy* Enemy = GetWorld()->SpawnActor<ASoulCharacterEnemy>(EnemyClass, SpawnPoint->GetComponentTransform(), SpawnParameters);
+		FTransform SpawnTransform = SpawnPoint->GetComponentTransform();
+		if (SpawnPoint->IsOnFloor())
+		{
+			const float HalfHeight = EnemyClass->GetDefaultObject<ASoulCharacterEnemy>()->GetDefaultHalfHeight();
+			SpawnTransform.AddToTranslation(FVector(0.0, 0.0, HalfHeight));
+		}
+
+		ASoulCharacterEnemy* Enemy = GetWorld()->SpawnActor<ASoulCharacterEnemy>(EnemyClass, SpawnTransform, SpawnParameters);
 
 		if (!Enemy)
 			continue;
