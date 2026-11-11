@@ -354,13 +354,8 @@ void USoulFloorDirectorComponent::HandleGenerationFinished(const FPMGResult& Res
 	{
 		Run->NotifyFloorGenerated(LastGeneratedSeed);
 	}
-	// 층 몹 배치: 방의 저작 포인트를 지우고 층 세트의 포인트를 만든다 (실제 스폰은 방 입장 때)
-	if (USoulMobEncounterSubsystem* Encounter = GetWorld()->GetSubsystem<USoulMobEncounterSubsystem>())
-	{
-		const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this);
-		const int32 Seed = (Run ? Run->GetState().RunSeed : 0) * 31 + CurrentFloorIndex + 1;
-		Encounter->BeginFloor(FlowData->Floors[CurrentFloorIndex].MobRules, Result, CurrentFloorIndex + 1, Seed, Builder->Settings->CellSize, Builder->GetActorLocation());
-	}
+	
+	// 몹 배치는 NavMesh 빌드 뒤 PollNavigation에서 한다 (후보를 Nav로 검사하기 때문)
 
 	// 이벤트 오브젝트, 상자, 지뢰 (폰은 아직 공중에 세워져 있다)
 	SpawnFloorObjects(Result);
@@ -473,6 +468,16 @@ void USoulFloorDirectorComponent::PollNavigation()
 
 	SW_LOG("[FLOOR] NavMesh wait=%.2fs building=%d", Waited, bBuilding);
 	bNavReady = true;
+
+	// 층 몹 배치: 방의 저작 포인트를 지우고, 문에서 걸어갈 수 있는 후보만 포인트로 만든다 (실제 스폰은 방 입장 때)
+	// Reveal의 ExitRoom->HasCombat()보다 먼저여야 한다
+	if (USoulMobEncounterSubsystem* Encounter = GetWorld()->GetSubsystem<USoulMobEncounterSubsystem>())
+	{
+		const USoulRunSubsystem* Run = USoulRunSubsystem::Get(this);
+		const int32 Seed = (Run ? Run->GetState().RunSeed : 0) * 31 + CurrentFloorIndex + 1;
+		Encounter->BeginFloor(FlowData->Floors[CurrentFloorIndex].MobRules, LastResult, CurrentFloorIndex + 1, Seed, GetCellSize(), GetBuilderOrigin(), !bBuilding);
+	}
+
 	TryReveal();
 }
 

@@ -20,7 +20,12 @@ public:
 	const USoulEnemySet* GetEnemySet() const { return EnemySet.Get(); }
 	void SetEnemySet(USoulEnemySet* InEnemySet) { EnemySet = InEnemySet; } // 런 층별 세트 주입
 
+	FORCEINLINE bool IsOnFloor() const { return bOnFloor; }
+	FORCEINLINE void SetOnFloor(bool bInOnFloor) { bOnFloor = bInOnFloor; }
+
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Setup")
 	TObjectPtr<USoulEnemySet> EnemySet;
+
+	bool bOnFloor = false;
 };
