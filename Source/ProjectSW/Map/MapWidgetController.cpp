@@ -7,6 +7,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Map/SoulMapSubsystem.h"
 #include "Map/SoulPackedLevelActor.h"
+#include "Run/Core/SoulRunSubsystem.h"
 
 static bool IsUsedRoom(const FPMGResultRoom& Room)
 {
@@ -120,6 +121,12 @@ TArray<FSoulMapDoorView> UMapWidgetController::GetDoorViews() const
 	}
 
 	return Views;
+}
+
+int32 UMapWidgetController::GetCurrentFloor() const
+{
+	const USoulRunSubsystem* Run = USoulRunSubsystem::Get(PlayerController);
+	return Run ? Run->GetState().Floor : 0;
 }
 
 const USoulMapSubsystem* UMapWidgetController::GetMapSubsystem() const

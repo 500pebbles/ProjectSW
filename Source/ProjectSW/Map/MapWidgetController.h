@@ -27,7 +27,7 @@ struct FSoulMapRoomView
 	int32 RoomId = INDEX_NONE;
 
 	UPROPERTY(BlueprintReadOnly)
-	FIntRect CellBounds;
+	FIntRect CellBounds; 
 
 	UPROPERTY(BlueprintReadOnly)
 	ESoulMapRoomState State = ESoulMapRoomState::Adjacent;
@@ -70,6 +70,8 @@ public:
 
 	TArray<FSoulMapRoomView> GetRoomViews() const;
 	TArray<FSoulMapDoorView> GetDoorViews() const;
+
+	int32 GetCurrentFloor() const;
 
 private:
 	const USoulMapSubsystem* GetMapSubsystem() const;

@@ -5,6 +5,7 @@
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/TextBlock.h"
 #include "Player/SoulPlayerController.h"
 #include "Map/MapWidgetController.h"
 #include "Map/SoulMapRoomWidget.h"
@@ -44,6 +45,8 @@ void USoulMapWidget::NativeConstruct()
 
 	if (!MapController || !RoomWidgetClass)
 		return;
+
+	CurrentFloorText->SetText(FText::Format(NSLOCTEXT("SoulMap", "FloorFormat", "B{0}F"), FText::AsNumber(MapController->GetCurrentFloor())));
 
 	FIntRect Used;
 
