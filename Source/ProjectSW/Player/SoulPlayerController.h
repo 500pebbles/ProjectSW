@@ -97,7 +97,11 @@ public:
 	/** 런 의상 이동 배율 (걷기와 달리기에 곱함, 기본 1이라 팀 폰은 그대로) */
 	void SetMoveSpeedMultiplier(float Multiplier);
 	void RefreshMoveSpeed();
-	
+
+	/** 걷기와 질주의 중간 속도 (의상 배율 반영). 애님 블루프린트가 질주 모션과 대시 정지 모션을 고르는 기준 */
+	UFUNCTION(BlueprintPure, Category = "Movement")
+	float GetSprintAnimSpeedThreshold() const;
+
 private:
 	FVector AttackInputDirection = FVector::ZeroVector;
 	FVector MoveInputDirection = FVector::ZeroVector;
