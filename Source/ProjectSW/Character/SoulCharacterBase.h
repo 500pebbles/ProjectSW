@@ -76,6 +76,7 @@ protected:
 public:
 	virtual AActor* GetAvatarActor_Implementation() override;
 	
+	UFUNCTION(BlueprintCallable)
 	virtual void Die() override;
 	
 	virtual bool IsDead_Implementation() const override;
