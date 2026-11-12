@@ -23,7 +23,10 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 	
 	virtual void OnRep_PlayerState() override;
-	
+
+	/** 순간이동 뒤 의상 물리(KawaiiPhysics 등 애님 동역학)를 새 자리 자세로 다시 잡는다 */
+	virtual bool TeleportTo(const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest = false, bool bNoCheck = false) override;
+
 /* GAS Section */
 protected:
 	virtual void InitAbilityActorInfo() override;
