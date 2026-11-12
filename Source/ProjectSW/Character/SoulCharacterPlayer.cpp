@@ -3,6 +3,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GAS/Core/SoulAbilitySystemComponent.h"
 #include "Item/CharacterEquipmentComponent.h"
@@ -41,6 +42,18 @@ void ASoulCharacterPlayer::OnRep_PlayerState()
 	Super::OnRep_PlayerState();
 	
 	InitAbilityActorInfo();
+}
+
+bool ASoulCharacterPlayer::TeleportTo(const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest, bool bNoCheck)
+{
+	const bool bMoved = Super::TeleportTo(DestLocation, DestRotation, bIsATest, bNoCheck);
+
+	// 층 이동 등은 bNoCheck로 옮겨 물리 리셋이 안 간다. 그대로 두면 이동 거리가 한 프레임 속도로 들어가 머리카락과 옷이 튄다
+	if (bMoved && !bIsATest && GetMesh())
+	{
+		GetMesh()->ResetAnimInstanceDynamics(ETeleportType::ResetPhysics);
+	}
+	return bMoved;
 }
 
 void ASoulCharacterPlayer::InitAbilityActorInfo()
